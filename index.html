@@ -30,65 +30,65 @@
     <div class="box">
         <h2>🚜 BGA Zähler</h2>
         
-        <label>Fahrer:</label>
-        <select id="fahrer">
-            <option>Nils</option>
-            <option>Lars</option>
-            <option>Lukian</option>
-            <option>Sergej</option>
-        </select>
+        <!-- Das Formular schickt die Daten direkt unsichtbar an Google -->
+        <form id="bgaForm" action="https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec" method="POST" target="hidden_iframe" onsubmit="fuhreAbgeschickt()">
+            
+            <input type="hidden" name="data" id="jsonData">
 
-        <label>Schlepper:</label>
-        <select id="fahrzeug">
-            <option>Valtra T215</option>
-            <option>Arion 650</option>
-            <option>Leihschlepper 1</option>
-            <option>Leihschlepper 2</option>
-        </select>
+            <label>Fahrer:</label>
+            <select id="fahrer" name="fahrer">
+                <option>Nils</option>
+                <option>Lars</option>
+                <option>Lukian</option>
+                <option>Sergej</option>
+            </select>
 
-        <label>Anhänger:</label>
-        <select id="anhaenger">
-            <option>Mulde</option>
-            <option>Häckselwagen</option>
-            <option>Güllefass</option>
-            <option>Ohne Anhänger</option>
-        </select>
+            <label>Schlepper:</label>
+            <select id="fahrzeug" name="fahrzeug">
+                <option>Valtra T215</option>
+                <option>Arion 650</option>
+                <option>Leihschlepper 1</option>
+                <option>Leihschlepper 2</option>
+            </select>
 
-        <label>Aktion:</label>
-        <select id="aktion">
-            <option>Ernte (Silomais)</option>
-            <option>Ernte (Gras)</option>
-            <option>Gärrest Ausbringung</option>
-        </select>
+            <label>Anhänger:</label>
+            <select id="anhaenger" name="anhaenger">
+                <option>Mulde</option>
+                <option>Häckselwagen</option>
+                <option>Güllefass</option>
+                <option>Ohne Anhänger</option>
+            </select>
 
-        <label>Volumen (m³):</label>
-        <input type="number" id="volumen" placeholder="z.B. 38" step="0.1">
+            <label>Aktion:</label>
+            <select id="aktion" name="aktion">
+                <option>Ernte (Silomais)</option>
+                <option>Ernte (Gras)</option>
+                <option>Gärrest Ausbringung</option>
+            </select>
 
-        <label>Gewicht (Tonnen pro m³):</label>
-        <input type="number" id="dichte" placeholder="z.B. 0.75" step="0.01">
-        <span class="info-text">Silomais ca. 0.65-0.75 | Gras ca. 0.35-0.45 | Gärrest ca. 1.0</span>
+            <label>Volumen (m³):</label>
+            <input type="number" id="volumen" placeholder="z.B. 38" step="0.1" required>
 
-        <button onclick="fuhreSenden()" id="btn">🚀 Fuhre eintragen!</button>
+            <label>Gewicht (Tonnen pro m³):</label>
+            <input type="number" id="dichte" placeholder="z.B. 0.75" step="0.01" required>
+            <span class="info-text">Silomais ca. 0.65-0.75 | Gras ca. 0.35-0.45 | Gärrest ca. 1.0</span>
+
+            <button type="submit" id="btn">🚀 Fuhre eintragen!</button>
+        </form>
+
         <div id="status"></div>
     </div>
 
-    <script>
-        // HIER DEINE APPS SCRIPT URL EINTRAGEN:
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
+    <!-- Unsichtbarer Rahmen, damit man nicht auf eine andere Seite weitergeleitet wird -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
-        function fuhreSenden() {
+    <script>
+        function fuhreAbgeschickt() {
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
-            
-            if (vol <= 0 || dich <= 0) {
-                alert("Bitte Volumen und Dichte eingeben!");
-                return;
-            }
-
-            document.getElementById("btn").innerText = "Wird gesendet...";
             let gesamt = (vol * dich).toFixed(2);
 
-            const data = {
+            let payload = {
                 datum: new Date().toLocaleDateString('de-DE'),
                 uhrzeit: new Date().toLocaleTimeString('de-DE'),
                 fahrer: document.getElementById("fahrer").value,
@@ -100,20 +100,14 @@
                 gesamtgewicht: gesamt
             };
 
-            // Hier nutzen wir sendBeacon oder einen simplen fetch, der sofort feuert
-            fetch(APPS_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify(data)
-            });
+            // Packt alles sauber als JSON in ein einziges Formularfeld
+            document.getElementById("jsonData").value = JSON.stringify(payload);
 
-            // Da no-cors keine Antwort liefert, bestätigen wir es direkt visuell für den Fahrer
+            // Zeigt sofort die Bestätigung an
             setTimeout(() => {
                 document.getElementById("status").innerText = "✅ " + gesamt + "t erfolgreich eingetragen!";
-                document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
-                document.getElementById("volumen").value = ""; // Feld leeren
-                setTimeout(() => { document.getElementById("status": "" ), 4000; }, 4000);
+                document.getElementById("volumen").value = "";
+                setTimeout(() => { document.getElementById("status").innerText = ""; }, 4000);
             }, 500);
         }
     </script>
