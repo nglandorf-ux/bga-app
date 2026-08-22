@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BGA Fuhrenzähler</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; color: #333; }
+        h2 { text-align: center; }
+        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        select, input, button { width: 100%; padding: 15px; margin-top: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; font-weight: bold; border: none; margin-top: 20px; }
+        button:active { background-color: #218838; }
+        #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
+        .info-text { font-size: 12px; color: #666; margin-top: -5px; margin-bottom: 10px; display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h2>🚜 BGA Zähler</h2>
+        
+        <label>Fahrer:</label>
+        <select id="fahrer">
+            <option>Nils</option>
+            <option>Lars</option>
+            <option>Lukian</option>
+            <option>Sergej</option>
+        </select>
+
+        <label>Schlepper:</label>
+        <select id="fahrzeug">
+            <option>Valtra T215</option>
+            <option>Arion 650</option>
+            <option>Leihschlepper 1</option>
+            <option>Leihschlepper 2</option>
+        </select>
+
+        <label>Anhänger:</label>
+        <select id="anhaenger">
+            <option>Mulde</option>
+            <option>Häckselwagen</option>
+            <option>Güllefass</option>
+            <option>Ohne Anhänger</option>
+        </select>
+
+        <label>Aktion:</label>
+        <select id="aktion">
+            <option>Ernte (Silomais)</option>
+            <option>Ernte (Gras)</option>
+            <option>Gärrest Ausbringung</option>
+        </select>
+
+        <label>Volumen (m³):</label>
+        <input type="number" id="volumen" placeholder="z.B. 38" step="0.1">
+
+        <label>Gewicht (Tonnen pro m³):</label>
+        <input type="number" id="dichte" placeholder="z.B. 0.75" step="0.01">
+        <span class="info-text">Silomais ca. 0.30 - 0.40 | Gras ca. 0.25 - 0.30 | Gärrest ca. 1.0</span>
+
+        <button onclick="fuhreSenden()" id="btn">🚀 Fuhre eintragen!</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // HIER MUSST DU DEINE KOPIERTE URL WIEDER EINTRAGEN:
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
+
+        function fuhreSenden() {
+            document.getElementById("btn").innerText = "Wird gesendet...";
+            
+            let vol = parseFloat(document.getElementById("volumen").value) || 0;
+            let dich = parseFloat(document.getElementById("dichte").value) || 0;
+            let gesamt = (vol * dich).toFixed(2); // Berechnet das Gesamtgewicht
+
+            const data = {
+                datum: new Date().toLocaleDateString('de-DE'),
+                uhrzeit: new Date().toLocaleTimeString('de-DE'),
+                fahrer: document.getElementById("fahrer").value,
+                fahrzeug: document.getElementById("fahrzeug").value,
+                anhaenger: document.getElementById("anhaenger").value,
+                aktion: document.getElementById("aktion").value,
+                volumen: vol,
+                dichte: dich,
+                gesamtgewicht: gesamt
+            };
+
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify(data)
+            }).then(() => {
+                document.getElementById("status").innerText = "✅ " + gesamt + "t erfolgreich gespeichert!";
+                document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
+                setTimeout(() => { document.getElementById("status").innerText = ""; }, 4000);
+            }).catch(error => {
+                document.getElementById("status").innerText = "❌ Fehler beim Senden!";
+                document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
+            });
+        }
+    </script>
+</body>
+</html>
