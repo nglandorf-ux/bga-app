@@ -21,8 +21,6 @@
         select, input, button { width: 100%; padding: 14px; margin-top: 8px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
         button { background-color: #28a745; color: white; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; }
         button:active { background-color: #218838; }
-        .btn-stats { background-color: #007bff; margin-top: 10px; }
-        .btn-stats:active { background-color: #0056b3; }
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
     </style>
@@ -71,38 +69,21 @@
         <span class="info-text">Silomais ca. 0.65-0.75 | Gras ca. 0.35-0.45 | Gärrest ca. 1.0</span>
 
         <button onclick="fuhreSenden()" id="btn">🚀 Fuhre eintragen!</button>
-        <button onclick="oeffneTabelle()" class="btn-stats">📊 Fuhren-Übersicht (Tabelle)</button>
-        
         <div id="status"></div>
     </div>
 
-    <!-- Unsichtbares iframe, damit der Browser den Request nicht wegen CORS blockiert -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="submitted=true;"></iframe>
-    
-    <!-- Ein verstecktes Formular, das direkt an Google sendet -->
-    <form id="fuhrenForm" action="https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec" method="POST" target="hidden_iframe" style="display:none;">
-        <input type="hidden" name="data" id="json_data">
-    </form>
-
     <script>
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec"; // Hier auch nochmal deine URL eintragen
-
-        // Beim Laden des Dokuments die action des Forms setzen
-        document.getElementById("fuhrenForm").action = APPS_SCRIPT_URL;
+        // HIER DEINE APPS SCRIPT URL EINTRAGEN:
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
 
         function fuhreSenden() {
+            document.getElementById("btn").innerText = "Wird gesendet...";
+            
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
-            
-            if (vol <= 0 || dich <= 0) {
-                alert("Bitte Volumen und Dichte eingeben!");
-                return;
-            }
-
-            document.getElementById("btn").innerText = "Wird gesendet...";
             let gesamt = (vol * dich).toFixed(2);
 
-            const payload = {
+            const data = {
                 datum: new Date().toLocaleDateString('de-DE'),
                 uhrzeit: new Date().toLocaleTimeString('de-DE'),
                 fahrer: document.getElementById("fahrer").value,
@@ -114,22 +95,19 @@
                 gesamtgewicht: gesamt
             };
 
-            // Daten in das versteckte Formular packen und abschicken
-            document.getElementById("json_data").value = JSON.stringify(payload);
-            document.getElementById("fuhrenForm").submit();
-
-            // Direktes Feedback für den Fahrer
-            setTimeout(() => {
-                document.getElementById("status").innerText = "✅ " + gesamt + "t erfolgreich eingetragen!";
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify(data)
+            }).then(() => {
+                document.getElementById("status").innerText = "✅ " + gesamt + "t gespeichert!";
                 document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
-                document.getElementById("volumen").value = ""; // Feld leeren für die nächste Fuhre
+                document.getElementById("volumen").value = "";
                 setTimeout(() => { document.getElementById("status").innerText = ""; }, 4000);
-            }, 800);
-        }
-
-        function oeffneTabelle() {
-            // https://docs.google.com/spreadsheets/d/1j9JcRlXpBI05lp3dx9vHV0jCbaIzNPwLgeR4vfMieTM/edit?gid=0#gid=0:
-            window.open("DEINE_GOOGLE_TABELLE_URL", "_blank");
+            }).catch(error => {
+                document.getElementById("status").innerText = "❌ Fehler!";
+                document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
+            });
         }
     </script>
 </body>
