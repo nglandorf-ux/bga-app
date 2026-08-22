@@ -2,34 +2,31 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <!-- Das hier ist extrem wichtig für das Vollbild! -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <title>BGA Fuhrenzähler</title>
     
-    <!-- Sagt iOS, dass es eine Vollbild-App ist -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BGA Zähler">
 
-    <!-- Das hier erzwingt das große Icon auf dem iPhone (Apple ignoriert oft die manifest.json) -->
     <link rel="apple-touch-icon" href="icon3.png">
-    
-    <!-- Das hier ist für Android und erzwingt ein formatfüllendes Icon -->
     <link rel="icon" type="image/png" sizes="512x512" href="icon3.png">
-    
-    <!-- Die Verknüpfung zur Manifest-Datei -->
     <link rel="manifest" href="manifest.json">
-   
+
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; color: #333; }
-        h2 { text-align: center; }
-        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        select, input, button { width: 100%; padding: 15px; margin-top: 10px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background-color: #28a745; color: white; font-weight: bold; border: none; margin-top: 20px; }
+        body { font-family: Arial, sans-serif; padding: 15px; background-color: #f4f4f9; color: #333; margin: 0; }
+        h2 { text-align: center; margin-top: 5px; }
+        .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        select, input, button { width: 100%; padding: 14px; margin-top: 8px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; }
         button:active { background-color: #218838; }
+        .btn-stats { background-color: #007bff; margin-top: 10px; }
+        .btn-stats:active { background-color: #0056b3; }
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
-        .info-text { font-size: 12px; color: #666; margin-top: -5px; margin-bottom: 10px; display: block; }
+        .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
+        #statistik-ergebnis { margin-top: 15px; background: #e9ecef; padding: 12px; border-radius: 8px; display: none; font-size: 14px; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
     </style>
 </head>
 <body>
@@ -73,22 +70,25 @@
 
         <label>Gewicht (Tonnen pro m³):</label>
         <input type="number" id="dichte" placeholder="z.B. 0.75" step="0.01">
-        <span class="info-text">Silomais ca. 0.30 - 0.40 | Gras ca. 0.25 - 0.30 | Gärrest ca. 1.0</span>
+        <span class="info-text">Silomais ca. 0.65-0.75 | Gras ca. 0.35-0.45 | Gärrest ca. 1.0</span>
 
         <button onclick="fuhreSenden()" id="btn">🚀 Fuhre eintragen!</button>
+        <button onclick="ladeStatistik()" class="btn-stats" id="btnStats">📊 Heutige Fuhren anzeigen</button>
+        
+        <div id="statistik-ergebnis"></div>
         <div id="status"></div>
     </div>
 
     <script>
-        // HIER MUSST DU DEINE KOPIERTE URL WIEDER EINTRAGEN:
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
+        // HIER DEINE APPS SCRIPT URL EINTRAGEN:
+        const APPS_SCRIPT_URL = "HIER_DEINE_URL_EINFÜGEN";
 
         function fuhreSenden() {
             document.getElementById("btn").innerText = "Wird gesendet...";
             
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
-            let gesamt = (vol * dich).toFixed(2); // Berechnet das Gesamtgewicht
+            let gesamt = (vol * dich).toFixed(2);
 
             const data = {
                 datum: new Date().toLocaleDateString('de-DE'),
@@ -107,13 +107,42 @@
                 mode: "no-cors",
                 body: JSON.stringify(data)
             }).then(() => {
-                document.getElementById("status").innerText = "✅ " + gesamt + "t erfolgreich gespeichert!";
+                document.getElementById("status").innerText = "✅ " + gesamt + "t gespeichert!";
                 document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
                 setTimeout(() => { document.getElementById("status").innerText = ""; }, 4000);
             }).catch(error => {
-                document.getElementById("status").innerText = "❌ Fehler beim Senden!";
+                document.getElementById("status": "❌ Fehler beim Senden!");
                 document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
             });
+        }
+
+        function ladeStatistik() {
+            let infobox = document.getElementById("statistik-ergebnis");
+            infobox.style.display = "block";
+            infobox.innerHTML = "Lade Tages-Auswertung...";
+
+            fetch(APPS_SCRIPT_URL)
+                .then(response => response.json())
+                .then(data => {
+                    let html = "<strong>📅 Heutige Fuhren (Stand heute):</strong><br><br>";
+                    let hatEintraege = false;
+
+                    for (let fahrer in data) {
+                        hatEintraege = true;
+                        let fuhren = data[fahrer].fuhren;
+                        let tonnen = data[fahrer].tonnen.toFixed(1);
+                        html += `<div class="stat-row"><span><b>${fahrer}:</b></span> <span>${fuhren} Fuhren (${tonnen} t)</span></div>`;
+                    }
+
+                    if (!hatEintraege) {
+                        html = "📅 Heute wurden noch keine Fuhren eingetragen.";
+                    }
+
+                    infobox.innerHTML = html;
+                })
+                .catch(error => {
+                    infobox.innerHTML = "❌ Fehler beim Laden der Statistik.";
+                });
         }
     </script>
 </body>
