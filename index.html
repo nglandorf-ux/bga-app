@@ -2,9 +2,25 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Das hier ist extrem wichtig für das Vollbild! -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <title>BGA Fuhrenzähler</title>
+    
+    <!-- Sagt iOS, dass es eine Vollbild-App ist -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BGA Zähler">
+
+    <!-- Das hier erzwingt das große Icon auf dem iPhone (Apple ignoriert oft die manifest.json) -->
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <!-- Das hier ist für Android und erzwingt ein formatfüllendes Icon -->
+    <link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+    
+    <!-- Die Verknüpfung zur Manifest-Datei -->
     <link rel="manifest" href="manifest.json">
+   
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; color: #333; }
         h2 { text-align: center; }
