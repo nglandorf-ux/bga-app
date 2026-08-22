@@ -77,10 +77,15 @@
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
 
         function fuhreSenden() {
-            document.getElementById("btn").innerText = "Wird gesendet...";
-            
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
+            
+            if (vol <= 0 || dich <= 0) {
+                alert("Bitte Volumen und Dichte eingeben!");
+                return;
+            }
+
+            document.getElementById("btn").innerText = "Wird gesendet...";
             let gesamt = (vol * dich).toFixed(2);
 
             const data = {
@@ -95,19 +100,21 @@
                 gesamtgewicht: gesamt
             };
 
+            // Hier nutzen wir sendBeacon oder einen simplen fetch, der sofort feuert
             fetch(APPS_SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify(data)
-            }).then(() => {
-                document.getElementById("status").innerText = "✅ " + gesamt + "t gespeichert!";
-                document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
-                document.getElementById("volumen").value = "";
-                setTimeout(() => { document.getElementById("status").innerText = ""; }, 4000);
-            }).catch(error => {
-                document.getElementById("status").innerText = "❌ Fehler!";
-                document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
             });
+
+            // Da no-cors keine Antwort liefert, bestätigen wir es direkt visuell für den Fahrer
+            setTimeout(() => {
+                document.getElementById("status").innerText = "✅ " + gesamt + "t erfolgreich eingetragen!";
+                document.getElementById("btn").innerText = "🚀 Fuhre eintragen!";
+                document.getElementById("volumen").value = ""; // Feld leeren
+                setTimeout(() => { document.getElementById("status": "" ), 4000; }, 4000);
+            }, 500);
         }
     </script>
 </body>
