@@ -21,8 +21,12 @@
         select, input, button { width: 100%; padding: 14px; margin-top: 8px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
         button { background-color: #28a745; color: white; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; }
         button:active { background-color: #218838; }
+        .btn-stats { background-color: #007bff; margin-top: 10px; }
+        .btn-stats:active { background-color: #0056b3; }
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
+        #statistik-box { margin-top: 20px; background: #e9ecef; padding: 12px; border-radius: 8px; display: none; font-size: 14px; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
     </style>
 </head>
 <body>
@@ -30,7 +34,6 @@
     <div class="box">
         <h2>🚜 BGA Zähler</h2>
         
-        <!-- Das Formular schickt die Daten direkt unsichtbar an Google -->
         <form id="bgaForm" action="https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec" method="POST" target="hidden_iframe" onsubmit="fuhreAbgeschickt()">
             
             <input type="hidden" name="data" id="jsonData">
@@ -71,18 +74,22 @@
 
             <label>Gewicht (Tonnen pro m³):</label>
             <input type="number" id="dichte" placeholder="z.B. 0.75" step="0.01" required>
-            <span class="info-text">Silomais ca. 0.30-0.40 | Gras ca. 0.25-0.30 | Gärrest ca. 1.0</span>
+            <span class="info-text">Silomais ca. 0.65-0.75 | Gras ca. 0.35-0.45 | Gärrest ca. 1.0</span>
 
             <button type="submit" id="btn">🚀 Fuhre eintragen!</button>
         </form>
 
+        <button onclick="ladeStatistik()" class="btn-stats" id="btnStats">📊 Heutige Fuhren anzeigen</button>
+        
+        <div id="statistik-box"></div>
         <div id="status"></div>
     </div>
 
-    <!-- Unsichtbarer Rahmen, damit man nicht auf eine andere Seite weitergeleitet wird -->
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec"; // Hier nochmal deine Apps-Script-URL eintragen
+
         function fuhreAbgeschickt() {
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
@@ -100,15 +107,42 @@
                 gesamtgewicht: gesamt
             };
 
-            // Packt alles sauber als JSON in ein einziges Formularfeld
             document.getElementById("jsonData").value = JSON.stringify(payload);
 
-            // Zeigt sofort die Bestätigung an
             setTimeout(() => {
                 document.getElementById("status").innerText = "✅ " + gesamt + "t erfolgreich eingetragen!";
                 document.getElementById("volumen").value = "";
                 setTimeout(() => { document.getElementById("status").innerText = ""; }, 4000);
             }, 500);
+        }
+
+        function ladeStatistik() {
+            let box = document.getElementById("statistik-box");
+            box.style.display = "block";
+            box.innerHTML = "Lade Tages-Auswertung...";
+
+            fetch(APPS_SCRIPT_URL)
+                .then(response => response.json())
+                .then(data => {
+                    let html = "<strong>📅 Heutige Fuhren (Live):</strong><br><br>";
+                    let hatEintraege = false;
+
+                    for (let fahrer in data) {
+                        hatEintraege = true;
+                        let fuhren = data[fahrer].fuhren;
+                        let tonnen = data[fahrer].tonnen.toFixed(1);
+                        html += `<div class="stat-row"><span><b>${fahrer}:</b></span> <span>${fuhren} Fuhren (${tonnen} t)</span></div>`;
+                    }
+
+                    if (!hatEintraege) {
+                        html = "📅 Heute wurden noch keine Fuhren eingetragen.";
+                    }
+
+                    box.innerHTML = html;
+                })
+                .catch(error => {
+                    box.innerHTML = "❌ Fehler beim Laden der Statistik.";
+                });
         }
     </script>
 </body>
