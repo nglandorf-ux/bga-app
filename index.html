@@ -82,7 +82,7 @@
             </select>
             <input type="text" id="custom_fahrzeug" class="custom-input" placeholder="Z.B. Claas Axion...">
 
-            <!-- DAS FELD-DROPDOWN WIRD DYNAMISCH BEFÜLLT -->
+            <!-- DAS FELD-DROPDOWN -->
             <label>Feld / Schlag:</label>
             <select id="feld" name="feld" onchange="checkCustom('feld')">
                 <option value="Bitte wählen...">🔄 Lade Felder aus Datenbank...</option>
@@ -151,7 +151,6 @@
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
 
-        // Globale Variable für die Felder, die aus der Tabelle geladen werden (inkl. Perlenkette für GPS)
         let felderDatenbank = [];
 
         window.onload = function() {
@@ -160,7 +159,6 @@
             ladeDaten();
         };
 
-        // --- GPS AUTOMATIK LOGIK & MULTI-FELDER ---
         const BGA = { lat: 53.61923769058454, lon: 8.92679385181036, radius: 35 };
         
         let autoModusAktiv = false;
@@ -238,7 +236,6 @@
             let distBGA = berechneDistanz(myLat, myLon, BGA.lat, BGA.lon);
             document.getElementById("distBGA").innerText = distBGA;
 
-            // Finde heraus, ob wir auf irgendeinem Feld aus unserer dynamischen Datenbank sind (Perlenketten-Logik)
             let aktivesFeld = null;
             let kuerzesteFeldDistanz = 999999;
 
@@ -263,7 +260,6 @@
             }
 
             if (aktion === "Gärrest Ausbringung") {
-                // MODUS: GÄRREST (Laden BGA -> Feld)
                 if (distBGA <= BGA.radius) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
@@ -283,7 +279,6 @@
                 }
 
             } else {
-                // MODUS: ERNTE (Laden Feld -> BGA)
                 if (aktivesFeld) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
@@ -375,25 +370,31 @@
         }
 
         function verarbeiteDaten(data) {
-            // 1. Felder Dropdown füllen (nur die saubere Liste ohne Duplikate)
+            // HIER IST DER FIX: Die App merkt sich jetzt, was du beim Feld ausgewählt hast!
             if (data.felderDropdown && data.felderDropdown.length > 0) {
-                // Die komplette Perlenkette speichern wir für die unsichtbaren GPS Zäune ab
                 felderDatenbank = data.felderGPS; 
                 
                 let feldSelect = document.getElementById("feld");
-                let html = '<option value="Bitte wählen...">-- Bitte wählen --</option>';
+                let aktuellerWert = feldSelect.value; // WICHTIG: Aktuelle Auswahl merken!
                 
-                // Wir füllen das sichtbare Dropdown mit der sauberen Liste
+                let html = '<option value="Bitte wählen...">-- Bitte wählen --</option>';
                 for(let f of data.felderDropdown) {
                     html += `<option value="${f.name}">${f.name} (${f.hektar} ha)</option>`;
                 }
                 html += '<option value="custom">✍️ Anderes Feld...</option>';
                 feldSelect.innerHTML = html;
+                
+                // WICHTIG: Auswahl nach dem Neuladen wiederherstellen
+                if (aktuellerWert && aktuellerWert !== "") {
+                    feldSelect.value = aktuellerWert;
+                }
             } else {
-                document.getElementById("feld").innerHTML = '<option value="Bitte wählen...">-- Keine Felder gefunden --</option><option value="custom">✍️ Anderes Feld...</option>';
+                let feldSelect = document.getElementById("feld");
+                let aktuellerWert = feldSelect.value;
+                feldSelect.innerHTML = '<option value="Bitte wählen...">-- Keine Felder gefunden --</option><option value="custom">✍️ Anderes Feld...</option>';
+                if (aktuellerWert) feldSelect.value = aktuellerWert;
             }
 
-            // 2. Ranking bauen
             let listHTML = "";
             let rankingData = data.ranking || [];
             
