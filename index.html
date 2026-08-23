@@ -127,7 +127,10 @@
             Aktuelles Feld erkannt: <span id="erkanntesFeld" style="color: #fff;">Keines (Suche...)</span><br><br>
             Distanz zur BGA: <span id="distBGA">-</span> m<br>
             Distanz z. nächsten Feld: <span id="distFeld">-</span> m<br>
-            Ladestatus: <span id="ladeStatus" style="color: #ff9800;">Leer</span>
+            <div style="margin-top: 10px;">
+                Ladestatus: <span id="ladeStatus" style="color: #ff9800;">Leer</span>
+                <button type="button" id="btnCancel" onclick="fuhreVerwerfen()" style="display:none; background-color:#dc3545; color:white; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer; margin-left:10px;">❌ Fuhre verwerfen</button>
+            </div>
         </div>
 
         <div id="status"></div>
@@ -159,13 +162,14 @@
             ladeDaten();
         };
 
-        // BGA RADIUS HIER AUF 45 METER VERGRÖSSERT
         const BGA = { lat: 53.61923769058454, lon: 8.92679385181036, radius: 45 }; 
         
         let autoModusAktiv = false;
         let gpsWatchId = null;
         let wakeLock = null;
+        
         let fahrzeugBeladen = false; 
+        let ladeSperre = false; // Verhindert sofortiges erneutes Beladen nach dem Verwerfen
 
         async function toggleAutoModus() {
             let btn = document.getElementById("btnAutoModus");
@@ -206,12 +210,25 @@
                 btn.innerHTML = "📡 Auto-Modus STARTEN";
                 cockpit.style.display = "none";
                 fahrzeugBeladen = false;
+                ladeSperre = false;
                 document.getElementById("ladeStatus").innerText = "Leer";
                 document.getElementById("ladeStatus").style.color = "#ff9800";
+                document.getElementById("btnCancel").style.display = "none";
                 
                 if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
                 if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
             }
+        }
+
+        // Funktion zum manuellen Abbrechen einer Fuhre (Wendemanöver etc.)
+        function fuhreVerwerfen() {
+            fahrzeugBeladen = false;
+            ladeSperre = true; // Sperrt das erneute Beladen, bis der Ort verlassen wurde
+            
+            document.getElementById("ladeStatus").innerText = "Leer (Verworfen)";
+            document.getElementById("ladeStatus").style.color = "#ff9800";
+            document.getElementById("btnCancel").style.display = "none";
+            document.getElementById("autoStatus").innerText = "Fehlalarm verworfen. Warte auf Verlassen des Bereichs...";
         }
 
         function berechneDistanz(lat1, lon1, lat2, lon2) {
@@ -240,6 +257,7 @@
             let aktivesFeld = null;
             let kuerzesteFeldDistanz = 999999;
 
+            // POLYGON PRÜFUNG
             for (let f of felderDatenbank) {
                 let insideThisField = false;
 
@@ -278,40 +296,60 @@
                 document.getElementById("erkanntesFeld").style.color = "#fff";
             }
 
+            // GÄRREST ODER ERNTE LOGIK
             if (aktion === "Gärrest Ausbringung") {
+                
+                // Beladen an der BGA
                 if (distBGA <= BGA.radius) {
-                    fahrzeugBeladen = true;
-                    document.getElementById("ladeStatus").innerText = "BELADEN ✅";
-                    document.getElementById("ladeStatus").style.color = "#0f0";
-                    document.getElementById("autoStatus").innerText = "An der BGA beladen. Fahre zum Feld...";
-                } 
-                else if (!fahrzeugBeladen) {
-                    document.getElementById("autoStatus").innerText = "Warte auf Beladung an der BGA...";
+                    if (!fahrzeugBeladen && !ladeSperre) {
+                        fahrzeugBeladen = true;
+                        document.getElementById("ladeStatus").innerText = "BELADEN ✅";
+                        document.getElementById("ladeStatus").style.color = "#0f0";
+                        document.getElementById("btnCancel").style.display = "inline-block";
+                        document.getElementById("autoStatus").innerText = "An der BGA beladen. Fahre zum Feld...";
+                    }
+                } else {
+                    ladeSperre = false; // BGA verlassen -> Sperre aufheben
+                    if (!fahrzeugBeladen) {
+                        document.getElementById("autoStatus").innerText = "Warte auf Beladung an der BGA...";
+                    }
                 }
 
+                // Abkippen auf dem Feld
                 if (aktivesFeld && fahrzeugBeladen) {
                     document.getElementById("autoStatus").innerText = aktivesFeld.name + " erreicht! Speichere...";
                     fahrzeugBeladen = false; 
                     document.getElementById("ladeStatus").innerText = "Leer";
                     document.getElementById("ladeStatus").style.color = "#ff9800";
+                    document.getElementById("btnCancel").style.display = "none";
                     fuhreAbgeschickt();
                 }
-            } else {
+
+            } else { // ERNTE MODUS
+                
+                // Beladen auf dem Feld
                 if (aktivesFeld) {
-                    fahrzeugBeladen = true;
-                    document.getElementById("ladeStatus").innerText = "BELADEN ✅";
-                    document.getElementById("ladeStatus").style.color = "#0f0";
-                    document.getElementById("autoStatus").innerText = "Auf " + aktivesFeld.name + " beladen. Fahre zur BGA...";
-                } 
-                else if (!fahrzeugBeladen) {
-                    document.getElementById("autoStatus").innerText = "Warte auf Einfahrt in ein Feld...";
+                    if (!fahrzeugBeladen && !ladeSperre) {
+                        fahrzeugBeladen = true;
+                        document.getElementById("ladeStatus").innerText = "BELADEN ✅";
+                        document.getElementById("ladeStatus").style.color = "#0f0";
+                        document.getElementById("btnCancel").style.display = "inline-block";
+                        document.getElementById("autoStatus").innerText = "Auf " + aktivesFeld.name + " beladen. Fahre zur BGA...";
+                    }
+                } else {
+                    ladeSperre = false; // Feld verlassen -> Sperre aufheben
+                    if (!fahrzeugBeladen) {
+                        document.getElementById("autoStatus").innerText = "Warte auf Einfahrt in ein Feld...";
+                    }
                 }
 
+                // Abkippen an der BGA
                 if (distBGA <= BGA.radius && fahrzeugBeladen) {
                     document.getElementById("autoStatus").innerText = "BGA erreicht! Speichere Fuhre...";
                     fahrzeugBeladen = false; 
                     document.getElementById("ladeStatus").innerText = "Leer";
                     document.getElementById("ladeStatus").style.color = "#ff9800";
+                    document.getElementById("btnCancel").style.display = "none";
                     fuhreAbgeschickt();
                 }
             }
