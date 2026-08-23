@@ -37,6 +37,9 @@
         .rank-1 { font-weight: bold; color: #d4af37; }
         
         .auto-filled { background-color: #e8f5e9; border-color: #4caf50; }
+        
+        /* Neues Design für gesperrte Felder (readonly) */
+        input[readonly] { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; border-color: #ccc; }
     </style>
 </head>
 <body>
@@ -71,7 +74,7 @@
                 <option value="Häckselwagen (45 m³)" data-vol="45">Häckselwagen (45 m³)</option>
                 <option value="Häckselwagen (50 m³)" data-vol="50">Häckselwagen (50 m³)</option>
                 <option value="Güllefass (18 m³)" data-vol="18">Güllefass (18 m³)</option>
-                <option value="Ohne Anhänger" data-vol="0">Ohne Anhänger</option>
+                <option value="Manuell / Anderes Volumen" data-vol="manuell">Manuell / Anderes Volumen</option>
             </select>
 
             <label>Aktion:</label>
@@ -83,11 +86,10 @@
             </select>
 
             <label>Volumen (m³):</label>
-            <input type="number" id="volumen" placeholder="Wird automatisch ausgefüllt..." step="0.1" required>
+            <input type="number" id="volumen" placeholder="Wird durch Anhänger bestimmt..." step="0.1" required>
 
             <label>Gewicht (Tonnen pro m³):</label>
             <input type="number" id="dichte" placeholder="Wird automatisch vorgeschlagen..." step="0.01" required>
-            <!-- INFO-TEXT ANGEPASST FÜR SCHÜTTGEWICHT -->
             <span class="info-text">Schüttgewicht Wagen: Mais ~0.35 | Gras ~0.25 | Gärrest ~1.0</span>
 
             <button type="submit" id="btn">🚀 Fuhre eintragen!</button>
@@ -112,7 +114,7 @@
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
-        // HIER DEINE APPS SCRIPT URL EINTRAGEN:
+        // HIER SIND DEINE URLs DIREKT EINGETRAGEN:
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
         
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
@@ -128,11 +130,17 @@
             let vol = select.options[select.selectedIndex].getAttribute("data-vol");
             let volInput = document.getElementById("volumen");
             
-            if (vol) {
+            if (vol === "manuell") {
+                volInput.value = "";
+                volInput.readOnly = false;
+                volInput.classList.remove("auto-filled");
+            } else if (vol) {
                 volInput.value = vol;
-                volInput.classList.add("auto-filled");
+                volInput.readOnly = true; 
+                volInput.classList.remove("auto-filled");
             } else {
                 volInput.value = "";
+                volInput.readOnly = false;
                 volInput.classList.remove("auto-filled");
             }
         }
@@ -141,7 +149,6 @@
             let aktion = document.getElementById("aktion").value;
             let dichteInput = document.getElementById("dichte");
             
-            // KORRIGIERTE WERTE FÜR LOSES SCHÜTTGUT AUF DEM WAGEN
             if (aktion === "Ernte (Silomais)") {
                 dichteInput.value = 0.35;
                 dichteInput.classList.add("auto-filled");
@@ -157,7 +164,6 @@
             }
         }
 
-        document.getElementById("volumen").addEventListener("input", function() { this.classList.remove("auto-filled"); });
         document.getElementById("dichte").addEventListener("input", function() { this.classList.remove("auto-filled"); });
 
         function ladeStatistik() {
@@ -232,9 +238,6 @@
                 document.getElementById("status").style.color = "green";
                 document.getElementById("status").innerText = "✅ " + gesamt + "t eingetragen!";
                 
-                document.getElementById("volumen").value = "";
-                document.getElementById("volumen").classList.remove("auto-filled");
-                
                 setTimeout(() => { 
                     document.getElementById("status").innerText = ""; 
                     let heute = new Date().toISOString().split('T')[0];
@@ -245,7 +248,7 @@
         }
 
         function oeffneTabelle() {
-            // HIER DEN DIREKTEN LINK ZU DEINER GOOGLE TABELLE EINTRAGEN:
+            // HIER IST DEIN TABELLEN LINK DIREKT EINGETRAGEN:
             window.open("https://docs.google.com/spreadsheets/d/1j9JcRlXpBI05lp3dx9vHV0jCbaIzNPwLgeR4vfMieTM/edit?gid=0#gid=0", "_blank");
         }
     </script>
