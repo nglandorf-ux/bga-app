@@ -110,7 +110,6 @@
             <input type="number" id="dichte" placeholder="Wird automatisch vorgeschlagen..." step="0.01" required>
             <span class="info-text">Schüttgewicht Wagen: Mais ~0.35 | Gras ~0.25 | Gärrest ~1.0</span>
 
-            <!-- Manueller Button bleibt für den Notfall -->
             <button type="submit" id="btn">🚀 Manuell eintragen</button>
         </form>
 
@@ -119,6 +118,7 @@
         
         <div id="gpsCockpit">
             <span class="gps-alert" id="autoStatus">Warte auf Start...</span>
+            <span id="richtungInfo" style="color: #17a2b8; display:block; margin-bottom: 10px;">-</span>
             Distanz zur BGA: <span id="distBGA">-</span> m<br>
             Distanz zum Feld: <span id="distFeld">-</span> m<br>
             Ladestatus: <span id="ladeStatus" style="color: #ff9800;">Leer</span>
@@ -153,27 +153,26 @@
 
         // --- GPS AUTOMATIK LOGIK ---
         
-        // Zonen definieren
         const BGA_LAT = 53.61923769058454;
         const BGA_LON = 8.92679385181036;
-        const BGA_RADIUS = 35; // Meter
+        const BGA_RADIUS = 35; 
 
-        const FELD_LAT = 53.628795290594375; // Große Wiese
+        const FELD_LAT = 53.628795290594375; 
         const FELD_LON = 8.931582688013064;
-        const FELD_RADIUS = 225; // Meter
+        const FELD_RADIUS = 225; 
 
         let autoModusAktiv = false;
         let gpsWatchId = null;
         let wakeLock = null;
-        let fahrzeugBeladen = false; // Speichert, ob wir auf dem Feld waren
+        let fahrzeugBeladen = false; 
 
         async function toggleAutoModus() {
             let btn = document.getElementById("btnAutoModus");
             let cockpit = document.getElementById("gpsCockpit");
+            let aktion = document.getElementById("aktion").value;
 
             if (!autoModusAktiv) {
-                // STARTEN
-                if (document.getElementById("anhaenger").value === "Bitte wählen..." || document.getElementById("aktion").value === "Bitte wählen...") {
+                if (document.getElementById("anhaenger").value === "Bitte wählen..." || aktion === "Bitte wählen...") {
                     alert("Bitte wähle zuerst Fahrzeug, Anhänger und Aktion aus, bevor du den Auto-Modus startest!");
                     return;
                 }
@@ -182,9 +181,16 @@
                 btn.classList.add("active");
                 btn.innerHTML = "🛑 Auto-Modus STOPPEN";
                 cockpit.style.display = "block";
+                
+                // Info-Text je nach Richtung anzeigen
+                if (aktion === "Gärrest Ausbringung") {
+                    document.getElementById("richtungInfo").innerText = "🔄 Modus: Gärrest (Laden: BGA ➡️ Entladen: Feld)";
+                } else {
+                    document.getElementById("richtungInfo").innerText = "🚜 Modus: Ernte (Laden: Feld ➡️ Entladen: BGA)";
+                }
+                
                 document.getElementById("autoStatus").innerText = "Suche GPS-Signal...";
                 
-                // Display anlassen (WakeLock)
                 try {
                     if ('wakeLock' in navigator) {
                         wakeLock = await navigator.wakeLock.request('screen');
@@ -193,7 +199,6 @@
                     console.log('Wake Lock Error:', err);
                 }
 
-                // GPS Überwachung starten
                 if (navigator.geolocation) {
                     gpsWatchId = navigator.geolocation.watchPosition(pruefeStandort, zeigeGpsFehler, {
                         enableHighAccuracy: true, maximumAge: 0
@@ -203,7 +208,6 @@
                 }
 
             } else {
-                // STOPPEN
                 autoModusAktiv = false;
                 btn.classList.remove("active");
                 btn.innerHTML = "📡 Auto-Modus STARTEN";
@@ -217,9 +221,8 @@
             }
         }
 
-        // Berechnet die Distanz zwischen zwei Koordinaten in Metern (Haversine Formel)
         function berechneDistanz(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Erdradius in Metern
+            const R = 6371e3; 
             const phi1 = lat1 * Math.PI/180;
             const phi2 = lat2 * Math.PI/180;
             const deltaPhi = (lat2-lat1) * Math.PI/180;
@@ -236,6 +239,7 @@
 
             let myLat = position.coords.latitude;
             let myLon = position.coords.longitude;
+            let aktion = document.getElementById("aktion").value;
 
             let distBGA = berechneDistanz(myLat, myLon, BGA_LAT, BGA_LON);
             let distFeld = berechneDistanz(myLat, myLon, FELD_LAT, FELD_LON);
@@ -243,28 +247,47 @@
             document.getElementById("distBGA").innerText = distBGA;
             document.getElementById("distFeld").innerText = distFeld;
 
-            // Logik-Schritt 1: Sind wir auf dem Feld?
-            if (distFeld <= FELD_RADIUS) {
-                fahrzeugBeladen = true;
-                document.getElementById("ladeStatus").innerText = "BELADEN ✅";
-                document.getElementById("ladeStatus").style.color = "#0f0";
-                document.getElementById("autoStatus").innerText = "Auf dem Feld. Fahre zur BGA...";
-            } 
-            else if (!fahrzeugBeladen) {
-                document.getElementById("autoStatus").innerText = "Warte auf Einfahrt ins Feld...";
-            }
+            // --- INTELLIGENTE RICHTUNGSLOGIK ---
+            
+            if (aktion === "Gärrest Ausbringung") {
+                // MODUS: GÄRREST (Laden an BGA -> Speichern am Feld)
+                if (distBGA <= BGA_RADIUS) {
+                    fahrzeugBeladen = true;
+                    document.getElementById("ladeStatus").innerText = "BELADEN ✅";
+                    document.getElementById("ladeStatus").style.color = "#0f0";
+                    document.getElementById("autoStatus").innerText = "An der BGA beladen. Fahre zum Feld...";
+                } 
+                else if (!fahrzeugBeladen) {
+                    document.getElementById("autoStatus").innerText = "Warte auf Beladung an der BGA...";
+                }
 
-            // Logik-Schritt 2: Sind wir beladen an der BGA angekommen?
-            if (distBGA <= BGA_RADIUS && fahrzeugBeladen) {
-                document.getElementById("autoStatus").innerText = "BGA erreicht! Speichere Fuhre...";
-                
-                // Setze sofort zurück, um Mehrfacheinträge zu verhindern
-                fahrzeugBeladen = false; 
-                document.getElementById("ladeStatus").innerText = "Leer";
-                document.getElementById("ladeStatus").style.color = "#ff9800";
-                
-                // FEUERN!
-                fuhreAbgeschickt();
+                if (distFeld <= FELD_RADIUS && fahrzeugBeladen) {
+                    document.getElementById("autoStatus").innerText = "Feld erreicht! Speichere Fuhre...";
+                    fahrzeugBeladen = false; 
+                    document.getElementById("ladeStatus").innerText = "Leer";
+                    document.getElementById("ladeStatus").style.color = "#ff9800";
+                    fuhreAbgeschickt();
+                }
+
+            } else {
+                // MODUS: ERNTE (Laden auf dem Feld -> Speichern an der BGA)
+                if (distFeld <= FELD_RADIUS) {
+                    fahrzeugBeladen = true;
+                    document.getElementById("ladeStatus").innerText = "BELADEN ✅";
+                    document.getElementById("ladeStatus").style.color = "#0f0";
+                    document.getElementById("autoStatus").innerText = "Auf dem Feld beladen. Fahre zur BGA...";
+                } 
+                else if (!fahrzeugBeladen) {
+                    document.getElementById("autoStatus").innerText = "Warte auf Einfahrt ins Feld...";
+                }
+
+                if (distBGA <= BGA_RADIUS && fahrzeugBeladen) {
+                    document.getElementById("autoStatus").innerText = "BGA erreicht! Speichere Fuhre...";
+                    fahrzeugBeladen = false; 
+                    document.getElementById("ladeStatus").innerText = "Leer";
+                    document.getElementById("ladeStatus").style.color = "#ff9800";
+                    fuhreAbgeschickt();
+                }
             }
         }
 
@@ -332,6 +355,16 @@
                 dichteInput.value = "";
                 dichteInput.classList.remove("auto-filled");
             }
+            
+            // Wenn sich die Aktion im laufenden Auto-Modus ändert (sollte man vermeiden, aber sicher ist sicher)
+            if (autoModusAktiv) {
+                let cockpitInfo = document.getElementById("richtungInfo");
+                if (aktion === "Gärrest Ausbringung") {
+                    cockpitInfo.innerText = "🔄 Modus: Gärrest (Laden: BGA ➡️ Entladen: Feld)";
+                } else {
+                    cockpitInfo.innerText = "🚜 Modus: Ernte (Laden: Feld ➡️ Entladen: BGA)";
+                }
+            }
         }
 
         document.getElementById("dichte").addEventListener("input", function() { this.classList.remove("auto-filled"); });
@@ -372,7 +405,7 @@
 
         function handleManualSubmit() {
             fuhreAbgeschickt();
-            return false; // Verhindert das normale Neuladen der Seite durch das Formular
+            return false;
         }
 
         function fuhreAbgeschickt() {
@@ -408,8 +441,6 @@
             };
 
             document.getElementById("jsonData").value = JSON.stringify(payload);
-            
-            // Führt den Submit zum unsichtbaren iframe aus (doPost)
             document.getElementById("bgaForm").submit();
 
             setTimeout(() => {
