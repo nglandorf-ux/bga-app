@@ -88,23 +88,23 @@
         
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
 
-        // Lädt die Statistik direkt beim Start der App
         window.onload = ladeStatistik;
 
+        // Wir nutzen JSONP, um die Google-Blockade (CORS) zu umgehen
         function ladeStatistik() {
             document.getElementById("status").innerText = "🔄 Lade heutige Daten...";
             document.getElementById("status").style.color = "#333";
             
-            fetch(APPS_SCRIPT_URL)
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("status").innerHTML = 
-                        "📊 <b>Heute:</b> " + data.fuhren + " Fuhren | " + data.tonnen + " t";
-                })
-                .catch(error => {
-                    document.getElementById("status").innerText = "Statistik konnte nicht geladen werden.";
-                    console.error("Fehler:", error);
-                });
+            // Ein unsichtbares Skript-Element erstellen, das die Daten holt
+            let script = document.createElement('script');
+            script.src = APPS_SCRIPT_URL + "?callback=zeigeStatistik";
+            document.body.appendChild(script);
+        }
+
+        // Diese Funktion wird vom Apps Script aufgerufen, wenn die Daten da sind
+        function zeigeStatistik(data) {
+            document.getElementById("status").innerHTML = 
+                "📊 <b>Heute:</b> " + data.fuhren + " Fuhren | " + data.tonnen + " t";
         }
 
         function fuhreAbgeschickt() {
@@ -112,7 +112,6 @@
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
             let gesamt = (vol * dich).toFixed(2);
 
-            // Kugelsicheres Datum (immer TT.MM.JJJJ)
             let d = new Date();
             let day = String(d.getDate()).padStart(2, '0');
             let month = String(d.getMonth() + 1).padStart(2, '0');
@@ -138,7 +137,7 @@
                 document.getElementById("status").innerText = "✅ " + gesamt + "t eingetragen!";
                 document.getElementById("volumen").value = "";
                 
-                // Nach 3 Sekunden laden wir die Statistik neu, damit die neue Fuhre direkt sichtbar wird
+                // Aktualisiert die Anzeige
                 setTimeout(() => { ladeStatistik(); }, 3000);
             }, 500);
         }
