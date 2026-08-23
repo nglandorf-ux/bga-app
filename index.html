@@ -25,6 +25,14 @@
         .btn-stats:active { background-color: #0056b3; }
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
+        
+        /* Neues Design für das Ranking */
+        .ranking-box { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 8px; }
+        .ranking-title { font-weight: bold; text-align: center; margin-bottom: 10px; font-size: 18px; }
+        .ranking-list { list-style-type: none; padding: 0; margin: 0; }
+        .ranking-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #ccc; }
+        .ranking-item:last-child { border-bottom: none; }
+        .rank-1 { font-weight: bold; color: #d4af37; /* Gold */ }
     </style>
 </head>
 <body>
@@ -76,8 +84,18 @@
             <button type="submit" id="btn">🚀 Fuhre eintragen!</button>
         </form>
 
-        <button onclick="oeffneTabelle()" class="btn-stats">📊 Live-Tabelle öffnen</button>
         <div id="status"></div>
+
+        <!-- Hier wird das Ranking angezeigt -->
+        <div class="ranking-box" id="rankingBox" style="display: none;">
+            <div class="ranking-title">🏆 Heutiges Ranking</div>
+            <ul class="ranking-list" id="rankingList">
+                <!-- Wird per JavaScript gefüllt -->
+            </ul>
+        </div>
+
+        <button onclick="oeffneTabelle()" class="btn-stats">📊 Live-Tabelle öffnen</button>
+        
     </div>
 
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
@@ -90,21 +108,38 @@
 
         window.onload = ladeStatistik;
 
-        // Wir nutzen JSONP, um die Google-Blockade (CORS) zu umgehen
         function ladeStatistik() {
-            document.getElementById("status").innerText = "🔄 Lade heutige Daten...";
+            document.getElementById("status").innerText = "🔄 Lade Ranking...";
             document.getElementById("status").style.color = "#333";
+            document.getElementById("rankingBox").style.display = "none";
             
-            // Ein unsichtbares Skript-Element erstellen, das die Daten holt
             let script = document.createElement('script');
             script.src = APPS_SCRIPT_URL + "?callback=zeigeStatistik";
             document.body.appendChild(script);
         }
 
-        // Diese Funktion wird vom Apps Script aufgerufen, wenn die Daten da sind
         function zeigeStatistik(data) {
-            document.getElementById("status").innerHTML = 
-                "📊 <b>Heute:</b> " + data.fuhren + " Fuhren | " + data.tonnen + " t";
+            document.getElementById("status").innerText = ""; // Lade-Text ausblenden
+            
+            let listHTML = "";
+            
+            if (data.length === 0) {
+                 listHTML = "<li class='ranking-item'>Noch keine Fuhren heute! Hau rein!</li>";
+            } else {
+                for (let i = 0; i < data.length; i++) {
+                    let rang = i + 1;
+                    let nameClass = (rang === 1) ? "rank-1" : "";
+                    let icon = (rang === 1) ? "👑 " : rang + ". ";
+                    
+                    listHTML += `<li class="ranking-item">
+                                    <span class="${nameClass}">${icon}${data[i].name}</span>
+                                    <span>${data[i].fuhren} Fuhren | ${data[i].tonnen} t</span>
+                                 </li>`;
+                }
+            }
+            
+            document.getElementById("rankingList").innerHTML = listHTML;
+            document.getElementById("rankingBox").style.display = "block";
         }
 
         function fuhreAbgeschickt() {
@@ -124,7 +159,7 @@
                 fahrer: document.getElementById("fahrer").value,
                 fahrzeug: document.getElementById("fahrzeug").value,
                 anhaenger: document.getElementById("anhaenger").value,
-                aktion: document.getElementById("aktion").value,
+                aktion: document.getElementById("aktion").value, // Aktion kommt aus dem Dropdown
                 volumen: vol,
                 dichte: dich,
                 gesamtgewicht: gesamt
@@ -137,7 +172,6 @@
                 document.getElementById("status").innerText = "✅ " + gesamt + "t eingetragen!";
                 document.getElementById("volumen").value = "";
                 
-                // Aktualisiert die Anzeige
                 setTimeout(() => { ladeStatistik(); }, 3000);
             }, 500);
         }
