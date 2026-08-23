@@ -82,14 +82,10 @@
             </select>
             <input type="text" id="custom_fahrzeug" class="custom-input" placeholder="Z.B. Claas Axion...">
 
-            <!-- NEU: Felderauswahl -->
+            <!-- DAS FELD-DROPDOWN WIRD JETZT DYNAMISCH BEFÜLLT -->
             <label>Feld / Schlag:</label>
             <select id="feld" name="feld" onchange="checkCustom('feld')">
-                <option value="Bitte wählen...">-- Bitte wählen --</option>
-                <option value="Große Wiese">Große Wiese (26,0 ha)</option>
-                <option value="Vosshörn">Vosshörn (10,8 ha)</option>
-                <option value="Hinterm Hähnchenstall">Hinterm Hähnchenstall (1,65 ha)</option>
-                <option value="custom">✍️ Anderes Feld...</option>
+                <option value="Bitte wählen...">🔄 Lade Felder aus Datenbank...</option>
             </select>
             <input type="text" id="custom_feld" class="custom-input" placeholder="Name des Feldes eintragen...">
 
@@ -139,7 +135,7 @@
         <div class="ranking-box" id="rankingBox">
             <div class="ranking-header">
                 <div class="ranking-title">🏆 Ranking</div>
-                <input type="date" id="statistikDatum" class="date-picker" onchange="ladeStatistik()">
+                <input type="date" id="statistikDatum" class="date-picker" onchange="ladeDaten()">
             </div>
             <ul class="ranking-list" id="rankingList">
                 <li style="text-align:center;">Lade Daten...</li>
@@ -155,21 +151,18 @@
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
 
+        // Globale Variable für die Felder, die aus der Tabelle geladen werden
+        let felderDatenbank = [];
+
         window.onload = function() {
             let heute = new Date().toISOString().split('T')[0];
             document.getElementById("statistikDatum").value = heute;
-            ladeStatistik();
+            ladeDaten(); // Lädt jetzt Statistik UND Felder!
         };
 
         // --- GPS AUTOMATIK LOGIK & MULTI-FELDER ---
         const BGA = { lat: 53.61923769058454, lon: 8.92679385181036, radius: 35 };
         
-        const FELDER = [
-            { id: "Große Wiese", name: "Große Wiese", lat: 53.628795290594375, lon: 8.931582688013064, radius: 225 },
-            { id: "Vosshörn", name: "Vosshörn", lat: 53.62401081191361, lon: 8.914631640318243, radius: 90 },
-            { id: "Hinterm Hähnchenstall", name: "Hinterm Hähnchenstall", lat: 53.619898184574666, lon: 8.92552575731485, radius: 40 }
-        ];
-
         let autoModusAktiv = false;
         let gpsWatchId = null;
         let wakeLock = null;
@@ -245,11 +238,11 @@
             let distBGA = berechneDistanz(myLat, myLon, BGA.lat, BGA.lon);
             document.getElementById("distBGA").innerText = distBGA;
 
-            // Finde heraus, ob wir auf irgendeinem Feld sind
+            // Finde heraus, ob wir auf irgendeinem Feld aus unserer dynamischen Datenbank sind
             let aktivesFeld = null;
             let kuerzesteFeldDistanz = 999999;
 
-            for (let f of FELDER) {
+            for (let f of felderDatenbank) {
                 let dist = berechneDistanz(myLat, myLon, f.lat, f.lon);
                 if (dist < kuerzesteFeldDistanz) kuerzesteFeldDistanz = dist;
                 
@@ -258,9 +251,9 @@
                 }
             }
             
-            document.getElementById("distFeld").innerText = kuerzesteFeldDistanz;
+            // Wenn felderDatenbank leer ist, zeige 0
+            document.getElementById("distFeld").innerText = (felderDatenbank.length > 0) ? kuerzesteFeldDistanz : "-";
 
-            // Wenn wir auf einem Feld sind, wähle es automatisch im Formular aus!
             if (aktivesFeld) {
                 document.getElementById("feld").value = aktivesFeld.id;
                 document.getElementById("erkanntesFeld").innerText = aktivesFeld.name;
@@ -271,7 +264,6 @@
             }
 
             if (aktion === "Gärrest Ausbringung") {
-                // MODUS: GÄRREST (Laden BGA -> Feld)
                 if (distBGA <= BGA.radius) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
@@ -291,7 +283,6 @@
                 }
 
             } else {
-                // MODUS: ERNTE (Laden Feld -> BGA)
                 if (aktivesFeld) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
@@ -366,7 +357,7 @@
 
         document.getElementById("dichte").addEventListener("input", function() { this.classList.remove("auto-filled"); });
 
-        function ladeStatistik() {
+        function ladeDaten() {
             document.getElementById("rankingList").innerHTML = "<li style='text-align:center;'>🔄 Lade...</li>";
             let auswahl = document.getElementById("statistikDatum").value;
             let teile = auswahl.split("-");
@@ -378,19 +369,39 @@
             
             let script = document.createElement('script');
             script.id = scriptId;
-            script.src = APPS_SCRIPT_URL + "?datum=" + encodeURIComponent(deutschesDatum) + "&callback=zeigeStatistik";
+            script.src = APPS_SCRIPT_URL + "?datum=" + encodeURIComponent(deutschesDatum) + "&callback=verarbeiteDaten";
             document.body.appendChild(script);
         }
 
-        function zeigeStatistik(data) {
+        // Diese Funktion empfängt jetzt das große Paket (Statistik + Felder)
+        function verarbeiteDaten(data) {
+            // 1. Felder Dropdown füllen und GPS-Datenbank aktualisieren
+            if (data.felder && data.felder.length > 0) {
+                felderDatenbank = data.felder;
+                let feldSelect = document.getElementById("feld");
+                let html = '<option value="Bitte wählen...">-- Bitte wählen --</option>';
+                
+                for(let f of data.felder) {
+                    html += `<option value="${f.name}">${f.name} (${f.hektar} ha)</option>`;
+                }
+                html += '<option value="custom">✍️ Anderes Feld...</option>';
+                feldSelect.innerHTML = html;
+            } else {
+                document.getElementById("feld").innerHTML = '<option value="Bitte wählen...">-- Keine Felder gefunden --</option><option value="custom">✍️ Anderes Feld...</option>';
+            }
+
+            // 2. Ranking bauen
             let listHTML = "";
-            if (data.length === 0) { listHTML = "<li class='ranking-item' style='justify-content:center;'>Keine Fuhren an diesem Tag!</li>"; } 
-            else {
-                for (let i = 0; i < data.length; i++) {
+            let rankingData = data.ranking || [];
+            
+            if (rankingData.length === 0) { 
+                listHTML = "<li class='ranking-item' style='justify-content:center;'>Keine Fuhren an diesem Tag!</li>"; 
+            } else {
+                for (let i = 0; i < rankingData.length; i++) {
                     let rang = i + 1;
                     let nameClass = (rang === 1) ? "rank-1" : "";
                     let icon = (rang === 1) ? "👑 " : rang + ". ";
-                    listHTML += `<li class="ranking-item"><span class="${nameClass}">${icon}${data[i].name}</span><span>${data[i].fuhren} Fuhren | ${data[i].tonnen} t</span></li>`;
+                    listHTML += `<li class="ranking-item"><span class="${nameClass}">${icon}${rankingData[i].name}</span><span>${rankingData[i].fuhren} Fuhren | ${rankingData[i].tonnen} t</span></li>`;
                 }
             }
             document.getElementById("rankingList").innerHTML = listHTML;
@@ -431,7 +442,7 @@
                 volumen: vol,
                 dichte: dich,
                 gesamtgewicht: gesamt,
-                feld: finalFeld // NEU eingefügt!
+                feld: finalFeld
             };
 
             document.getElementById("jsonData").value = JSON.stringify(payload);
@@ -445,7 +456,7 @@
                     document.getElementById("status").innerText = ""; 
                     let heute = new Date().toISOString().split('T')[0];
                     document.getElementById("statistikDatum").value = heute;
-                    ladeStatistik(); 
+                    ladeDaten(); 
                 }, 3000);
             }, 500);
         }
