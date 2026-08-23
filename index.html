@@ -26,7 +26,6 @@
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
         
-        /* Design für das Ranking */
         .ranking-box { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 8px; }
         .ranking-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .ranking-title { font-weight: bold; font-size: 18px; margin: 0; }
@@ -36,6 +35,8 @@
         .ranking-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #ccc; }
         .ranking-item:last-child { border-bottom: none; }
         .rank-1 { font-weight: bold; color: #d4af37; }
+        
+        .auto-filled { background-color: #e8f5e9; border-color: #4caf50; }
     </style>
 </head>
 <body>
@@ -63,37 +64,40 @@
             </select>
 
             <label>Anhänger:</label>
-            <select id="anhaenger" name="anhaenger">
-                <option>Mulde</option>
-                <option>Häckselwagen</option>
-                <option>Güllefass</option>
-                <option>Ohne Anhänger</option>
+            <select id="anhaenger" name="anhaenger" onchange="updateVolumen()">
+                <option value="Bitte wählen..." data-vol="">-- Bitte wählen --</option>
+                <option value="Mulde (37.5 m³)" data-vol="37.5">Mulde (37.5 m³)</option>
+                <option value="Häckselwagen (40 m³)" data-vol="40">Häckselwagen (40 m³)</option>
+                <option value="Häckselwagen (45 m³)" data-vol="45">Häckselwagen (45 m³)</option>
+                <option value="Häckselwagen (50 m³)" data-vol="50">Häckselwagen (50 m³)</option>
+                <option value="Güllefass (18 m³)" data-vol="18">Güllefass (18 m³)</option>
+                <option value="Ohne Anhänger" data-vol="0">Ohne Anhänger</option>
             </select>
 
             <label>Aktion:</label>
-            <select id="aktion" name="aktion">
-                <option>Ernte (Silomais)</option>
-                <option>Ernte (Gras)</option>
-                <option>Gärrest Ausbringung</option>
+            <select id="aktion" name="aktion" onchange="updateDichte()">
+                <option value="Bitte wählen...">-- Bitte wählen --</option>
+                <option value="Ernte (Silomais)">Ernte (Silomais)</option>
+                <option value="Ernte (Gras)">Ernte (Gras)</option>
+                <option value="Gärrest Ausbringung">Gärrest Ausbringung</option>
             </select>
 
             <label>Volumen (m³):</label>
-            <input type="number" id="volumen" placeholder="z.B. 38" step="0.1" required>
+            <input type="number" id="volumen" placeholder="Wird automatisch ausgefüllt..." step="0.1" required>
 
             <label>Gewicht (Tonnen pro m³):</label>
-            <input type="number" id="dichte" placeholder="z.B. 0.75" step="0.01" required>
-            <span class="info-text">Silomais ca. 0.65-0.75 | Gras ca. 0.35-0.45 | Gärrest ca. 1.0</span>
+            <input type="number" id="dichte" placeholder="Wird automatisch vorgeschlagen..." step="0.01" required>
+            <!-- INFO-TEXT ANGEPASST FÜR SCHÜTTGEWICHT -->
+            <span class="info-text">Schüttgewicht Wagen: Mais ~0.35 | Gras ~0.25 | Gärrest ~1.0</span>
 
             <button type="submit" id="btn">🚀 Fuhre eintragen!</button>
         </form>
 
         <div id="status"></div>
 
-        <!-- Ranking mit Datumsauswahl -->
         <div class="ranking-box" id="rankingBox">
             <div class="ranking-header">
                 <div class="ranking-title">🏆 Ranking</div>
-                <!-- Der Datumspicker, standardmäßig auf heute gesetzt -->
                 <input type="date" id="statistikDatum" class="date-picker" onchange="ladeStatistik()">
             </div>
             <ul class="ranking-list" id="rankingList">
@@ -113,31 +117,62 @@
         
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
 
-        // Setzt das Datumsfeld beim Start auf das heutige Datum
         window.onload = function() {
-            let heute = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD für das Input-Feld
+            let heute = new Date().toISOString().split('T')[0];
             document.getElementById("statistikDatum").value = heute;
             ladeStatistik();
         };
 
+        function updateVolumen() {
+            let select = document.getElementById("anhaenger");
+            let vol = select.options[select.selectedIndex].getAttribute("data-vol");
+            let volInput = document.getElementById("volumen");
+            
+            if (vol) {
+                volInput.value = vol;
+                volInput.classList.add("auto-filled");
+            } else {
+                volInput.value = "";
+                volInput.classList.remove("auto-filled");
+            }
+        }
+
+        function updateDichte() {
+            let aktion = document.getElementById("aktion").value;
+            let dichteInput = document.getElementById("dichte");
+            
+            // KORRIGIERTE WERTE FÜR LOSES SCHÜTTGUT AUF DEM WAGEN
+            if (aktion === "Ernte (Silomais)") {
+                dichteInput.value = 0.35;
+                dichteInput.classList.add("auto-filled");
+            } else if (aktion === "Ernte (Gras)") {
+                dichteInput.value = 0.25;
+                dichteInput.classList.add("auto-filled");
+            } else if (aktion === "Gärrest Ausbringung") {
+                dichteInput.value = 1.00;
+                dichteInput.classList.add("auto-filled");
+            } else {
+                dichteInput.value = "";
+                dichteInput.classList.remove("auto-filled");
+            }
+        }
+
+        document.getElementById("volumen").addEventListener("input", function() { this.classList.remove("auto-filled"); });
+        document.getElementById("dichte").addEventListener("input", function() { this.classList.remove("auto-filled"); });
+
         function ladeStatistik() {
             document.getElementById("rankingList").innerHTML = "<li style='text-align:center;'>🔄 Lade...</li>";
             
-            // Holt das ausgewählte Datum (z.B. 2026-08-23)
             let auswahl = document.getElementById("statistikDatum").value;
-            
-            // Wandelt 2026-08-23 in unser geliebtes 23.08.2026 um
             let teile = auswahl.split("-");
             let deutschesDatum = `${teile[2]}.${teile[1]}.${teile[0]}`;
             
-            // Erzeugt das unsichtbare Skript-Tag für JSONP
             let scriptId = "jsonpScript";
             let altesScript = document.getElementById(scriptId);
-            if (altesScript) { altesScript.remove(); } // Altes aufräumen
+            if (altesScript) { altesScript.remove(); }
             
             let script = document.createElement('script');
             script.id = scriptId;
-            // Wir hängen ?datum=23.08.2026 an die URL an!
             script.src = APPS_SCRIPT_URL + "?datum=" + encodeURIComponent(deutschesDatum) + "&callback=zeigeStatistik";
             document.body.appendChild(script);
         }
@@ -168,6 +203,11 @@
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
             let gesamt = (vol * dich).toFixed(2);
 
+            if (document.getElementById("anhaenger").value === "Bitte wählen..." || document.getElementById("aktion").value === "Bitte wählen...") {
+                alert("Bitte Anhänger und Aktion auswählen!");
+                return false;
+            }
+
             let d = new Date();
             let day = String(d.getDate()).padStart(2, '0');
             let month = String(d.getMonth() + 1).padStart(2, '0');
@@ -191,11 +231,12 @@
             setTimeout(() => {
                 document.getElementById("status").style.color = "green";
                 document.getElementById("status").innerText = "✅ " + gesamt + "t eingetragen!";
+                
                 document.getElementById("volumen").value = "";
+                document.getElementById("volumen").classList.remove("auto-filled");
                 
                 setTimeout(() => { 
                     document.getElementById("status").innerText = ""; 
-                    // Setzt das Datum wieder auf heute und lädt neu
                     let heute = new Date().toISOString().split('T')[0];
                     document.getElementById("statistikDatum").value = heute;
                     ladeStatistik(); 
