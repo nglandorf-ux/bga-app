@@ -42,11 +42,13 @@
         input[readonly] { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; border-color: #ccc; }
         
         #gpsData { font-family: monospace; font-size: 14px; background: #333; color: #0f0; padding: 10px; border-radius: 5px; margin-top: 10px; display: none; }
+        
+        /* Design für die ausklappbaren Textfelder */
+        .custom-input { display: none; margin-top: 5px; background-color: #fff3cd; border-color: #ffeeba; }
     </style>
 </head>
 <body>
 
-    <!-- HAUPT-APP -->
     <div class="box">
         <h2>🚜 BGA Zähler</h2>
         
@@ -54,20 +56,24 @@
             <input type="hidden" name="data" id="jsonData">
 
             <label>Fahrer:</label>
-            <select id="fahrer" name="fahrer">
+            <select id="fahrer" name="fahrer" onchange="checkCustom('fahrer')">
                 <option>Nils</option>
                 <option>Lars</option>
                 <option>Lukian</option>
                 <option>Sergej</option>
+                <option value="custom">✍️ Anderer Fahrer...</option>
             </select>
+            <input type="text" id="custom_fahrer" class="custom-input" placeholder="Name des Fahrers eintragen...">
 
             <label>Schlepper:</label>
-            <select id="fahrzeug" name="fahrzeug">
+            <select id="fahrzeug" name="fahrzeug" onchange="checkCustom('fahrzeug')">
                 <option>Valtra T215D</option>
                 <option>Arion 650</option>
                 <option>Leihschlepper 1</option>
                 <option>Leihschlepper 2</option>
+                <option value="custom">✍️ Anderer Schlepper...</option>
             </select>
+            <input type="text" id="custom_fahrzeug" class="custom-input" placeholder="Z.B. Claas Axion...">
 
             <label>Anhänger:</label>
             <select id="anhaenger" name="anhaenger" onchange="updateVolumen()">
@@ -76,9 +82,10 @@
                 <option value="Häckselwagen (40 m³)" data-vol="40">Häckselwagen (40 m³)</option>
                 <option value="Häckselwagen (45 m³)" data-vol="45">Häckselwagen (45 m³)</option>
                 <option value="Häckselwagen (50 m³)" data-vol="50">Häckselwagen (50 m³)</option>
-                <option value="Güllefass (16,5 m³)" data-vol="16,5">Güllefass (16,5 m³)</option>
-                <option value="Manuell / Anderes Volumen" data-vol="manuell">Manuell / Anderes Volumen</option>
+                <option value="Güllefass (18 m³)" data-vol="18">Güllefass (18 m³)</option>
+                <option value="custom" data-vol="manuell">✍️ Anderer Anhänger...</option>
             </select>
+            <input type="text" id="custom_anhaenger" class="custom-input" placeholder="Z.B. Tebbe Wagen...">
 
             <label>Aktion:</label>
             <select id="aktion" name="aktion" onchange="updateDichte()">
@@ -113,13 +120,11 @@
         <button onclick="oeffneTabelle()" class="btn-stats">📊 Live-Tabelle öffnen</button>
     </div>
 
-    <!-- NEUER BEREICH: GPS SETUP -->
+    <!-- GPS SETUP -->
     <div class="box">
         <h2>🛰️ GPS Kalibrierung</h2>
         <span class="info-text">Stell dich ans Silo oder auf den Acker und frage die Koordinaten ab, um sie später im Code für die Automatik zu hinterlegen.</span>
-        
         <button type="button" class="btn-gps" onclick="holeGPS()">📍 Meine Koordinaten abfragen</button>
-        
         <div id="gpsData">
             Lat: <span id="gpsLat">-</span><br>
             Lon: <span id="gpsLon">-</span><br>
@@ -131,7 +136,6 @@
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
-        
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
 
         window.onload = function() {
@@ -140,54 +144,34 @@
             ladeStatistik();
         };
 
-        // --- GPS FUNKTIONEN ---
-        function holeGPS() {
-            let gpsBox = document.getElementById("gpsData");
-            gpsBox.style.display = "block";
-            document.getElementById("gpsLat").innerText = "Suche Satelliten...";
-            document.getElementById("gpsLon").innerText = "Suche Satelliten...";
-            document.getElementById("gpsAcc").innerText = "...";
-
-            if (navigator.geolocation) {
-                // Wir fordern hohe Genauigkeit (echtes GPS, nicht nur WLAN/Funkmasten) an
-                navigator.geolocation.getCurrentPosition(zeigePosition, zeigeFehler, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                });
+        // --- NEUE FUNKTION: Custom Felder einblenden ---
+        function checkCustom(id) {
+            let select = document.getElementById(id);
+            let customInput = document.getElementById("custom_" + id);
+            
+            if (select.value === "custom") {
+                customInput.style.display = "block";
+                customInput.required = true;
             } else {
-                alert("Dein Browser unterstützt leider kein GPS.");
+                customInput.style.display = "none";
+                customInput.required = false;
             }
         }
 
-        function zeigePosition(position) {
-            // Latitude = Breitengrad, Longitude = Längengrad
-            document.getElementById("gpsLat").innerText = position.coords.latitude.toFixed(6);
-            document.getElementById("gpsLon").innerText = position.coords.longitude.toFixed(6);
-            // Accuracy gibt an, auf wie viele Meter genau die Messung ist
-            document.getElementById("gpsAcc").innerText = Math.round(position.coords.accuracy);
-        }
-
-        function zeigeFehler(error) {
-            let msg = "";
-            switch(error.code) {
-                case error.PERMISSION_DENIED: msg = "Du musst der Seite Zugriff auf den Standort erlauben!"; break;
-                case error.POSITION_UNAVAILABLE: msg = "GPS Signal nicht verfügbar. Bist du in einer Halle?"; break;
-                case error.TIMEOUT: msg = "Zeitüberschreitung beim Suchen des GPS Signals."; break;
-                default: msg = "Ein unbekannter Fehler ist aufgetreten."; break;
-            }
-            alert("Fehler: " + msg);
-            document.getElementById("gpsLat").innerText = "Fehler";
-            document.getElementById("gpsLon").innerText = "Fehler";
-        }
-        // --- ENDE GPS FUNKTIONEN ---
-
-
-        // (Der Rest ist dein funktionierender Code)
         function updateVolumen() {
             let select = document.getElementById("anhaenger");
             let vol = select.options[select.selectedIndex].getAttribute("data-vol");
             let volInput = document.getElementById("volumen");
+            let customInput = document.getElementById("custom_anhaenger");
+            
+            // Textfeld einblenden, wenn "Anderer Anhänger" gewählt ist
+            if (select.value === "custom") {
+                customInput.style.display = "block";
+                customInput.required = true;
+            } else {
+                customInput.style.display = "none";
+                customInput.required = false;
+            }
             
             if (vol === "manuell") {
                 volInput.value = "";
@@ -259,7 +243,52 @@
             document.getElementById("rankingList").innerHTML = listHTML;
         }
 
+        function holeGPS() {
+            let gpsBox = document.getElementById("gpsData");
+            gpsBox.style.display = "block";
+            document.getElementById("gpsLat").innerText = "Suche Satelliten...";
+            document.getElementById("gpsLon").innerText = "Suche Satelliten...";
+            document.getElementById("gpsAcc").innerText = "...";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(zeigePosition, zeigeFehler, {
+                    enableHighAccuracy: true, timeout: 10000, maximumAge: 0
+                });
+            } else {
+                alert("Dein Browser unterstützt leider kein GPS.");
+            }
+        }
+
+        function zeigePosition(position) {
+            document.getElementById("gpsLat").innerText = position.coords.latitude.toFixed(6);
+            document.getElementById("gpsLon").innerText = position.coords.longitude.toFixed(6);
+            document.getElementById("gpsAcc").innerText = Math.round(position.coords.accuracy);
+        }
+
+        function zeigeFehler(error) {
+            let msg = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED: msg = "Du musst der Seite Zugriff auf den Standort erlauben!"; break;
+                case error.POSITION_UNAVAILABLE: msg = "GPS Signal nicht verfügbar."; break;
+                case error.TIMEOUT: msg = "Zeitüberschreitung beim Suchen des GPS Signals."; break;
+                default: msg = "Ein unbekannter Fehler ist aufgetreten."; break;
+            }
+            alert("Fehler: " + msg);
+            document.getElementById("gpsLat").innerText = "Fehler";
+            document.getElementById("gpsLon").innerText = "Fehler";
+        }
+
         function fuhreAbgeschickt() {
+            // Wir prüfen jetzt, ob die Standard-Dropdowns genutzt wurden oder die gelben Freitext-Felder
+            let finalFahrer = document.getElementById("fahrer").value;
+            if (finalFahrer === "custom") finalFahrer = document.getElementById("custom_fahrer").value;
+            
+            let finalFahrzeug = document.getElementById("fahrzeug").value;
+            if (finalFahrzeug === "custom") finalFahrzeug = document.getElementById("custom_fahrzeug").value;
+            
+            let finalAnhaenger = document.getElementById("anhaenger").value;
+            if (finalAnhaenger === "custom") finalAnhaenger = document.getElementById("custom_anhaenger").value;
+
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
             let gesamt = (vol * dich).toFixed(2);
@@ -278,9 +307,9 @@
             let payload = {
                 datum: datumString,
                 uhrzeit: d.toLocaleTimeString('de-DE'),
-                fahrer: document.getElementById("fahrer").value,
-                fahrzeug: document.getElementById("fahrzeug").value,
-                anhaenger: document.getElementById("anhaenger").value,
+                fahrer: finalFahrer,
+                fahrzeug: finalFahrzeug,
+                anhaenger: finalAnhaenger,
                 aktion: document.getElementById("aktion").value, 
                 volumen: vol,
                 dichte: dich,
