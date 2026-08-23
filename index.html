@@ -82,7 +82,7 @@
             </select>
             <input type="text" id="custom_fahrzeug" class="custom-input" placeholder="Z.B. Claas Axion...">
 
-            <!-- DAS FELD-DROPDOWN -->
+            <!-- FELD-DROPDOWN -->
             <label>Feld / Schlag:</label>
             <select id="feld" name="feld" onchange="checkCustom('feld')">
                 <option value="Bitte wählen...">🔄 Lade Felder aus Datenbank...</option>
@@ -151,7 +151,7 @@
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
 
-        let felderDatenbank = [];
+        let felderDatenbank = []; 
 
         window.onload = function() {
             let heute = new Date().toISOString().split('T')[0];
@@ -159,7 +159,8 @@
             ladeDaten();
         };
 
-        const BGA = { lat: 53.61923769058454, lon: 8.92679385181036, radius: 35 };
+        // BGA RADIUS HIER AUF 45 METER VERGRÖSSERT
+        const BGA = { lat: 53.61923769058454, lon: 8.92679385181036, radius: 45 }; 
         
         let autoModusAktiv = false;
         let gpsWatchId = null;
@@ -240,11 +241,29 @@
             let kuerzesteFeldDistanz = 999999;
 
             for (let f of felderDatenbank) {
-                let dist = berechneDistanz(myLat, myLon, f.lat, f.lon);
-                if (dist < kuerzesteFeldDistanz) kuerzesteFeldDistanz = dist;
-                
-                if (dist <= f.radius) {
+                let insideThisField = false;
+
+                for (let p of f.punkte) {
+                    let dist = berechneDistanz(myLat, myLon, p.lat, p.lon);
+                    if (dist < kuerzesteFeldDistanz) kuerzesteFeldDistanz = dist;
+                }
+
+                if (f.punkte.length >= 3) {
+                    let x = myLon, y = myLat;
+                    let inside = false;
+                    for (let i = 0, j = f.punkte.length - 1; i < f.punkte.length; j = i++) {
+                        let xi = f.punkte[i].lon, yi = f.punkte[i].lat;
+                        let xj = f.punkte[j].lon, yj = f.punkte[j].lat;
+                        
+                        let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                        if (intersect) inside = !inside;
+                    }
+                    insideThisField = inside;
+                }
+
+                if (insideThisField) {
                     aktivesFeld = f;
+                    break;
                 }
             }
             
@@ -277,7 +296,6 @@
                     document.getElementById("ladeStatus").style.color = "#ff9800";
                     fuhreAbgeschickt();
                 }
-
             } else {
                 if (aktivesFeld) {
                     fahrzeugBeladen = true;
@@ -370,12 +388,19 @@
         }
 
         function verarbeiteDaten(data) {
-            // HIER IST DER FIX: Die App merkt sich jetzt, was du beim Feld ausgewählt hast!
             if (data.felderDropdown && data.felderDropdown.length > 0) {
-                felderDatenbank = data.felderGPS; 
+                
+                let gruppen = {};
+                for (let f of data.felderGPS) {
+                    if (!gruppen[f.name]) {
+                        gruppen[f.name] = { id: f.id, name: f.name, hektar: f.hektar, punkte: [] };
+                    }
+                    gruppen[f.name].punkte.push({ lat: f.lat, lon: f.lon });
+                }
+                felderDatenbank = Object.values(gruppen); 
                 
                 let feldSelect = document.getElementById("feld");
-                let aktuellerWert = feldSelect.value; // WICHTIG: Aktuelle Auswahl merken!
+                let aktuellerWert = feldSelect.value;
                 
                 let html = '<option value="Bitte wählen...">-- Bitte wählen --</option>';
                 for(let f of data.felderDropdown) {
@@ -384,7 +409,6 @@
                 html += '<option value="custom">✍️ Anderes Feld...</option>';
                 feldSelect.innerHTML = html;
                 
-                // WICHTIG: Auswahl nach dem Neuladen wiederherstellen
                 if (aktuellerWert && aktuellerWert !== "") {
                     feldSelect.value = aktuellerWert;
                 }
