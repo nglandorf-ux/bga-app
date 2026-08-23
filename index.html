@@ -23,8 +23,21 @@
         button:active { background-color: #218838; }
         .btn-stats { background-color: #007bff; margin-top: 10px; }
         .btn-stats:active { background-color: #0056b3; }
-        .btn-gps { background-color: #ff9800; }
-        .btn-gps:active { background-color: #e68a00; }
+        
+        /* Auto-Modus Styles */
+        .btn-auto { background-color: #17a2b8; padding: 20px; font-size: 18px; margin-top: 20px; }
+        .btn-auto:active { background-color: #138496; }
+        .btn-auto.active { background-color: #dc3545; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+
+        #gpsCockpit { background: #333; color: #0f0; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 14px; margin-top: 15px; display: none; }
+        .gps-alert { color: #ffeb3b; font-weight: bold; margin-bottom: 10px; display: block; font-size: 16px;}
+        
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
         
@@ -32,7 +45,6 @@
         .ranking-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .ranking-title { font-weight: bold; font-size: 18px; margin: 0; }
         .date-picker { width: 140px; padding: 8px; margin: 0; border-radius: 6px; border: 1px solid #aaa; font-size: 14px; }
-        
         .ranking-list { list-style-type: none; padding: 0; margin: 0; }
         .ranking-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #ccc; }
         .ranking-item:last-child { border-bottom: none; }
@@ -40,10 +52,6 @@
         
         .auto-filled { background-color: #e8f5e9; border-color: #4caf50; }
         input[readonly] { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; border-color: #ccc; }
-        
-        #gpsData { font-family: monospace; font-size: 14px; background: #333; color: #0f0; padding: 10px; border-radius: 5px; margin-top: 10px; display: none; }
-        
-        /* Design für die ausklappbaren Textfelder */
         .custom-input { display: none; margin-top: 5px; background-color: #fff3cd; border-color: #ffeeba; }
     </style>
 </head>
@@ -52,7 +60,7 @@
     <div class="box">
         <h2>🚜 BGA Zähler</h2>
         
-        <form id="bgaForm" action="" method="POST" target="hidden_iframe" onsubmit="fuhreAbgeschickt()">
+        <form id="bgaForm" action="" method="POST" target="hidden_iframe" onsubmit="return handleManualSubmit();">
             <input type="hidden" name="data" id="jsonData">
 
             <label>Fahrer:</label>
@@ -102,8 +110,19 @@
             <input type="number" id="dichte" placeholder="Wird automatisch vorgeschlagen..." step="0.01" required>
             <span class="info-text">Schüttgewicht Wagen: Mais ~0.35 | Gras ~0.25 | Gärrest ~1.0</span>
 
-            <button type="submit" id="btn">🚀 Fuhre eintragen!</button>
+            <!-- Manueller Button bleibt für den Notfall -->
+            <button type="submit" id="btn">🚀 Manuell eintragen</button>
         </form>
+
+        <!-- AUTO MODUS BEREICH -->
+        <button type="button" id="btnAutoModus" class="btn-auto" onclick="toggleAutoModus()">📡 Auto-Modus STARTEN</button>
+        
+        <div id="gpsCockpit">
+            <span class="gps-alert" id="autoStatus">Warte auf Start...</span>
+            Distanz zur BGA: <span id="distBGA">-</span> m<br>
+            Distanz zum Feld: <span id="distFeld">-</span> m<br>
+            Ladestatus: <span id="ladeStatus" style="color: #ff9800;">Leer</span>
+        </div>
 
         <div id="status"></div>
 
@@ -120,18 +139,6 @@
         <button onclick="oeffneTabelle()" class="btn-stats">📊 Live-Tabelle öffnen</button>
     </div>
 
-    <!-- GPS SETUP -->
-    <div class="box">
-        <h2>🛰️ GPS Kalibrierung</h2>
-        <span class="info-text">Stell dich ans Silo oder auf den Acker und frage die Koordinaten ab, um sie später im Code für die Automatik zu hinterlegen.</span>
-        <button type="button" class="btn-gps" onclick="holeGPS()">📍 Meine Koordinaten abfragen</button>
-        <div id="gpsData">
-            Lat: <span id="gpsLat">-</span><br>
-            Lon: <span id="gpsLon">-</span><br>
-            Genauigkeit: <span id="gpsAcc">-</span> m
-        </div>
-    </div>
-
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
@@ -144,11 +151,132 @@
             ladeStatistik();
         };
 
-        // --- NEUE FUNKTION: Custom Felder einblenden ---
+        // --- GPS AUTOMATIK LOGIK ---
+        
+        // Zonen definieren
+        const BGA_LAT = 53.61923769058454;
+        const BGA_LON = 8.92679385181036;
+        const BGA_RADIUS = 35; // Meter
+
+        const FELD_LAT = 53.628795290594375; // Große Wiese
+        const FELD_LON = 8.931582688013064;
+        const FELD_RADIUS = 225; // Meter
+
+        let autoModusAktiv = false;
+        let gpsWatchId = null;
+        let wakeLock = null;
+        let fahrzeugBeladen = false; // Speichert, ob wir auf dem Feld waren
+
+        async function toggleAutoModus() {
+            let btn = document.getElementById("btnAutoModus");
+            let cockpit = document.getElementById("gpsCockpit");
+
+            if (!autoModusAktiv) {
+                // STARTEN
+                if (document.getElementById("anhaenger").value === "Bitte wählen..." || document.getElementById("aktion").value === "Bitte wählen...") {
+                    alert("Bitte wähle zuerst Fahrzeug, Anhänger und Aktion aus, bevor du den Auto-Modus startest!");
+                    return;
+                }
+
+                autoModusAktiv = true;
+                btn.classList.add("active");
+                btn.innerHTML = "🛑 Auto-Modus STOPPEN";
+                cockpit.style.display = "block";
+                document.getElementById("autoStatus").innerText = "Suche GPS-Signal...";
+                
+                // Display anlassen (WakeLock)
+                try {
+                    if ('wakeLock' in navigator) {
+                        wakeLock = await navigator.wakeLock.request('screen');
+                    }
+                } catch (err) {
+                    console.log('Wake Lock Error:', err);
+                }
+
+                // GPS Überwachung starten
+                if (navigator.geolocation) {
+                    gpsWatchId = navigator.geolocation.watchPosition(pruefeStandort, zeigeGpsFehler, {
+                        enableHighAccuracy: true, maximumAge: 0
+                    });
+                } else {
+                    alert("GPS wird nicht unterstützt.");
+                }
+
+            } else {
+                // STOPPEN
+                autoModusAktiv = false;
+                btn.classList.remove("active");
+                btn.innerHTML = "📡 Auto-Modus STARTEN";
+                cockpit.style.display = "none";
+                fahrzeugBeladen = false;
+                document.getElementById("ladeStatus").innerText = "Leer";
+                document.getElementById("ladeStatus").style.color = "#ff9800";
+                
+                if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+                if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
+            }
+        }
+
+        // Berechnet die Distanz zwischen zwei Koordinaten in Metern (Haversine Formel)
+        function berechneDistanz(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Erdradius in Metern
+            const phi1 = lat1 * Math.PI/180;
+            const phi2 = lat2 * Math.PI/180;
+            const deltaPhi = (lat2-lat1) * Math.PI/180;
+            const deltaLambda = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                      Math.cos(phi1) * Math.cos(phi2) *
+                      Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return Math.round(R * c);
+        }
+
+        function pruefeStandort(position) {
+            if (!autoModusAktiv) return;
+
+            let myLat = position.coords.latitude;
+            let myLon = position.coords.longitude;
+
+            let distBGA = berechneDistanz(myLat, myLon, BGA_LAT, BGA_LON);
+            let distFeld = berechneDistanz(myLat, myLon, FELD_LAT, FELD_LON);
+
+            document.getElementById("distBGA").innerText = distBGA;
+            document.getElementById("distFeld").innerText = distFeld;
+
+            // Logik-Schritt 1: Sind wir auf dem Feld?
+            if (distFeld <= FELD_RADIUS) {
+                fahrzeugBeladen = true;
+                document.getElementById("ladeStatus").innerText = "BELADEN ✅";
+                document.getElementById("ladeStatus").style.color = "#0f0";
+                document.getElementById("autoStatus").innerText = "Auf dem Feld. Fahre zur BGA...";
+            } 
+            else if (!fahrzeugBeladen) {
+                document.getElementById("autoStatus").innerText = "Warte auf Einfahrt ins Feld...";
+            }
+
+            // Logik-Schritt 2: Sind wir beladen an der BGA angekommen?
+            if (distBGA <= BGA_RADIUS && fahrzeugBeladen) {
+                document.getElementById("autoStatus").innerText = "BGA erreicht! Speichere Fuhre...";
+                
+                // Setze sofort zurück, um Mehrfacheinträge zu verhindern
+                fahrzeugBeladen = false; 
+                document.getElementById("ladeStatus").innerText = "Leer";
+                document.getElementById("ladeStatus").style.color = "#ff9800";
+                
+                // FEUERN!
+                fuhreAbgeschickt();
+            }
+        }
+
+        function zeigeGpsFehler(error) {
+            document.getElementById("autoStatus").innerText = "Fehler: Kein GPS Signal!";
+        }
+        // --- ENDE GPS AUTOMATIK ---
+
+
         function checkCustom(id) {
             let select = document.getElementById(id);
             let customInput = document.getElementById("custom_" + id);
-            
             if (select.value === "custom") {
                 customInput.style.display = "block";
                 customInput.required = true;
@@ -164,7 +292,6 @@
             let volInput = document.getElementById("volumen");
             let customInput = document.getElementById("custom_anhaenger");
             
-            // Textfeld einblenden, wenn "Anderer Anhänger" gewählt ist
             if (select.value === "custom") {
                 customInput.style.display = "block";
                 customInput.required = true;
@@ -243,43 +370,12 @@
             document.getElementById("rankingList").innerHTML = listHTML;
         }
 
-        function holeGPS() {
-            let gpsBox = document.getElementById("gpsData");
-            gpsBox.style.display = "block";
-            document.getElementById("gpsLat").innerText = "Suche Satelliten...";
-            document.getElementById("gpsLon").innerText = "Suche Satelliten...";
-            document.getElementById("gpsAcc").innerText = "...";
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(zeigePosition, zeigeFehler, {
-                    enableHighAccuracy: true, timeout: 10000, maximumAge: 0
-                });
-            } else {
-                alert("Dein Browser unterstützt leider kein GPS.");
-            }
-        }
-
-        function zeigePosition(position) {
-            document.getElementById("gpsLat").innerText = position.coords.latitude.toFixed(6);
-            document.getElementById("gpsLon").innerText = position.coords.longitude.toFixed(6);
-            document.getElementById("gpsAcc").innerText = Math.round(position.coords.accuracy);
-        }
-
-        function zeigeFehler(error) {
-            let msg = "";
-            switch(error.code) {
-                case error.PERMISSION_DENIED: msg = "Du musst der Seite Zugriff auf den Standort erlauben!"; break;
-                case error.POSITION_UNAVAILABLE: msg = "GPS Signal nicht verfügbar."; break;
-                case error.TIMEOUT: msg = "Zeitüberschreitung beim Suchen des GPS Signals."; break;
-                default: msg = "Ein unbekannter Fehler ist aufgetreten."; break;
-            }
-            alert("Fehler: " + msg);
-            document.getElementById("gpsLat").innerText = "Fehler";
-            document.getElementById("gpsLon").innerText = "Fehler";
+        function handleManualSubmit() {
+            fuhreAbgeschickt();
+            return false; // Verhindert das normale Neuladen der Seite durch das Formular
         }
 
         function fuhreAbgeschickt() {
-            // Wir prüfen jetzt, ob die Standard-Dropdowns genutzt wurden oder die gelben Freitext-Felder
             let finalFahrer = document.getElementById("fahrer").value;
             if (finalFahrer === "custom") finalFahrer = document.getElementById("custom_fahrer").value;
             
@@ -292,11 +388,6 @@
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
             let gesamt = (vol * dich).toFixed(2);
-
-            if (document.getElementById("anhaenger").value === "Bitte wählen..." || document.getElementById("aktion").value === "Bitte wählen...") {
-                alert("Bitte Anhänger und Aktion auswählen!");
-                return false;
-            }
 
             let d = new Date();
             let day = String(d.getDate()).padStart(2, '0');
@@ -317,6 +408,9 @@
             };
 
             document.getElementById("jsonData").value = JSON.stringify(payload);
+            
+            // Führt den Submit zum unsichtbaren iframe aus (doPost)
+            document.getElementById("bgaForm").submit();
 
             setTimeout(() => {
                 document.getElementById("status").style.color = "green";
