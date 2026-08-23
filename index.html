@@ -24,7 +24,6 @@
         .btn-stats { background-color: #007bff; margin-top: 10px; }
         .btn-stats:active { background-color: #0056b3; }
         
-        /* Auto-Modus Styles */
         .btn-auto { background-color: #17a2b8; padding: 20px; font-size: 18px; margin-top: 20px; }
         .btn-auto:active { background-color: #138496; }
         .btn-auto.active { background-color: #dc3545; animation: pulse 2s infinite; }
@@ -83,6 +82,17 @@
             </select>
             <input type="text" id="custom_fahrzeug" class="custom-input" placeholder="Z.B. Claas Axion...">
 
+            <!-- NEU: Felderauswahl -->
+            <label>Feld / Schlag:</label>
+            <select id="feld" name="feld" onchange="checkCustom('feld')">
+                <option value="Bitte wählen...">-- Bitte wählen --</option>
+                <option value="Große Wiese">Große Wiese (26,0 ha)</option>
+                <option value="Vosshörn">Vosshörn (10,8 ha)</option>
+                <option value="Hinterm Hähnchenstall">Hinterm Hähnchenstall (1,65 ha)</option>
+                <option value="custom">✍️ Anderes Feld...</option>
+            </select>
+            <input type="text" id="custom_feld" class="custom-input" placeholder="Name des Feldes eintragen...">
+
             <label>Anhänger:</label>
             <select id="anhaenger" name="anhaenger" onchange="updateVolumen()">
                 <option value="Bitte wählen..." data-vol="">-- Bitte wählen --</option>
@@ -90,7 +100,6 @@
                 <option value="Häckselwagen (40 m³)" data-vol="40">Häckselwagen (40 m³)</option>
                 <option value="Häckselwagen (45 m³)" data-vol="45">Häckselwagen (45 m³)</option>
                 <option value="Häckselwagen (50 m³)" data-vol="50">Häckselwagen (50 m³)</option>
-                <!-- NEU: Güllefass Volumen angepasst -->
                 <option value="Güllefass (16.5 m³)" data-vol="16.5">Güllefass (16.5 m³)</option>
                 <option value="custom" data-vol="manuell">✍️ Anderer Anhänger...</option>
             </select>
@@ -114,14 +123,14 @@
             <button type="submit" id="btn">🚀 Manuell eintragen</button>
         </form>
 
-        <!-- AUTO MODUS BEREICH -->
         <button type="button" id="btnAutoModus" class="btn-auto" onclick="toggleAutoModus()">📡 Auto-Modus STARTEN</button>
         
         <div id="gpsCockpit">
             <span class="gps-alert" id="autoStatus">Warte auf Start...</span>
             <span id="richtungInfo" style="color: #17a2b8; display:block; margin-bottom: 10px;">-</span>
+            Aktuelles Feld erkannt: <span id="erkanntesFeld" style="color: #fff;">Keines (Suche...)</span><br><br>
             Distanz zur BGA: <span id="distBGA">-</span> m<br>
-            Distanz zum Feld: <span id="distFeld">-</span> m<br>
+            Distanz z. nächsten Feld: <span id="distFeld">-</span> m<br>
             Ladestatus: <span id="ladeStatus" style="color: #ff9800;">Leer</span>
         </div>
 
@@ -152,15 +161,14 @@
             ladeStatistik();
         };
 
-        // --- GPS AUTOMATIK LOGIK ---
+        // --- GPS AUTOMATIK LOGIK & MULTI-FELDER ---
+        const BGA = { lat: 53.61923769058454, lon: 8.92679385181036, radius: 35 };
         
-        const BGA_LAT = 53.61923769058454;
-        const BGA_LON = 8.92679385181036;
-        const BGA_RADIUS = 35; 
-
-        const FELD_LAT = 53.628795290594375; 
-        const FELD_LON = 8.931582688013064;
-        const FELD_RADIUS = 225; 
+        const FELDER = [
+            { id: "Große Wiese", name: "Große Wiese", lat: 53.628795290594375, lon: 8.931582688013064, radius: 225 },
+            { id: "Vosshörn", name: "Vosshörn", lat: 53.62401081191361, lon: 8.914631640318243, radius: 90 },
+            { id: "Hinterm Hähnchenstall", name: "Hinterm Hähnchenstall", lat: 53.619898184574666, lon: 8.92552575731485, radius: 40 }
+        ];
 
         let autoModusAktiv = false;
         let gpsWatchId = null;
@@ -174,7 +182,7 @@
 
             if (!autoModusAktiv) {
                 if (document.getElementById("anhaenger").value === "Bitte wählen..." || aktion === "Bitte wählen...") {
-                    alert("Bitte wähle zuerst Fahrzeug, Anhänger und Aktion aus, bevor du den Auto-Modus startest!");
+                    alert("Bitte wähle zuerst Fahrzeug, Anhänger und Aktion aus!");
                     return;
                 }
 
@@ -191,21 +199,14 @@
                 
                 document.getElementById("autoStatus").innerText = "Suche GPS-Signal...";
                 
-                try {
-                    if ('wakeLock' in navigator) {
-                        wakeLock = await navigator.wakeLock.request('screen');
-                    }
-                } catch (err) {
-                    console.log('Wake Lock Error:', err);
-                }
+                try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
+                catch (err) { console.log('Wake Lock Error:', err); }
 
                 if (navigator.geolocation) {
                     gpsWatchId = navigator.geolocation.watchPosition(pruefeStandort, zeigeGpsFehler, {
                         enableHighAccuracy: true, maximumAge: 0
                     });
-                } else {
-                    alert("GPS wird nicht unterstützt.");
-                }
+                } else { alert("GPS wird nicht unterstützt."); }
 
             } else {
                 autoModusAktiv = false;
@@ -241,14 +242,37 @@
             let myLon = position.coords.longitude;
             let aktion = document.getElementById("aktion").value;
 
-            let distBGA = berechneDistanz(myLat, myLon, BGA_LAT, BGA_LON);
-            let distFeld = berechneDistanz(myLat, myLon, FELD_LAT, FELD_LON);
-
+            let distBGA = berechneDistanz(myLat, myLon, BGA.lat, BGA.lon);
             document.getElementById("distBGA").innerText = distBGA;
-            document.getElementById("distFeld").innerText = distFeld;
+
+            // Finde heraus, ob wir auf irgendeinem Feld sind
+            let aktivesFeld = null;
+            let kuerzesteFeldDistanz = 999999;
+
+            for (let f of FELDER) {
+                let dist = berechneDistanz(myLat, myLon, f.lat, f.lon);
+                if (dist < kuerzesteFeldDistanz) kuerzesteFeldDistanz = dist;
+                
+                if (dist <= f.radius) {
+                    aktivesFeld = f;
+                }
+            }
+            
+            document.getElementById("distFeld").innerText = kuerzesteFeldDistanz;
+
+            // Wenn wir auf einem Feld sind, wähle es automatisch im Formular aus!
+            if (aktivesFeld) {
+                document.getElementById("feld").value = aktivesFeld.id;
+                document.getElementById("erkanntesFeld").innerText = aktivesFeld.name;
+                document.getElementById("erkanntesFeld").style.color = "#0f0";
+            } else {
+                document.getElementById("erkanntesFeld").innerText = "Keines (Fahre zu einem Feld...)";
+                document.getElementById("erkanntesFeld").style.color = "#fff";
+            }
 
             if (aktion === "Gärrest Ausbringung") {
-                if (distBGA <= BGA_RADIUS) {
+                // MODUS: GÄRREST (Laden BGA -> Feld)
+                if (distBGA <= BGA.radius) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
                     document.getElementById("ladeStatus").style.color = "#0f0";
@@ -258,8 +282,8 @@
                     document.getElementById("autoStatus").innerText = "Warte auf Beladung an der BGA...";
                 }
 
-                if (distFeld <= FELD_RADIUS && fahrzeugBeladen) {
-                    document.getElementById("autoStatus").innerText = "Feld erreicht! Speichere Fuhre...";
+                if (aktivesFeld && fahrzeugBeladen) {
+                    document.getElementById("autoStatus").innerText = aktivesFeld.name + " erreicht! Speichere...";
                     fahrzeugBeladen = false; 
                     document.getElementById("ladeStatus").innerText = "Leer";
                     document.getElementById("ladeStatus").style.color = "#ff9800";
@@ -267,17 +291,18 @@
                 }
 
             } else {
-                if (distFeld <= FELD_RADIUS) {
+                // MODUS: ERNTE (Laden Feld -> BGA)
+                if (aktivesFeld) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
                     document.getElementById("ladeStatus").style.color = "#0f0";
-                    document.getElementById("autoStatus").innerText = "Auf dem Feld beladen. Fahre zur BGA...";
+                    document.getElementById("autoStatus").innerText = "Auf " + aktivesFeld.name + " beladen. Fahre zur BGA...";
                 } 
                 else if (!fahrzeugBeladen) {
-                    document.getElementById("autoStatus").innerText = "Warte auf Einfahrt ins Feld...";
+                    document.getElementById("autoStatus").innerText = "Warte auf Einfahrt in ein Feld...";
                 }
 
-                if (distBGA <= BGA_RADIUS && fahrzeugBeladen) {
+                if (distBGA <= BGA.radius && fahrzeugBeladen) {
                     document.getElementById("autoStatus").innerText = "BGA erreicht! Speichere Fuhre...";
                     fahrzeugBeladen = false; 
                     document.getElementById("ladeStatus").innerText = "Leer";
@@ -287,9 +312,7 @@
             }
         }
 
-        function zeigeGpsFehler(error) {
-            document.getElementById("autoStatus").innerText = "Fehler: Kein GPS Signal!";
-        }
+        function zeigeGpsFehler(error) { document.getElementById("autoStatus").innerText = "Fehler: Kein GPS Signal!"; }
 
         function checkCustom(id) {
             let select = document.getElementById(id);
@@ -307,15 +330,8 @@
             let select = document.getElementById("anhaenger");
             let vol = select.options[select.selectedIndex].getAttribute("data-vol");
             let volInput = document.getElementById("volumen");
-            let customInput = document.getElementById("custom_anhaenger");
             
-            if (select.value === "custom") {
-                customInput.style.display = "block";
-                customInput.required = true;
-            } else {
-                customInput.style.display = "none";
-                customInput.required = false;
-            }
+            checkCustom('anhaenger');
             
             if (vol === "manuell") {
                 volInput.value = "";
@@ -336,27 +352,15 @@
             let aktion = document.getElementById("aktion").value;
             let dichteInput = document.getElementById("dichte");
             
-            if (aktion === "Ernte (Silomais)") {
-                dichteInput.value = 0.35;
-                dichteInput.classList.add("auto-filled");
-            } else if (aktion === "Ernte (Gras)") {
-                dichteInput.value = 0.25;
-                dichteInput.classList.add("auto-filled");
-            } else if (aktion === "Gärrest Ausbringung") {
-                dichteInput.value = 1.00;
-                dichteInput.classList.add("auto-filled");
-            } else {
-                dichteInput.value = "";
-                dichteInput.classList.remove("auto-filled");
-            }
+            if (aktion === "Ernte (Silomais)") { dichteInput.value = 0.35; dichteInput.classList.add("auto-filled"); } 
+            else if (aktion === "Ernte (Gras)") { dichteInput.value = 0.25; dichteInput.classList.add("auto-filled"); } 
+            else if (aktion === "Gärrest Ausbringung") { dichteInput.value = 1.00; dichteInput.classList.add("auto-filled"); } 
+            else { dichteInput.value = ""; dichteInput.classList.remove("auto-filled"); }
             
             if (autoModusAktiv) {
                 let cockpitInfo = document.getElementById("richtungInfo");
-                if (aktion === "Gärrest Ausbringung") {
-                    cockpitInfo.innerText = "🔄 Modus: Gärrest (Laden: BGA ➡️ Entladen: Feld)";
-                } else {
-                    cockpitInfo.innerText = "🚜 Modus: Ernte (Laden: Feld ➡️ Entladen: BGA)";
-                }
+                if (aktion === "Gärrest Ausbringung") cockpitInfo.innerText = "🔄 Modus: Gärrest (Laden: BGA ➡️ Entladen: Feld)";
+                else cockpitInfo.innerText = "🚜 Modus: Ernte (Laden: Feld ➡️ Entladen: BGA)";
             }
         }
 
@@ -380,26 +384,19 @@
 
         function zeigeStatistik(data) {
             let listHTML = "";
-            if (data.length === 0) {
-                 listHTML = "<li class='ranking-item' style='justify-content:center;'>Keine Fuhren an diesem Tag!</li>";
-            } else {
+            if (data.length === 0) { listHTML = "<li class='ranking-item' style='justify-content:center;'>Keine Fuhren an diesem Tag!</li>"; } 
+            else {
                 for (let i = 0; i < data.length; i++) {
                     let rang = i + 1;
                     let nameClass = (rang === 1) ? "rank-1" : "";
                     let icon = (rang === 1) ? "👑 " : rang + ". ";
-                    listHTML += `<li class="ranking-item">
-                                    <span class="${nameClass}">${icon}${data[i].name}</span>
-                                    <span>${data[i].fuhren} Fuhren | ${data[i].tonnen} t</span>
-                                 </li>`;
+                    listHTML += `<li class="ranking-item"><span class="${nameClass}">${icon}${data[i].name}</span><span>${data[i].fuhren} Fuhren | ${data[i].tonnen} t</span></li>`;
                 }
             }
             document.getElementById("rankingList").innerHTML = listHTML;
         }
 
-        function handleManualSubmit() {
-            fuhreAbgeschickt();
-            return false;
-        }
+        function handleManualSubmit() { fuhreAbgeschickt(); return false; }
 
         function fuhreAbgeschickt() {
             let finalFahrer = document.getElementById("fahrer").value;
@@ -407,6 +404,9 @@
             
             let finalFahrzeug = document.getElementById("fahrzeug").value;
             if (finalFahrzeug === "custom") finalFahrzeug = document.getElementById("custom_fahrzeug").value;
+            
+            let finalFeld = document.getElementById("feld").value;
+            if (finalFeld === "custom") finalFeld = document.getElementById("custom_feld").value;
             
             let finalAnhaenger = document.getElementById("anhaenger").value;
             if (finalAnhaenger === "custom") finalAnhaenger = document.getElementById("custom_anhaenger").value;
@@ -430,7 +430,8 @@
                 aktion: document.getElementById("aktion").value, 
                 volumen: vol,
                 dichte: dich,
-                gesamtgewicht: gesamt
+                gesamtgewicht: gesamt,
+                feld: finalFeld // NEU eingefügt!
             };
 
             document.getElementById("jsonData").value = JSON.stringify(payload);
