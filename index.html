@@ -25,8 +25,6 @@
         .btn-stats:active { background-color: #0056b3; }
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
-        #statistik-box { margin-top: 20px; background: #e9ecef; padding: 12px; border-radius: 8px; display: none; font-size: 14px; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
     </style>
 </head>
 <body>
@@ -34,8 +32,7 @@
     <div class="box">
         <h2>🚜 BGA Zähler</h2>
         
-        <form id="bgaForm" action="https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec" method="POST" target="hidden_iframe" onsubmit="fuhreAbgeschickt()">
-            
+        <form id="bgaForm" action="" method="POST" target="hidden_iframe" onsubmit="fuhreAbgeschickt()">
             <input type="hidden" name="data" id="jsonData">
 
             <label>Fahrer:</label>
@@ -48,7 +45,7 @@
 
             <label>Schlepper:</label>
             <select id="fahrzeug" name="fahrzeug">
-                <option>Valtra T215</option>
+                <option>Valtra T215D</option>
                 <option>Arion 650</option>
                 <option>Leihschlepper 1</option>
                 <option>Leihschlepper 2</option>
@@ -79,25 +76,52 @@
             <button type="submit" id="btn">🚀 Fuhre eintragen!</button>
         </form>
 
-        <button onclick="ladeStatistik()" class="btn-stats" id="btnStats">📊 Heutige Fuhren anzeigen</button>
-        
-        <div id="statistik-box"></div>
+        <button onclick="oeffneTabelle()" class="btn-stats">📊 Live-Tabelle öffnen</button>
         <div id="status"></div>
     </div>
 
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec"; // Hier nochmal deine Apps-Script-URL eintragen
+        // HIER DEINE APPS SCRIPT URL EINTRAGEN:
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
+        
+        document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
+
+        // Lädt die Statistik direkt beim Start der App
+        window.onload = ladeStatistik;
+
+        function ladeStatistik() {
+            document.getElementById("status").innerText = "🔄 Lade heutige Daten...";
+            document.getElementById("status").style.color = "#333";
+            
+            fetch(APPS_SCRIPT_URL)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("status").innerHTML = 
+                        "📊 <b>Heute:</b> " + data.fuhren + " Fuhren | " + data.tonnen + " t";
+                })
+                .catch(error => {
+                    document.getElementById("status").innerText = "Statistik konnte nicht geladen werden.";
+                    console.error("Fehler:", error);
+                });
+        }
 
         function fuhreAbgeschickt() {
             let vol = parseFloat(document.getElementById("volumen").value) || 0;
             let dich = parseFloat(document.getElementById("dichte").value) || 0;
             let gesamt = (vol * dich).toFixed(2);
 
+            // Kugelsicheres Datum (immer TT.MM.JJJJ)
+            let d = new Date();
+            let day = String(d.getDate()).padStart(2, '0');
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let year = d.getFullYear();
+            let datumString = `${day}.${month}.${year}`;
+
             let payload = {
-                datum: new Date().toLocaleDateString('de-DE'),
-                uhrzeit: new Date().toLocaleTimeString('de-DE'),
+                datum: datumString,
+                uhrzeit: d.toLocaleTimeString('de-DE'),
                 fahrer: document.getElementById("fahrer").value,
                 fahrzeug: document.getElementById("fahrzeug").value,
                 anhaenger: document.getElementById("anhaenger").value,
@@ -110,39 +134,18 @@
             document.getElementById("jsonData").value = JSON.stringify(payload);
 
             setTimeout(() => {
-                document.getElementById("status").innerText = "✅ " + gesamt + "t erfolgreich eingetragen!";
+                document.getElementById("status").style.color = "green";
+                document.getElementById("status").innerText = "✅ " + gesamt + "t eingetragen!";
                 document.getElementById("volumen").value = "";
-                setTimeout(() => { document.getElementById("status").innerText = ""; }, 4000);
+                
+                // Nach 3 Sekunden laden wir die Statistik neu, damit die neue Fuhre direkt sichtbar wird
+                setTimeout(() => { ladeStatistik(); }, 3000);
             }, 500);
         }
 
-        function ladeStatistik() {
-            let box = document.getElementById("statistik-box");
-            box.style.display = "block";
-            box.innerHTML = "Lade Tages-Auswertung...";
-
-            fetch(APPS_SCRIPT_URL)
-                .then(response => response.json())
-                .then(data => {
-                    let html = "<strong>📅 Heutige Fuhren (Live):</strong><br><br>";
-                    let hatEintraege = false;
-
-                    for (let fahrer in data) {
-                        hatEintraege = true;
-                        let fuhren = data[fahrer].fuhren;
-                        let tonnen = data[fahrer].tonnen.toFixed(1);
-                        html += `<div class="stat-row"><span><b>${fahrer}:</b></span> <span>${fuhren} Fuhren (${tonnen} t)</span></div>`;
-                    }
-
-                    if (!hatEintraege) {
-                        html = "📅 Heute wurden noch keine Fuhren eingetragen.";
-                    }
-
-                    box.innerHTML = html;
-                })
-                .catch(error => {
-                    box.innerHTML = "❌ Fehler beim Laden der Statistik.";
-                });
+        function oeffneTabelle() {
+            // HIER DEN DIREKTEN LINK ZU DEINER GOOGLE TABELLE EINTRAGEN:
+            window.open("https://docs.google.com/spreadsheets/d/1j9JcRlXpBI05lp3dx9vHV0jCbaIzNPwLgeR4vfMieTM/edit?gid=0#gid=0", "_blank");
         }
     </script>
 </body>
