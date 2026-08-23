@@ -90,7 +90,8 @@
                 <option value="Häckselwagen (40 m³)" data-vol="40">Häckselwagen (40 m³)</option>
                 <option value="Häckselwagen (45 m³)" data-vol="45">Häckselwagen (45 m³)</option>
                 <option value="Häckselwagen (50 m³)" data-vol="50">Häckselwagen (50 m³)</option>
-                <option value="Güllefass (18 m³)" data-vol="18">Güllefass (18 m³)</option>
+                <!-- NEU: Güllefass Volumen angepasst -->
+                <option value="Güllefass (16.5 m³)" data-vol="16.5">Güllefass (16.5 m³)</option>
                 <option value="custom" data-vol="manuell">✍️ Anderer Anhänger...</option>
             </select>
             <input type="text" id="custom_anhaenger" class="custom-input" placeholder="Z.B. Tebbe Wagen...">
@@ -182,7 +183,6 @@
                 btn.innerHTML = "🛑 Auto-Modus STOPPEN";
                 cockpit.style.display = "block";
                 
-                // Info-Text je nach Richtung anzeigen
                 if (aktion === "Gärrest Ausbringung") {
                     document.getElementById("richtungInfo").innerText = "🔄 Modus: Gärrest (Laden: BGA ➡️ Entladen: Feld)";
                 } else {
@@ -247,10 +247,7 @@
             document.getElementById("distBGA").innerText = distBGA;
             document.getElementById("distFeld").innerText = distFeld;
 
-            // --- INTELLIGENTE RICHTUNGSLOGIK ---
-            
             if (aktion === "Gärrest Ausbringung") {
-                // MODUS: GÄRREST (Laden an BGA -> Speichern am Feld)
                 if (distBGA <= BGA_RADIUS) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
@@ -270,7 +267,6 @@
                 }
 
             } else {
-                // MODUS: ERNTE (Laden auf dem Feld -> Speichern an der BGA)
                 if (distFeld <= FELD_RADIUS) {
                     fahrzeugBeladen = true;
                     document.getElementById("ladeStatus").innerText = "BELADEN ✅";
@@ -294,8 +290,6 @@
         function zeigeGpsFehler(error) {
             document.getElementById("autoStatus").innerText = "Fehler: Kein GPS Signal!";
         }
-        // --- ENDE GPS AUTOMATIK ---
-
 
         function checkCustom(id) {
             let select = document.getElementById(id);
@@ -356,7 +350,6 @@
                 dichteInput.classList.remove("auto-filled");
             }
             
-            // Wenn sich die Aktion im laufenden Auto-Modus ändert (sollte man vermeiden, aber sicher ist sicher)
             if (autoModusAktiv) {
                 let cockpitInfo = document.getElementById("richtungInfo");
                 if (aktion === "Gärrest Ausbringung") {
