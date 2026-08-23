@@ -17,12 +17,14 @@
     <style>
         body { font-family: Arial, sans-serif; padding: 15px; background-color: #f4f4f9; color: #333; margin: 0; }
         h2 { text-align: center; margin-top: 5px; }
-        .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        .box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; margin-bottom: 20px; }
         select, input, button { width: 100%; padding: 14px; margin-top: 8px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
         button { background-color: #28a745; color: white; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; }
         button:active { background-color: #218838; }
         .btn-stats { background-color: #007bff; margin-top: 10px; }
         .btn-stats:active { background-color: #0056b3; }
+        .btn-gps { background-color: #ff9800; }
+        .btn-gps:active { background-color: #e68a00; }
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
         
@@ -37,13 +39,14 @@
         .rank-1 { font-weight: bold; color: #d4af37; }
         
         .auto-filled { background-color: #e8f5e9; border-color: #4caf50; }
-        
-        /* Neues Design für gesperrte Felder (readonly) */
         input[readonly] { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; border-color: #ccc; }
+        
+        #gpsData { font-family: monospace; font-size: 14px; background: #333; color: #0f0; padding: 10px; border-radius: 5px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
+    <!-- HAUPT-APP -->
     <div class="box">
         <h2>🚜 BGA Zähler</h2>
         
@@ -108,13 +111,25 @@
         </div>
 
         <button onclick="oeffneTabelle()" class="btn-stats">📊 Live-Tabelle öffnen</button>
+    </div>
+
+    <!-- NEUER BEREICH: GPS SETUP -->
+    <div class="box">
+        <h2>🛰️ GPS Kalibrierung</h2>
+        <span class="info-text">Stell dich ans Silo oder auf den Acker und frage die Koordinaten ab, um sie später im Code für die Automatik zu hinterlegen.</span>
         
+        <button type="button" class="btn-gps" onclick="holeGPS()">📍 Meine Koordinaten abfragen</button>
+        
+        <div id="gpsData">
+            Lat: <span id="gpsLat">-</span><br>
+            Lon: <span id="gpsLon">-</span><br>
+            Genauigkeit: <span id="gpsAcc">-</span> m
+        </div>
     </div>
 
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
-        // HIER SIND DEINE URLs DIREKT EINGETRAGEN:
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
         
         document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
@@ -125,6 +140,50 @@
             ladeStatistik();
         };
 
+        // --- GPS FUNKTIONEN ---
+        function holeGPS() {
+            let gpsBox = document.getElementById("gpsData");
+            gpsBox.style.display = "block";
+            document.getElementById("gpsLat").innerText = "Suche Satelliten...";
+            document.getElementById("gpsLon").innerText = "Suche Satelliten...";
+            document.getElementById("gpsAcc").innerText = "...";
+
+            if (navigator.geolocation) {
+                // Wir fordern hohe Genauigkeit (echtes GPS, nicht nur WLAN/Funkmasten) an
+                navigator.geolocation.getCurrentPosition(zeigePosition, zeigeFehler, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            } else {
+                alert("Dein Browser unterstützt leider kein GPS.");
+            }
+        }
+
+        function zeigePosition(position) {
+            // Latitude = Breitengrad, Longitude = Längengrad
+            document.getElementById("gpsLat").innerText = position.coords.latitude.toFixed(6);
+            document.getElementById("gpsLon").innerText = position.coords.longitude.toFixed(6);
+            // Accuracy gibt an, auf wie viele Meter genau die Messung ist
+            document.getElementById("gpsAcc").innerText = Math.round(position.coords.accuracy);
+        }
+
+        function zeigeFehler(error) {
+            let msg = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED: msg = "Du musst der Seite Zugriff auf den Standort erlauben!"; break;
+                case error.POSITION_UNAVAILABLE: msg = "GPS Signal nicht verfügbar. Bist du in einer Halle?"; break;
+                case error.TIMEOUT: msg = "Zeitüberschreitung beim Suchen des GPS Signals."; break;
+                default: msg = "Ein unbekannter Fehler ist aufgetreten."; break;
+            }
+            alert("Fehler: " + msg);
+            document.getElementById("gpsLat").innerText = "Fehler";
+            document.getElementById("gpsLon").innerText = "Fehler";
+        }
+        // --- ENDE GPS FUNKTIONEN ---
+
+
+        // (Der Rest ist dein funktionierender Code)
         function updateVolumen() {
             let select = document.getElementById("anhaenger");
             let vol = select.options[select.selectedIndex].getAttribute("data-vol");
@@ -168,7 +227,6 @@
 
         function ladeStatistik() {
             document.getElementById("rankingList").innerHTML = "<li style='text-align:center;'>🔄 Lade...</li>";
-            
             let auswahl = document.getElementById("statistikDatum").value;
             let teile = auswahl.split("-");
             let deutschesDatum = `${teile[2]}.${teile[1]}.${teile[0]}`;
@@ -185,7 +243,6 @@
 
         function zeigeStatistik(data) {
             let listHTML = "";
-            
             if (data.length === 0) {
                  listHTML = "<li class='ranking-item' style='justify-content:center;'>Keine Fuhren an diesem Tag!</li>";
             } else {
@@ -193,14 +250,12 @@
                     let rang = i + 1;
                     let nameClass = (rang === 1) ? "rank-1" : "";
                     let icon = (rang === 1) ? "👑 " : rang + ". ";
-                    
                     listHTML += `<li class="ranking-item">
                                     <span class="${nameClass}">${icon}${data[i].name}</span>
                                     <span>${data[i].fuhren} Fuhren | ${data[i].tonnen} t</span>
                                  </li>`;
                 }
             }
-            
             document.getElementById("rankingList").innerHTML = listHTML;
         }
 
@@ -248,7 +303,6 @@
         }
 
         function oeffneTabelle() {
-            // HIER IST DEIN TABELLEN LINK DIREKT EINGETRAGEN:
             window.open("https://docs.google.com/spreadsheets/d/1j9JcRlXpBI05lp3dx9vHV0jCbaIzNPwLgeR4vfMieTM/edit?gid=0#gid=0", "_blank");
         }
     </script>
