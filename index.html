@@ -4,15 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <title>BGA Fuhrenzähler</title>
+    <title>BGA Fuhrenzähler (Supabase)</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BGA Zähler">
-
-    <link rel="apple-touch-icon" href="icon3.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icon3.png">
-    <link rel="manifest" href="manifest.json">
 
     <style>
         body { font-family: Arial, sans-serif; padding: 15px; background-color: #f4f4f9; color: #333; margin: 0; }
@@ -21,89 +17,44 @@
         select, input, button { width: 100%; padding: 14px; margin-top: 8px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
         button { background-color: #28a745; color: white; font-weight: bold; border: none; margin-top: 15px; cursor: pointer; }
         button:active { background-color: #218838; }
-        .btn-stats { background-color: #007bff; margin-top: 10px; }
-        .btn-stats:active { background-color: #0056b3; }
-        
-        .btn-auto { background-color: #17a2b8; padding: 20px; font-size: 18px; margin-top: 20px; }
-        .btn-auto:active { background-color: #138496; }
-        .btn-auto.active { background-color: #dc3545; animation: pulse 2s infinite; }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-        }
-
-        #gpsCockpit { background: #333; color: #0f0; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 14px; margin-top: 15px; display: none; }
-        .gps-alert { color: #ffeb3b; font-weight: bold; margin-bottom: 10px; display: block; font-size: 16px;}
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
         
         #status { text-align: center; margin-top: 15px; font-weight: bold; color: green; }
         .info-text { font-size: 12px; color: #666; margin-top: -2px; margin-bottom: 8px; display: block; }
-        
-        .ranking-box { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 8px; }
-        .ranking-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .ranking-title { font-weight: bold; font-size: 18px; margin: 0; }
-        .date-picker { width: 140px; padding: 8px; margin: 0; border-radius: 6px; border: 1px solid #aaa; font-size: 14px; }
-        .ranking-list { list-style-type: none; padding: 0; margin: 0; }
-        .ranking-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #ccc; }
-        .ranking-item:last-child { border-bottom: none; }
-        .rank-1 { font-weight: bold; color: #d4af37; }
-        
         .auto-filled { background-color: #e8f5e9; border-color: #4caf50; }
         input[readonly] { background-color: #e9ecef; color: #6c757d; cursor: not-allowed; border-color: #ccc; }
-        .custom-input { display: none; margin-top: 5px; background-color: #fff3cd; border-color: #ffeeba; }
     </style>
 </head>
 <body>
 
     <div class="box">
-        <h2>🚜 BGA Zähler</h2>
+        <h2>🚜 BGA Zähler (Phase 2)</h2>
         
-        <form id="bgaForm" action="" method="POST" target="hidden_iframe" onsubmit="return handleManualSubmit();">
-            <input type="hidden" name="data" id="jsonData">
-
+        <form id="bgaForm" onsubmit="return handleManualSubmit(event);">
+            
             <label>Fahrer:</label>
-            <select id="fahrer" name="fahrer" onchange="checkCustom('fahrer')">
-                <option>Nils</option>
-                <option>Lars</option>
-                <option>Lukian</option>
-                <option>Sergej</option>
-                <option value="custom">✍️ Anderer Fahrer...</option>
+            <select id="fahrer" required>
+                <option value="">🔄 Lade Fahrer...</option>
             </select>
-            <input type="text" id="custom_fahrer" class="custom-input" placeholder="Name des Fahrers eintragen...">
 
             <label>Schlepper:</label>
-            <select id="fahrzeug" name="fahrzeug" onchange="checkCustom('fahrzeug')">
-                <option>Valtra T215D</option>
-                <option>Arion 650</option>
-                <option>Leihschlepper 1</option>
-                <option>Leihschlepper 2</option>
-                <option value="custom">✍️ Anderer Schlepper...</option>
+            <select id="fahrzeug" required>
+                <option value="">🔄 Lade Schlepper...</option>
             </select>
-            <input type="text" id="custom_fahrzeug" class="custom-input" placeholder="Z.B. Claas Axion...">
 
-            <!-- FELD-DROPDOWN -->
             <label>Feld / Schlag:</label>
-            <select id="feld" name="feld" onchange="checkCustom('feld')">
-                <option value="Bitte wählen...">🔄 Lade Felder aus Datenbank...</option>
+            <select id="feld" required>
+                <option value="">🔄 Lade Felder...</option>
             </select>
-            <input type="text" id="custom_feld" class="custom-input" placeholder="Name des Feldes eintragen...">
 
             <label>Anhänger:</label>
-            <select id="anhaenger" name="anhaenger" onchange="updateVolumen()">
-                <option value="Bitte wählen..." data-vol="">-- Bitte wählen --</option>
-                <option value="Mulde (37.5 m³)" data-vol="37.5">Mulde (37.5 m³)</option>
-                <option value="Häckselwagen (40 m³)" data-vol="40">Häckselwagen (40 m³)</option>
-                <option value="Häckselwagen (45 m³)" data-vol="45">Häckselwagen (45 m³)</option>
-                <option value="Häckselwagen (50 m³)" data-vol="50">Häckselwagen (50 m³)</option>
-                <option value="Güllefass (16.5 m³)" data-vol="16.5">Güllefass (16.5 m³)</option>
-                <option value="custom" data-vol="manuell">✍️ Anderer Anhänger...</option>
+            <select id="anhaenger" onchange="updateVolumen()" required>
+                <option value="" data-vol="">🔄 Lade Anhänger...</option>
             </select>
-            <input type="text" id="custom_anhaenger" class="custom-input" placeholder="Z.B. Tebbe Wagen...">
 
             <label>Aktion:</label>
-            <select id="aktion" name="aktion" onchange="updateDichte()">
-                <option value="Bitte wählen...">-- Bitte wählen --</option>
+            <select id="aktion" onchange="updateDichte()" required>
+                <option value="">-- Bitte wählen --</option>
                 <option value="Ernte (Silomais)">Ernte (Silomais)</option>
                 <option value="Ernte (Gras)">Ernte (Gras)</option>
                 <option value="Gärrest Ausbringung">Gärrest Ausbringung</option>
@@ -116,278 +67,92 @@
             <input type="number" id="dichte" placeholder="Wird automatisch vorgeschlagen..." step="0.01" required>
             <span class="info-text">Schüttgewicht Wagen: Mais ~0.35 | Gras ~0.25 | Gärrest ~1.0</span>
 
-            <button type="submit" id="btn">🚀 Manuell eintragen</button>
+            <button type="submit" id="btn">🚀 Fuhre speichern</button>
         </form>
 
-        <button type="button" id="btnAutoModus" class="btn-auto" onclick="toggleAutoModus()">📡 Auto-Modus STARTEN</button>
-        
-        <div id="gpsCockpit">
-            <span class="gps-alert" id="autoStatus">Warte auf Start...</span>
-            <span id="richtungInfo" style="color: #17a2b8; display:block; margin-bottom: 10px;">-</span>
-            Aktuelles Feld erkannt: <span id="erkanntesFeld" style="color: #fff;">Keines (Suche...)</span><br><br>
-            Distanz zur BGA: <span id="distBGA">-</span> m<br>
-            Distanz z. nächsten Feld: <span id="distFeld">-</span> m<br>
-            <div style="margin-top: 10px;">
-                Ladestatus: <span id="ladeStatus" style="color: #ff9800;">Leer</span>
-                <button type="button" id="btnCancel" onclick="fuhreVerwerfen()" style="display:none; background-color:#dc3545; color:white; border:none; padding:5px 10px; border-radius:5px; font-weight:bold; cursor:pointer; margin-left:10px;">❌ Fuhre verwerfen</button>
-            </div>
-        </div>
-
         <div id="status"></div>
-
-        <div class="ranking-box" id="rankingBox">
-            <div class="ranking-header">
-                <div class="ranking-title">🏆 Ranking</div>
-                <input type="date" id="statistikDatum" class="date-picker" onchange="ladeDaten()">
-            </div>
-            <ul class="ranking-list" id="rankingList">
-                <li style="text-align:center;">Lade Daten...</li>
-            </ul>
-        </div>
-
-        <button onclick="oeffneTabelle()" class="btn-stats">📊 Live-Tabelle öffnen</button>
     </div>
 
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-
     <script>
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzoVfsaYGFQqqFLriGMsdDpudz1XOkv0xLAxVTsS4fGc0Oaa7bjOkgo53HePABTfuf/exec";
-        document.getElementById("bgaForm").action = APPS_SCRIPT_URL;
-
-        let felderDatenbank = []; 
-
-        window.onload = function() {
-            let heute = new Date().toISOString().split('T')[0];
-            document.getElementById("statistikDatum").value = heute;
-            ladeDaten();
+        // --- 1. DEINE SUPABASE ZUGANGSDATEN ---
+        const SUPABASE_URL = "https://muyienufbglqglojpidi.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_EsT5ljdQrfSbMuh8vYJM9w_vUl3X8wd";
+        
+        // So weisen wir uns am Aktenschrank aus
+        const headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer " + SUPABASE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
         };
 
-        const BGA = { lat: 53.61923769058454, lon: 8.92679385181036, radius: 45 }; 
-        
-        let autoModusAktiv = false;
-        let gpsWatchId = null;
-        let wakeLock = null;
-        
-        let fahrzeugBeladen = false; 
-        let ladeSperre = false; // Verhindert sofortiges erneutes Beladen nach dem Verwerfen
+        let currentFarmId = null;
 
-        async function toggleAutoModus() {
-            let btn = document.getElementById("btnAutoModus");
-            let cockpit = document.getElementById("gpsCockpit");
-            let aktion = document.getElementById("aktion").value;
-
-            if (!autoModusAktiv) {
-                if (document.getElementById("anhaenger").value === "Bitte wählen..." || aktion === "Bitte wählen...") {
-                    alert("Bitte wähle zuerst Fahrzeug, Anhänger und Aktion aus!");
-                    return;
-                }
-
-                autoModusAktiv = true;
-                btn.classList.add("active");
-                btn.innerHTML = "🛑 Auto-Modus STOPPEN";
-                cockpit.style.display = "block";
-                
-                if (aktion === "Gärrest Ausbringung") {
-                    document.getElementById("richtungInfo").innerText = "🔄 Modus: Gärrest (Laden: BGA ➡️ Entladen: Feld)";
-                } else {
-                    document.getElementById("richtungInfo").innerText = "🚜 Modus: Ernte (Laden: Feld ➡️ Entladen: BGA)";
-                }
-                
-                document.getElementById("autoStatus").innerText = "Suche GPS-Signal...";
-                
-                try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } 
-                catch (err) { console.log('Wake Lock Error:', err); }
-
-                if (navigator.geolocation) {
-                    gpsWatchId = navigator.geolocation.watchPosition(pruefeStandort, zeigeGpsFehler, {
-                        enableHighAccuracy: true, maximumAge: 0
-                    });
-                } else { alert("GPS wird nicht unterstützt."); }
-
-            } else {
-                autoModusAktiv = false;
-                btn.classList.remove("active");
-                btn.innerHTML = "📡 Auto-Modus STARTEN";
-                cockpit.style.display = "none";
-                fahrzeugBeladen = false;
-                ladeSperre = false;
-                document.getElementById("ladeStatus").innerText = "Leer";
-                document.getElementById("ladeStatus").style.color = "#ff9800";
-                document.getElementById("btnCancel").style.display = "none";
-                
-                if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
-                if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
-            }
-        }
-
-        // Funktion zum manuellen Abbrechen einer Fuhre (Wendemanöver etc.)
-        function fuhreVerwerfen() {
-            fahrzeugBeladen = false;
-            ladeSperre = true; // Sperrt das erneute Beladen, bis der Ort verlassen wurde
+        // --- 2. DATEN BEIM START LADEN ---
+        window.onload = async function() {
+            document.getElementById("status").innerText = "Verbinde mit Datenbank...";
+            document.getElementById("status").style.color = "orange";
             
-            document.getElementById("ladeStatus").innerText = "Leer (Verworfen)";
-            document.getElementById("ladeStatus").style.color = "#ff9800";
-            document.getElementById("btnCancel").style.display = "none";
-            document.getElementById("autoStatus").innerText = "Fehlalarm verworfen. Warte auf Verlassen des Bereichs...";
-        }
+            try {
+                // A) Den Hof laden (wir nehmen einfach den ersten Hof, den wir finden)
+                let resFarm = await fetch(SUPABASE_URL + "/rest/v1/farms?limit=1", { headers });
+                let farms = await resFarm.json();
+                if (farms.length > 0) currentFarmId = farms[0].id;
 
-        function berechneDistanz(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; 
-            const phi1 = lat1 * Math.PI/180;
-            const phi2 = lat2 * Math.PI/180;
-            const deltaPhi = (lat2-lat1) * Math.PI/180;
-            const deltaLambda = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-                      Math.cos(phi1) * Math.cos(phi2) *
-                      Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return Math.round(R * c);
-        }
+                // B) Personal laden
+                let resProf = await fetch(SUPABASE_URL + "/rest/v1/profiles?select=id,first_name", { headers });
+                let profiles = await resProf.json();
+                let fahrerHtml = '<option value="">-- Bitte wählen --</option>';
+                profiles.forEach(p => { fahrerHtml += `<option value="${p.id}">${p.first_name}</option>`; });
+                document.getElementById("fahrer").innerHTML = fahrerHtml;
 
-        function pruefeStandort(position) {
-            if (!autoModusAktiv) return;
-
-            let myLat = position.coords.latitude;
-            let myLon = position.coords.longitude;
-            let aktion = document.getElementById("aktion").value;
-
-            let distBGA = berechneDistanz(myLat, myLon, BGA.lat, BGA.lon);
-            document.getElementById("distBGA").innerText = distBGA;
-
-            let aktivesFeld = null;
-            let kuerzesteFeldDistanz = 999999;
-
-            // POLYGON PRÜFUNG
-            for (let f of felderDatenbank) {
-                let insideThisField = false;
-
-                for (let p of f.punkte) {
-                    let dist = berechneDistanz(myLat, myLon, p.lat, p.lon);
-                    if (dist < kuerzesteFeldDistanz) kuerzesteFeldDistanz = dist;
-                }
-
-                if (f.punkte.length >= 3) {
-                    let x = myLon, y = myLat;
-                    let inside = false;
-                    for (let i = 0, j = f.punkte.length - 1; i < f.punkte.length; j = i++) {
-                        let xi = f.punkte[i].lon, yi = f.punkte[i].lat;
-                        let xj = f.punkte[j].lon, yj = f.punkte[j].lat;
-                        
-                        let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                        if (intersect) inside = !inside;
-                    }
-                    insideThisField = inside;
-                }
-
-                if (insideThisField) {
-                    aktivesFeld = f;
-                    break;
-                }
-            }
-            
-            document.getElementById("distFeld").innerText = (felderDatenbank.length > 0) ? kuerzesteFeldDistanz : "-";
-
-            if (aktivesFeld) {
-                document.getElementById("feld").value = aktivesFeld.id;
-                document.getElementById("erkanntesFeld").innerText = aktivesFeld.name;
-                document.getElementById("erkanntesFeld").style.color = "#0f0";
-            } else {
-                document.getElementById("erkanntesFeld").innerText = "Keines (Fahre zu einem Feld...)";
-                document.getElementById("erkanntesFeld").style.color = "#fff";
-            }
-
-            // GÄRREST ODER ERNTE LOGIK
-            if (aktion === "Gärrest Ausbringung") {
+                // C) Fuhrpark laden (Schlepper & Anhänger)
+                let resEq = await fetch(SUPABASE_URL + "/rest/v1/equipment?select=id,name,type,capacity_m3", { headers });
+                let equipment = await resEq.json();
                 
-                // Beladen an der BGA
-                if (distBGA <= BGA.radius) {
-                    if (!fahrzeugBeladen && !ladeSperre) {
-                        fahrzeugBeladen = true;
-                        document.getElementById("ladeStatus").innerText = "BELADEN ✅";
-                        document.getElementById("ladeStatus").style.color = "#0f0";
-                        document.getElementById("btnCancel").style.display = "inline-block";
-                        document.getElementById("autoStatus").innerText = "An der BGA beladen. Fahre zum Feld...";
-                    }
-                } else {
-                    ladeSperre = false; // BGA verlassen -> Sperre aufheben
-                    if (!fahrzeugBeladen) {
-                        document.getElementById("autoStatus").innerText = "Warte auf Beladung an der BGA...";
-                    }
-                }
-
-                // Abkippen auf dem Feld
-                if (aktivesFeld && fahrzeugBeladen) {
-                    document.getElementById("autoStatus").innerText = aktivesFeld.name + " erreicht! Speichere...";
-                    fahrzeugBeladen = false; 
-                    document.getElementById("ladeStatus").innerText = "Leer";
-                    document.getElementById("ladeStatus").style.color = "#ff9800";
-                    document.getElementById("btnCancel").style.display = "none";
-                    fuhreAbgeschickt();
-                }
-
-            } else { // ERNTE MODUS
+                let traktorHtml = '<option value="">-- Bitte wählen --</option>';
+                let trailerHtml = '<option value="" data-vol="">-- Bitte wählen --</option>';
                 
-                // Beladen auf dem Feld
-                if (aktivesFeld) {
-                    if (!fahrzeugBeladen && !ladeSperre) {
-                        fahrzeugBeladen = true;
-                        document.getElementById("ladeStatus").innerText = "BELADEN ✅";
-                        document.getElementById("ladeStatus").style.color = "#0f0";
-                        document.getElementById("btnCancel").style.display = "inline-block";
-                        document.getElementById("autoStatus").innerText = "Auf " + aktivesFeld.name + " beladen. Fahre zur BGA...";
+                equipment.forEach(e => {
+                    if (e.type === 'tractor') {
+                        traktorHtml += `<option value="${e.id}">${e.name}</option>`;
+                    } else if (e.type === 'trailer') {
+                        trailerHtml += `<option value="${e.id}" data-vol="${e.capacity_m3 || ''}">${e.name} (${e.capacity_m3} m³)</option>`;
                     }
-                } else {
-                    ladeSperre = false; // Feld verlassen -> Sperre aufheben
-                    if (!fahrzeugBeladen) {
-                        document.getElementById("autoStatus").innerText = "Warte auf Einfahrt in ein Feld...";
-                    }
-                }
+                });
+                document.getElementById("fahrzeug").innerHTML = traktorHtml;
+                document.getElementById("anhaenger").innerHTML = trailerHtml;
 
-                // Abkippen an der BGA
-                if (distBGA <= BGA.radius && fahrzeugBeladen) {
-                    document.getElementById("autoStatus").innerText = "BGA erreicht! Speichere Fuhre...";
-                    fahrzeugBeladen = false; 
-                    document.getElementById("ladeStatus").innerText = "Leer";
-                    document.getElementById("ladeStatus").style.color = "#ff9800";
-                    document.getElementById("btnCancel").style.display = "none";
-                    fuhreAbgeschickt();
-                }
+                // D) Felder laden
+                let resFields = await fetch(SUPABASE_URL + "/rest/v1/fields?select=id,name", { headers });
+                let fields = await resFields.json();
+                let feldHtml = '<option value="">-- Bitte wählen --</option>';
+                if(fields.length === 0) feldHtml += '<option value="" disabled>Noch keine Felder angelegt</option>';
+                fields.forEach(f => { feldHtml += `<option value="${f.id}">${f.name}</option>`; });
+                document.getElementById("feld").innerHTML = feldHtml;
+
+                document.getElementById("status").innerText = "✅ Bereit!";
+                setTimeout(() => document.getElementById("status").innerText = "", 2000);
+
+            } catch (error) {
+                console.error("Fehler beim Laden:", error);
+                document.getElementById("status").innerText = "❌ Fehler beim Verbinden!";
+                document.getElementById("status").style.color = "red";
             }
-        }
+        };
 
-        function zeigeGpsFehler(error) { document.getElementById("autoStatus").innerText = "Fehler: Kein GPS Signal!"; }
-
-        function checkCustom(id) {
-            let select = document.getElementById(id);
-            let customInput = document.getElementById("custom_" + id);
-            if (select.value === "custom") {
-                customInput.style.display = "block";
-                customInput.required = true;
-            } else {
-                customInput.style.display = "none";
-                customInput.required = false;
-            }
-        }
-
+        // --- 3. HELFER-FUNKTIONEN FÜR VOLUMEN & DICHTE ---
         function updateVolumen() {
             let select = document.getElementById("anhaenger");
             let vol = select.options[select.selectedIndex].getAttribute("data-vol");
             let volInput = document.getElementById("volumen");
             
-            checkCustom('anhaenger');
-            
-            if (vol === "manuell") {
-                volInput.value = "";
-                volInput.readOnly = false;
-                volInput.classList.remove("auto-filled");
-            } else if (vol) {
+            if (vol && vol !== "null") {
                 volInput.value = vol;
                 volInput.readOnly = true; 
-                volInput.classList.remove("auto-filled");
             } else {
                 volInput.value = "";
                 volInput.readOnly = false;
-                volInput.classList.remove("auto-filled");
             }
         }
 
@@ -399,136 +164,52 @@
             else if (aktion === "Ernte (Gras)") { dichteInput.value = 0.25; dichteInput.classList.add("auto-filled"); } 
             else if (aktion === "Gärrest Ausbringung") { dichteInput.value = 1.00; dichteInput.classList.add("auto-filled"); } 
             else { dichteInput.value = ""; dichteInput.classList.remove("auto-filled"); }
-            
-            if (autoModusAktiv) {
-                let cockpitInfo = document.getElementById("richtungInfo");
-                if (aktion === "Gärrest Ausbringung") cockpitInfo.innerText = "🔄 Modus: Gärrest (Laden: BGA ➡️ Entladen: Feld)";
-                else cockpitInfo.innerText = "🚜 Modus: Ernte (Laden: Feld ➡️ Entladen: BGA)";
-            }
         }
 
-        document.getElementById("dichte").addEventListener("input", function() { this.classList.remove("auto-filled"); });
-
-        function ladeDaten() {
-            document.getElementById("rankingList").innerHTML = "<li style='text-align:center;'>🔄 Lade...</li>";
-            let auswahl = document.getElementById("statistikDatum").value;
-            let teile = auswahl.split("-");
-            let deutschesDatum = `${teile[2]}.${teile[1]}.${teile[0]}`;
+        // --- 4. FUHRE IN DIE DATENBANK SPEICHERN ---
+        async function handleManualSubmit(event) {
+            event.preventDefault(); // Verhindert, dass die Seite neu lädt
             
-            let scriptId = "jsonpScript";
-            let altesScript = document.getElementById(scriptId);
-            if (altesScript) { altesScript.remove(); }
-            
-            let script = document.createElement('script');
-            script.id = scriptId;
-            script.src = APPS_SCRIPT_URL + "?datum=" + encodeURIComponent(deutschesDatum) + "&callback=verarbeiteDaten";
-            document.body.appendChild(script);
-        }
-
-        function verarbeiteDaten(data) {
-            if (data.felderDropdown && data.felderDropdown.length > 0) {
-                
-                let gruppen = {};
-                for (let f of data.felderGPS) {
-                    if (!gruppen[f.name]) {
-                        gruppen[f.name] = { id: f.id, name: f.name, hektar: f.hektar, punkte: [] };
-                    }
-                    gruppen[f.name].punkte.push({ lat: f.lat, lon: f.lon });
-                }
-                felderDatenbank = Object.values(gruppen); 
-                
-                let feldSelect = document.getElementById("feld");
-                let aktuellerWert = feldSelect.value;
-                
-                let html = '<option value="Bitte wählen...">-- Bitte wählen --</option>';
-                for(let f of data.felderDropdown) {
-                    html += `<option value="${f.name}">${f.name} (${f.hektar} ha)</option>`;
-                }
-                html += '<option value="custom">✍️ Anderes Feld...</option>';
-                feldSelect.innerHTML = html;
-                
-                if (aktuellerWert && aktuellerWert !== "") {
-                    feldSelect.value = aktuellerWert;
-                }
-            } else {
-                let feldSelect = document.getElementById("feld");
-                let aktuellerWert = feldSelect.value;
-                feldSelect.innerHTML = '<option value="Bitte wählen...">-- Keine Felder gefunden --</option><option value="custom">✍️ Anderes Feld...</option>';
-                if (aktuellerWert) feldSelect.value = aktuellerWert;
-            }
-
-            let listHTML = "";
-            let rankingData = data.ranking || [];
-            
-            if (rankingData.length === 0) { 
-                listHTML = "<li class='ranking-item' style='justify-content:center;'>Keine Fuhren an diesem Tag!</li>"; 
-            } else {
-                for (let i = 0; i < rankingData.length; i++) {
-                    let rang = i + 1;
-                    let nameClass = (rang === 1) ? "rank-1" : "";
-                    let icon = (rang === 1) ? "👑 " : rang + ". ";
-                    listHTML += `<li class="ranking-item"><span class="${nameClass}">${icon}${rankingData[i].name}</span><span>${rankingData[i].fuhren} Fuhren | ${rankingData[i].tonnen} t</span></li>`;
-                }
-            }
-            document.getElementById("rankingList").innerHTML = listHTML;
-        }
-
-        function handleManualSubmit() { fuhreAbgeschickt(); return false; }
-
-        function fuhreAbgeschickt() {
-            let finalFahrer = document.getElementById("fahrer").value;
-            if (finalFahrer === "custom") finalFahrer = document.getElementById("custom_fahrer").value;
-            
-            let finalFahrzeug = document.getElementById("fahrzeug").value;
-            if (finalFahrzeug === "custom") finalFahrzeug = document.getElementById("custom_fahrzeug").value;
-            
-            let finalFeld = document.getElementById("feld").value;
-            if (finalFeld === "custom") finalFeld = document.getElementById("custom_feld").value;
-            
-            let finalAnhaenger = document.getElementById("anhaenger").value;
-            if (finalAnhaenger === "custom") finalAnhaenger = document.getElementById("custom_anhaenger").value;
-
-            let vol = parseFloat(document.getElementById("volumen").value) || 0;
-            let dich = parseFloat(document.getElementById("dichte").value) || 0;
-            let gesamt = (vol * dich).toFixed(2);
-
-            let d = new Date();
-            let day = String(d.getDate()).padStart(2, '0');
-            let month = String(d.getMonth() + 1).padStart(2, '0');
-            let year = d.getFullYear();
-            let datumString = `${day}.${month}.${year}`;
+            let btn = document.getElementById("btn");
+            btn.innerText = "⏳ Speichere...";
+            btn.disabled = true;
 
             let payload = {
-                datum: datumString,
-                uhrzeit: d.toLocaleTimeString('de-DE'),
-                fahrer: finalFahrer,
-                fahrzeug: finalFahrzeug,
-                anhaenger: finalAnhaenger,
-                aktion: document.getElementById("aktion").value, 
-                volumen: vol,
-                dichte: dich,
-                gesamtgewicht: gesamt,
-                feld: finalFeld
+                farm_id: currentFarmId,
+                driver_id: document.getElementById("fahrer").value,
+                tractor_id: document.getElementById("fahrzeug").value,
+                trailer_id: document.getElementById("anhaenger").value,
+                field_id: document.getElementById("feld").value || null, // Falls kein Feld da ist
+                action_type: document.getElementById("aktion").value, 
+                volume_m3: parseFloat(document.getElementById("volumen").value),
+                density_t_m3: parseFloat(document.getElementById("dichte").value)
             };
 
-            document.getElementById("jsonData").value = JSON.stringify(payload);
-            document.getElementById("bgaForm").submit();
+            try {
+                let response = await fetch(SUPABASE_URL + "/rest/v1/trips", {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
 
-            setTimeout(() => {
-                document.getElementById("status").style.color = "green";
-                document.getElementById("status").innerText = "✅ " + gesamt + "t eingetragen!";
-                
-                setTimeout(() => { 
-                    document.getElementById("status").innerText = ""; 
-                    let heute = new Date().toISOString().split('T')[0];
-                    document.getElementById("statistikDatum").value = heute;
-                    ladeDaten(); 
-                }, 3000);
-            }, 500);
-        }
+                if (response.ok) {
+                    document.getElementById("status").style.color = "green";
+                    document.getElementById("status").innerText = "✅ Fuhre sicher im Schrank!";
+                    document.getElementById("bgaForm").reset(); // Formular leeren
+                } else {
+                    let err = await response.json();
+                    document.getElementById("status").style.color = "red";
+                    document.getElementById("status").innerText = "❌ Fehler: " + err.message;
+                }
+            } catch (error) {
+                document.getElementById("status").style.color = "red";
+                document.getElementById("status").innerText = "❌ Verbindungsfehler!";
+            }
 
-        function oeffneTabelle() {
-            window.open("https://docs.google.com/spreadsheets/d/1j9JcRlXpBI05lp3dx9vHV0jCbaIzNPwLgeR4vfMieTM/edit?gid=0#gid=0", "_blank");
+            btn.innerText = "🚀 Fuhre speichern";
+            btn.disabled = false;
+            
+            setTimeout(() => document.getElementById("status").innerText = "", 4000);
         }
     </script>
 </body>
