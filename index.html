@@ -42,14 +42,15 @@
                 <option value="">🔄 Lade Schlepper...</option>
             </select>
 
-            <label>Feld / Schlag:</label>
-            <select id="feld" required>
-                <option value="">🔄 Lade Felder...</option>
-            </select>
-
+            <!-- HIER NEU SORTIERT: Anhänger kommt direkt nach Schlepper -->
             <label>Anhänger:</label>
             <select id="anhaenger" onchange="updateVolumen()" required>
                 <option value="" data-vol="">🔄 Lade Anhänger...</option>
+            </select>
+
+            <label>Feld / Schlag:</label>
+            <select id="feld" required>
+                <option value="">🔄 Lade Felder...</option>
             </select>
 
             <label>Aktion:</label>
@@ -74,11 +75,9 @@
     </div>
 
     <script>
-        // --- 1. DEINE SUPABASE ZUGANGSDATEN ---
         const SUPABASE_URL = "https://muyienufbglqglojpidi.supabase.co";
         const SUPABASE_KEY = "sb_publishable_EsT5ljdQrfSbMuh8vYJM9w_vUl3X8wd";
         
-        // So weisen wir uns am Aktenschrank aus
         const headers = {
             "apikey": SUPABASE_KEY,
             "Authorization": "Bearer " + SUPABASE_KEY,
@@ -88,25 +87,21 @@
 
         let currentFarmId = null;
 
-        // --- 2. DATEN BEIM START LADEN ---
         window.onload = async function() {
             document.getElementById("status").innerText = "Verbinde mit Datenbank...";
             document.getElementById("status").style.color = "orange";
             
             try {
-                // A) Den Hof laden (wir nehmen einfach den ersten Hof, den wir finden)
                 let resFarm = await fetch(SUPABASE_URL + "/rest/v1/farms?limit=1", { headers });
                 let farms = await resFarm.json();
                 if (farms.length > 0) currentFarmId = farms[0].id;
 
-                // B) Personal laden
                 let resProf = await fetch(SUPABASE_URL + "/rest/v1/profiles?select=id,first_name", { headers });
                 let profiles = await resProf.json();
                 let fahrerHtml = '<option value="">-- Bitte wählen --</option>';
                 profiles.forEach(p => { fahrerHtml += `<option value="${p.id}">${p.first_name}</option>`; });
                 document.getElementById("fahrer").innerHTML = fahrerHtml;
 
-                // C) Fuhrpark laden (Schlepper & Anhänger)
                 let resEq = await fetch(SUPABASE_URL + "/rest/v1/equipment?select=id,name,type,capacity_m3", { headers });
                 let equipment = await resEq.json();
                 
@@ -123,7 +118,6 @@
                 document.getElementById("fahrzeug").innerHTML = traktorHtml;
                 document.getElementById("anhaenger").innerHTML = trailerHtml;
 
-                // D) Felder laden
                 let resFields = await fetch(SUPABASE_URL + "/rest/v1/fields?select=id,name", { headers });
                 let fields = await resFields.json();
                 let feldHtml = '<option value="">-- Bitte wählen --</option>';
@@ -141,7 +135,6 @@
             }
         };
 
-        // --- 3. HELFER-FUNKTIONEN FÜR VOLUMEN & DICHTE ---
         function updateVolumen() {
             let select = document.getElementById("anhaenger");
             let vol = select.options[select.selectedIndex].getAttribute("data-vol");
@@ -166,9 +159,8 @@
             else { dichteInput.value = ""; dichteInput.classList.remove("auto-filled"); }
         }
 
-        // --- 4. FUHRE IN DIE DATENBANK SPEICHERN ---
         async function handleManualSubmit(event) {
-            event.preventDefault(); // Verhindert, dass die Seite neu lädt
+            event.preventDefault(); 
             
             let btn = document.getElementById("btn");
             btn.innerText = "⏳ Speichere...";
@@ -179,7 +171,7 @@
                 driver_id: document.getElementById("fahrer").value,
                 tractor_id: document.getElementById("fahrzeug").value,
                 trailer_id: document.getElementById("anhaenger").value,
-                field_id: document.getElementById("feld").value || null, // Falls kein Feld da ist
+                field_id: document.getElementById("feld").value || null, 
                 action_type: document.getElementById("aktion").value, 
                 volume_m3: parseFloat(document.getElementById("volumen").value),
                 density_t_m3: parseFloat(document.getElementById("dichte").value)
@@ -195,7 +187,7 @@
                 if (response.ok) {
                     document.getElementById("status").style.color = "green";
                     document.getElementById("status").innerText = "✅ Fuhre sicher im Schrank!";
-                    document.getElementById("bgaForm").reset(); // Formular leeren
+                    document.getElementById("bgaForm").reset(); 
                 } else {
                     let err = await response.json();
                     document.getElementById("status").style.color = "red";
