@@ -163,7 +163,7 @@
         let drawnPolygonWKT = null;
         let activeFieldId = null; 
 
-        // Die neuen Lührsfelde-Koordinaten!
+        // Deine neuen Lührsfelde-Koordinaten!
         var map = L.map('map').setView([53.620, 8.930], 16);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
@@ -207,7 +207,13 @@
             let nameInput = document.getElementById("feldName").value;
             if(!nameInput) return;
             document.getElementById("btnSave").disabled = true;
-            let payload = { farm_id: currentFarmId, name: nameInput };
+            
+            // HIER IST DIE KORREKTUR: Wir schicken das GPS-Polygon jetzt mit!
+            let payload = { 
+                farm_id: currentFarmId, 
+                name: nameInput,
+                boundary_polygon: drawnPolygonWKT 
+            };
 
             try {
                 let response = await fetch(SUPABASE_URL + "/rest/v1/fields", {
