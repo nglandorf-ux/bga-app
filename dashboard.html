@@ -27,7 +27,6 @@
         .feld-liste li { background: #333; margin-bottom: 8px; padding: 12px 15px; border-radius: 6px; font-size: 15px; cursor: pointer; transition: 0.2s; border-left: 4px solid #388e3c; display: flex; justify-content: space-between; align-items: center; }
         .feld-liste li:hover { background: #444; transform: translateX(5px); }
         
-        /* Modal (Das edle Popup-Fenster) */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
         .modal-content { background: #1e1e1e; width: 800px; max-width: 95%; border-radius: 12px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
@@ -48,7 +47,6 @@
 </head>
 <body>
 
-    <!-- Linke Seitenleiste -->
     <div id="sidebar">
         <h2>🗺️ Hof Glandorf</h2>
         
@@ -68,10 +66,8 @@
         </div>
     </div>
 
-    <!-- Karte -->
     <div id="map"></div>
 
-    <!-- Das Modal (Popup) für die Felddetails -->
     <div id="fieldModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -80,7 +76,6 @@
             </div>
             
             <div class="grid-2">
-                <!-- Linke Spalte: Boden & Stammdaten -->
                 <div>
                     <h3 style="color: #4caf50;">Stammdaten & Boden</h3>
                     <div class="grid-2" style="gap: 15px;">
@@ -126,10 +121,9 @@
                         </div>
                     </div>
                     <button onclick="saveFieldDetails()" style="margin-top: 25px;">Bodendaten speichern</button>
-                    <div id="modal-status" style="color: #4caf50; margin-top: 10px; text-align: center; height: 20px;"></div>
+                    <div id="modal-status" style="color: #4caf50; margin-top: 10px; text-align: center; height: 20px; font-weight:bold;"></div>
                 </div>
 
-                <!-- Rechte Spalte: Anbauplanung -->
                 <div>
                     <h3 style="color: #ff9800;">Anbauplanung & Fruchtfolge</h3>
                     
@@ -150,14 +144,11 @@
                                 </select>
                             </div>
                         </div>
-                        <button onclick="saveAnbau()" style="background-color: #ff9800; margin-top: 10px;">Frucht eintragen</button>
+                        <button id="btnAnbau" onclick="saveAnbau()" style="background-color: #ff9800; margin-top: 10px;">Frucht eintragen</button>
                     </div>
 
                     <label style="font-size: 12px; color: #aaa;">Historie / Planung</label>
-                    <div id="anbauListe" class="anbau-history">
-                        <!-- Wird per Javascript gefüllt -->
-                        Lädt...
-                    </div>
+                    <div id="anbauListe" class="anbau-history">Lädt...</div>
                 </div>
             </div>
         </div>
@@ -170,9 +161,9 @@
 
         let currentFarmId = null;
         let drawnPolygonWKT = null;
-        let activeFieldId = null; // Merkt sich, welches Feld gerade im Popup offen ist
+        let activeFieldId = null; 
 
-        // Karte starten über Lührsfelde
+        // Die neuen Lührsfelde-Koordinaten!
         var map = L.map('map').setView([53.620, 8.930], 16);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
@@ -207,9 +198,7 @@
                 let fields = await resFields.json();
                 
                 let listHtml = '';
-                fields.forEach(f => { 
-                    listHtml += `<li onclick="openModal('${f.id}', '${f.name}')">${f.name} <span>⚙️</span></li>`; 
-                });
+                fields.forEach(f => { listHtml += `<li onclick="openModal('${f.id}', '${f.name}')">${f.name} <span>⚙️</span></li>`; });
                 document.getElementById("feldListe").innerHTML = listHtml || '<li>Keine Felder vorhanden</li>';
             } catch (error) { console.error(error); }
         }
@@ -229,14 +218,9 @@
                     drawnPolygonWKT = null;
                     drawnItems.clearLayers();
                     loadFields();
-                    
-                    // Nach dem Speichern GPS direkt über SQL eintragen (da JSON kein Geography direkt schluckt)
-                    // (Für diese Demo reicht es, dass das Feld als Name angelegt wird. Die Geo-Logik bauen wir ein, wenn du so weit bist).
                 }
             } catch (error) { console.error(error); }
         }
-
-        // --- MODAL LOGIK (Die neuen Profi-Funktionen) ---
         
         async function openModal(id, name) {
             activeFieldId = id;
@@ -244,7 +228,6 @@
             document.getElementById("fieldModal").style.display = "flex";
             document.getElementById("modal-status").innerText = "Lade Daten...";
             
-            // 1. Bodendaten laden
             let res = await fetch(SUPABASE_URL + `/rest/v1/fields?id=eq.${id}&select=*`, { headers });
             let data = await res.json();
             if(data.length > 0) {
@@ -257,7 +240,6 @@
                 document.getElementById("modalMg").value = f.magnesium_klasse || "";
             }
             
-            // 2. Anbau-Historie laden
             loadAnbauHistory();
             document.getElementById("modal-status").innerText = "";
         }
@@ -268,6 +250,10 @@
         }
 
         async function saveFieldDetails() {
+            let statusEl = document.getElementById("modal-status");
+            statusEl.innerText = "⏳ Speichere...";
+            statusEl.style.color = "orange";
+            
             let payload = {
                 nutzungsart: document.getElementById("modalNutzung").value,
                 bodenart: document.getElementById("modalBodenart").value,
@@ -277,12 +263,26 @@
                 magnesium_klasse: document.getElementById("modalMg").value
             };
             
-            let res = await fetch(SUPABASE_URL + `/rest/v1/fields?id=eq.${activeFieldId}`, {
-                method: "PATCH", headers: headers, body: JSON.stringify(payload)
-            });
+            try {
+                let res = await fetch(SUPABASE_URL + `/rest/v1/fields?id=eq.${activeFieldId}`, {
+                    method: "PATCH", headers: headers, body: JSON.stringify(payload)
+                });
+                
+                if(res.ok) {
+                    statusEl.innerText = "✅ Bodendaten sicher gespeichert!";
+                    statusEl.style.color = "#4caf50";
+                } else {
+                    let err = await res.json();
+                    statusEl.innerText = "❌ Fehler beim Speichern! (SQL ausgeführt?)";
+                    statusEl.style.color = "red";
+                    console.log(err);
+                }
+            } catch (e) {
+                statusEl.innerText = "❌ Verbindungsfehler!";
+                statusEl.style.color = "red";
+            }
             
-            if(res.ok) document.getElementById("modal-status").innerText = "✅ Erfolgreich gespeichert!";
-            setTimeout(() => document.getElementById("modal-status").innerText = "", 3000);
+            setTimeout(() => statusEl.innerText = "", 4000);
         }
 
         async function loadAnbauHistory() {
@@ -294,27 +294,43 @@
             anbau.forEach(a => {
                 html += `<div class="history-item">
                             <strong>${a.wirtschaftsjahr}</strong>
-                            <span>${a.fruchtart}</span>
+                            <span style="color:#ff9800">${a.fruchtart}</span>
                          </div>`;
             });
             document.getElementById("anbauListe").innerHTML = html;
         }
 
         async function saveAnbau() {
+            let btn = document.getElementById("btnAnbau");
+            let oldText = btn.innerText;
+            btn.innerText = "⏳ ...";
+            btn.disabled = true;
+
             let payload = {
                 field_id: activeFieldId,
                 wirtschaftsjahr: parseInt(document.getElementById("anbauJahr").value),
                 fruchtart: document.getElementById("anbauFrucht").value
             };
             
-            // Upsert (Wenn Jahr schon existiert, überschreiben)
             let res = await fetch(SUPABASE_URL + `/rest/v1/anbauplanung`, {
                 method: "POST", 
                 headers: { ...headers, "Prefer": "resolution=merge-duplicates" },
                 body: JSON.stringify(payload)
             });
             
-            if(res.ok) loadAnbauHistory();
+            if(res.ok) {
+                loadAnbauHistory();
+                btn.innerText = "✅ Gespeichert!";
+                btn.style.backgroundColor = "#4caf50";
+                setTimeout(() => {
+                    btn.innerText = oldText;
+                    btn.style.backgroundColor = "#ff9800";
+                    btn.disabled = false;
+                }, 2000);
+            } else {
+                btn.innerText = "❌ Fehler!";
+                setTimeout(() => { btn.innerText = oldText; btn.disabled = false; }, 2000);
+            }
         }
 
         window.onload = loadFields;
