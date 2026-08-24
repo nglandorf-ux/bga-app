@@ -1,1 +1,183 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hof Glandorf - Kommandozentrale</title>
+    
+    <!-- Karten-Software (Leaflet) laden -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; display: flex; height: 100vh; background-color: #1e1e1e; color: white; }
+        #sidebar { width: 350px; background: #2c2c2c; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; overflow-y: auto; }
+        #map { flex-grow: 1; height: 100%; }
+        h2 { margin-top: 0; color: #4caf50; }
+        .box { background: #3d3d3d; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; border-radius: 5px; border: none; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        button:disabled { background-color: #666; cursor: not-allowed; }
+        #status { margin-top: 10px; font-weight: bold; text-align: center; }
+        .feld-liste { list-style: none; padding: 0; margin: 0; }
+        .feld-liste li { background: #4caf50; margin-bottom: 5px; padding: 10px; border-radius: 5px; font-size: 14px; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>🗺️ Hof Glandorf</h2>
+        <p>Büro-Dashboard</p>
+        
+        <div class="box">
+            <h3>Neues Feld speichern</h3>
+            <p style="font-size: 13px; color: #bbb;">1. Zeichne auf der Karte ein Feld (Fünfeck-Symbol).<br>2. Gib hier den Namen ein.<br>3. Klick auf Speichern.</p>
+            <input type="text" id="feldName" placeholder="z.B. Große Wiese">
+            <button id="btnSave" onclick="saveField()" disabled>Feld speichern</button>
+            <div id="status"></div>
+        </div>
+
+        <div class="box" style="flex-grow: 1;">
+            <h3>Meine Felder</h3>
+            <ul id="feldListe" class="feld-liste">
+                <li>Lade Felder...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // Supabase Zugangsdaten
+        const SUPABASE_URL = "https://muyienufbglqglojpidi.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_EsT5ljdQrfSbMuh8vYJM9w_vUl3X8wd";
+        const headers = { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
+
+        let currentFarmId = null;
+        let drawnPolygonWKT = null; // Hier speichern wir die GPS-Koordinaten
+
+        // --- 1. KARTE INITIALISIEREN ---
+        // Die Karte startet genau über Lintig / Geestland!
+        var map = L.map('map').setView([53.606, 8.887], 15); 
+
+        // Gestochen scharfe Satellitenbilder laden (Esri World Imagery)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        }).addTo(map);
+
+        // --- 2. ZEICHEN-WERKZEUGE HINZUFÜGEN ---
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        var drawControl = new L.Control.Draw({
+            draw: {
+                polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: '#ff0000' } },
+                polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false
+            },
+            edit: { featureGroup: drawnItems, edit: false, remove: true }
+        });
+        map.addControl(drawControl);
+
+        // Wenn ein Feld fertig gezeichnet wurde...
+        map.on(L.Draw.Event.CREATED, function (event) {
+            drawnItems.clearLayers(); // Altes löschen, nur 1 Feld gleichzeitig
+            var layer = event.layer;
+            drawnItems.addLayer(layer);
+            
+            // Koordinaten in Datenbank-Sprache (WKT) übersetzen
+            let latlngs = layer.getLatLngs()[0];
+            let coords = latlngs.map(ll => `${ll.lng} ${ll.lat}`);
+            coords.push(`${latlngs[0].lng} ${latlngs[0].lat}`); // Polygon schließen (Anfang = Ende)
+            
+            drawnPolygonWKT = `SRID=4326;POLYGON(({{${coords.join(', ')}}}))`.replace("{{", "").replace("}}", "");
+            
+            document.getElementById("btnSave").disabled = false; // Button aktivieren
+        });
+
+        // Wenn das Feld gelöscht wird
+        map.on(L.Draw.Event.DELETED, function () {
+            drawnPolygonWKT = null;
+            document.getElementById("btnSave").disabled = true;
+        });
+
+        // --- 3. DATEN AUS DATENBANK LADEN ---
+        async function loadData() {
+            try {
+                // Hof ID holen
+                let resFarm = await fetch(SUPABASE_URL + "/rest/v1/farms?limit=1", { headers });
+                let farms = await resFarm.json();
+                if (farms.length > 0) currentFarmId = farms[0].id;
+
+                // Felder Liste holen
+                let resFields = await fetch(SUPABASE_URL + "/rest/v1/fields?select=id,name", { headers });
+                let fields = await resFields.json();
+                
+                let listHtml = '';
+                if(fields.length === 0) listHtml = '<li>Noch keine Felder da</li>';
+                fields.forEach(f => { listHtml += `<li>${f.name}</li>`; });
+                document.getElementById("feldListe").innerHTML = listHtml;
+            } catch (error) {
+                console.error("Fehler beim Laden:", error);
+            }
+        }
+
+        // --- 4. FELD IN DATENBANK SPEICHERN ---
+        async function saveField() {
+            let nameInput = document.getElementById("feldName").value;
+            let status = document.getElementById("status");
+
+            if(nameInput.trim() === "") {
+                status.innerText = "❌ Bitte Namen eingeben!";
+                status.style.color = "red";
+                return;
+            }
+
+            status.innerText = "⏳ Speichere...";
+            status.style.color = "orange";
+            document.getElementById("btnSave").disabled = true;
+
+            let payload = {
+                farm_id: currentFarmId,
+                name: nameInput,
+                boundary_polygon: drawnPolygonWKT
+            };
+
+            try {
+                let response = await fetch(SUPABASE_URL + "/rest/v1/fields", {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    status.innerText = "✅ Feld gespeichert!";
+                    status.style.color = "#4caf50";
+                    document.getElementById("feldName").value = "";
+                    drawnPolygonWKT = null;
+                    drawnItems.clearLayers();
+                    loadData(); // Liste aktualisieren
+                } else {
+                    let err = await response.json();
+                    status.innerText = "❌ Fehler beim Speichern";
+                    status.style.color = "red";
+                    console.log(err);
+                }
+            } catch (error) {
+                status.innerText = "❌ Verbindungsfehler";
+                status.style.color = "red";
+            }
+            
+            setTimeout(() => {
+                status.innerText = "";
+                document.getElementById("btnSave").disabled = drawnPolygonWKT === null;
+            }, 3000);
+        }
+
+        // Beim Start Daten laden
+        window.onload = loadData;
+    </script>
+</body>
+</html>
