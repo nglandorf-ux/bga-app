@@ -164,9 +164,13 @@
         let activeFieldId = null; 
 
         // Deine neuen Lührsfelde-Koordinaten!
-        var map = L.map('map').setView([53.620, 8.930], 16);
+// 16 ist weiterhin unser schöner Start-Zoom für den Überblick
+        var map = L.map('map').setView([53.620, 8.930], 16); 
+        
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri'
+            attribution: 'Tiles &copy; Esri',
+            maxNativeZoom: 19, // Bis hierhin liefert der Satellit echte, gestochen scharfe Bilder
+            maxZoom: 22        // Bis hierhin darfst du mit der Maus reinzoomen (Lupen-Effekt!)
         }).addTo(map);
 
         var drawnItems = new L.FeatureGroup();
