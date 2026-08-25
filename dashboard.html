@@ -42,9 +42,8 @@
         .history-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #444; }
         .history-item:last-child { border: none; }
         
-        #status-msg { text-align: center; margin-top: 10px; font-weight: bold; }
+        #status-msg { text-align: center; margin-top: 10px; font-weight: bold; color: #4caf50; }
         
-        /* Kleine Farb-Legende in der Seitenleiste */
         .legend { font-size: 12px; color: #aaa; margin-top: 10px; line-height: 1.6; }
         .legend span { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
     </style>
@@ -64,6 +63,17 @@
 
         <div class="box" style="flex-grow: 1; display: flex; flex-direction: column;">
             <h3>Schlagkartei</h3>
+            
+            <!-- Die neue Sortier-Funktion -->
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                <label style="font-size: 12px; color: #aaa;">Sortieren:</label>
+                <select id="sortSelect" onchange="sortAndRenderList()" style="margin: 0; padding: 6px; font-size: 13px;">
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="area_desc">Größe (Größte zuerst)</option>
+                    <option value="crop_asc">Fruchtart (A-Z)</option>
+                </select>
+            </div>
+
             <ul id="feldListe" class="feld-liste" style="flex-grow: 1; overflow-y: auto;">
                 <li>Lade Schläge...</li>
             </ul>
@@ -141,6 +151,7 @@
         let activeFieldId = null; 
         
         let fieldMapLayers = {}; 
+        let globalFieldsData = []; // Zwischenspeicher für die Sortierfunktion
 
         var map = L.map('map').setView([53.620, 8.930], 16);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -151,23 +162,56 @@
 
         var savedFieldsGroup = L.featureGroup().addTo(map);
 
-        var drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
         var drawControl = new L.Control.Draw({
             draw: { polygon: { shapeOptions: { color: '#ff9800', weight: 3 } }, polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false },
-            edit: { featureGroup: drawnItems }
+            edit: { 
+                featureGroup: savedFieldsGroup, // Dadurch lassen sich jetzt bestehende Felder bearbeiten!
+                remove: false // Löschen sicherheitshalber noch deaktiviert, damit du dir nichts zerschießt
+            }
         });
         map.addControl(drawControl);
 
+        // Event: Wenn ein komplett NEUES Feld gezeichnet wurde
         map.on(L.Draw.Event.CREATED, function (event) {
-            drawnItems.clearLayers();
             var layer = event.layer;
-            drawnItems.addLayer(layer);
             let latlngs = layer.getLatLngs()[0];
             let coords = latlngs.map(ll => `${ll.lng} ${ll.lat}`);
             coords.push(`${latlngs[0].lng} ${latlngs[0].lat}`); 
             drawnPolygonWKT = `SRID=4326;POLYGON(({{${coords.join(', ')}}}))`.replace("{{", "").replace("}}", "");
+            
+            // Nur kurz optisch auf die Karte werfen, bis es in Supabase liegt
+            savedFieldsGroup.addLayer(layer);
             document.getElementById("btnSave").disabled = false;
+        });
+
+        // Event: Wenn ein BESTEHENDES Feld im Edit-Modus verändert wurde
+        map.on(L.Draw.Event.EDITED, async function (event) {
+            let layers = event.layers;
+            let promises = [];
+            
+            layers.eachLayer(function (layer) {
+                if (layer.supabaseId) { // Prüfen, ob wir die Supabase-ID kennen
+                    let latlngs = layer.getLatLngs()[0];
+                    let coords = latlngs.map(ll => `${ll.lng} ${ll.lat}`);
+                    coords.push(`${latlngs[0].lng} ${latlngs[0].lat}`); 
+                    let wkt = `SRID=4326;POLYGON((${coords.join(', ')}))`;
+                    
+                    // Wir schicken die neuen Grenzen an den Aktenschrank
+                    promises.push(fetch(SUPABASE_URL + `/rest/v1/fields?id=eq.${layer.supabaseId}`, {
+                        method: "PATCH", headers: headers, body: JSON.stringify({ boundary_polygon: wkt })
+                    }));
+                }
+            });
+
+            if (promises.length > 0) {
+                document.getElementById("status-msg").innerText = "⏳ Speichere neue Grenzen...";
+                await Promise.all(promises);
+                document.getElementById("status-msg").innerText = "✅ Grenzen aktualisiert!";
+                setTimeout(() => { document.getElementById("status-msg").innerText = ""; }, 3000);
+                
+                // Karte neu laden, damit die neuen Hektar aus der Datenbank geholt werden
+                loadFields(); 
+            }
         });
 
         function parsePolygonData(geoData) {
@@ -179,25 +223,17 @@
             if (typeof geoData === 'string') {
                 let match = geoData.match(/\(\(([^)]+)\)\)/);
                 if (match) {
-                    return match[1].split(',').map(pair => {
-                        let [lng, lat] = pair.trim().split(' ');
-                        return [parseFloat(lat), parseFloat(lng)];
-                    });
+                    return match[1].split(',').map(pair => { let [lng, lat] = pair.trim().split(' '); return [parseFloat(lat), parseFloat(lng)]; });
                 }
             }
             return null;
         }
 
         function hoverField(id) {
-            if(fieldMapLayers[id]) {
-                fieldMapLayers[id].setStyle({ color: '#ff9800', weight: 4, fillOpacity: 0.5 });
-            }
+            if(fieldMapLayers[id]) fieldMapLayers[id].setStyle({ color: '#ff9800', weight: 4, fillOpacity: 0.5 });
         }
-        
         function unhoverField(id) {
-            if(fieldMapLayers[id]) {
-                fieldMapLayers[id].setStyle({ color: fieldMapLayers[id].defaultColor, weight: 2, fillOpacity: 0.3 });
-            }
+            if(fieldMapLayers[id]) fieldMapLayers[id].setStyle({ color: fieldMapLayers[id].defaultColor, weight: 2, fillOpacity: 0.3 });
         }
 
         async function loadFields() {
@@ -213,55 +249,73 @@
                 let anbauData = await resAnbau.json();
                 
                 let fieldCrops = {};
-                anbauData.forEach(a => {
-                    if(!fieldCrops[a.field_id]) fieldCrops[a.field_id] = a.fruchtart;
-                });
+                anbauData.forEach(a => { if(!fieldCrops[a.field_id]) fieldCrops[a.field_id] = a.fruchtart; });
                 
-                let listHtml = '';
                 savedFieldsGroup.clearLayers();
                 fieldMapLayers = {};
+                globalFieldsData = []; // Zwischenspeicher leeren
 
                 fields.forEach(f => { 
                     let currentCrop = fieldCrops[f.id] || "";
-                    let baseColor = "#8d6e63"; // Standard: Ackerland Hellbraun
+                    let baseColor = "#8d6e63"; // Ackerland
                     
                     if (f.nutzungsart === "Dauergrünland" || currentCrop === "Dauergrünland" || currentCrop === "Ackergras") {
                         baseColor = "#4caf50";
-                    } else if (currentCrop === "Silomais") {
-                        baseColor = "#ffeb3b";
-                    } else if (currentCrop === "Winterweizen") {
-                        baseColor = "#fb8c00";
-                    } else if (currentCrop === "Roggen") {
-                        baseColor = "#d7ccc8";
-                    } else if (currentCrop === "Stilllegung" || currentCrop === "Brache") {
-                        baseColor = "#9e9e9e";
-                    }
+                    } else if (currentCrop === "Silomais") { baseColor = "#ffeb3b";
+                    } else if (currentCrop === "Winterweizen") { baseColor = "#fb8c00";
+                    } else if (currentCrop === "Roggen") { baseColor = "#d7ccc8";
+                    } else if (currentCrop === "Stilllegung" || currentCrop === "Brache") { baseColor = "#9e9e9e"; }
                     
-                    let areaText = f.area_hectares ? ` (${f.area_hectares} ha)` : '';
+                    // Feld in den Zwischenspeicher für die Liste packen
+                    globalFieldsData.push({
+                        id: f.id, name: f.name, area_hectares: f.area_hectares || 0,
+                        currentCrop: currentCrop, nutzungsart: f.nutzungsart, baseColor: baseColor
+                    });
                     
-                    // HIER IST DER FIX: Die Fruchtart als Text wurde entfernt. 
-                    // Der Punkt hat "flex-shrink: 0" bekommen, damit er sich nicht mehr oval quetschen lässt!
-                    listHtml += `<li onmouseenter="hoverField('${f.id}')" onmouseleave="unhoverField('${f.id}')" onclick="openModal('${f.id}', '${f.name}')">
-                        <span style="display:flex; align-items:center;">
-                            <span style="display:inline-block; width:12px; height:12px; background:${baseColor}; border-radius:50%; margin-right:10px; flex-shrink:0;"></span>
-                            ${f.name}${areaText}
-                        </span>
-                        <span>⚙️</span>
-                    </li>`; 
-                    
+                    // Feld auf die Karte malen
                     let latlngs = parsePolygonData(f.boundary_wkt);
                     if(latlngs && latlngs.length > 0) {
                         let poly = L.polygon(latlngs, { color: baseColor, weight: 2, fillOpacity: 0.3 });
                         poly.defaultColor = baseColor; 
+                        poly.supabaseId = f.id; // WICHTIG FÜRS BEARBEITEN
                         
-                        poly.bindTooltip(`<b>${f.name}</b><br>${currentCrop || f.nutzungsart || 'Keine Frucht eingetragen'}`);
+                        // Das neue Schildchen: Name + Frucht + Hektar
+                        let tooltipText = `<b>${f.name}</b><br>${currentCrop || f.nutzungsart || 'Keine Frucht'}<br>${f.area_hectares ? f.area_hectares + ' ha' : 'Keine Größe'}`;
+                        poly.bindTooltip(tooltipText);
+                        
                         savedFieldsGroup.addLayer(poly);
                         fieldMapLayers[f.id] = poly; 
                     }
                 });
                 
-                document.getElementById("feldListe").innerHTML = listHtml || '<li>Keine Felder vorhanden</li>';
+                sortAndRenderList(); // Baut die Seitenleiste basierend auf der Sortierung
             } catch (error) { console.error(error); }
+        }
+
+        // Baut die Liste links auf und sortiert sie
+        function sortAndRenderList() {
+            let sortVal = document.getElementById("sortSelect").value;
+            let sorted = [...globalFieldsData];
+            
+            sorted.sort((a, b) => {
+                if(sortVal === 'name_asc') return a.name.localeCompare(b.name);
+                if(sortVal === 'area_desc') return b.area_hectares - a.area_hectares;
+                if(sortVal === 'crop_asc') return a.currentCrop.localeCompare(b.currentCrop);
+                return 0;
+            });
+
+            let listHtml = '';
+            sorted.forEach(f => {
+                let areaText = f.area_hectares ? ` (${f.area_hectares} ha)` : '';
+                listHtml += `<li onmouseenter="hoverField('${f.id}')" onmouseleave="unhoverField('${f.id}')" onclick="openModal('${f.id}', '${f.name}')">
+                    <span style="display:flex; align-items:center;">
+                        <span style="display:inline-block; width:12px; height:12px; background:${f.baseColor}; border-radius:50%; margin-right:10px; flex-shrink:0;"></span>
+                        ${f.name}${areaText}
+                    </span>
+                    <span>⚙️</span>
+                </li>`; 
+            });
+            document.getElementById("feldListe").innerHTML = listHtml || '<li>Keine Felder vorhanden</li>';
         }
 
         async function saveNewField() {
@@ -278,8 +332,9 @@
                 if (response.ok) {
                     document.getElementById("feldName").value = "";
                     drawnPolygonWKT = null;
-                    drawnItems.clearLayers();
-                    setTimeout(loadFields, 1000);
+                    // Keine Sorge wegen clearLayers, loadFields überschreibt die Gruppe sauber
+                    setTimeout(loadFields, 500); 
+                    document.getElementById("btnSave").disabled = true;
                 }
             } catch (error) { console.error(error); }
         }
