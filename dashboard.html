@@ -64,7 +64,6 @@
         <div class="box" style="flex-grow: 1; display: flex; flex-direction: column;">
             <h3>Schlagkartei</h3>
             
-            <!-- Die neue Sortier-Funktion -->
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
                 <label style="font-size: 12px; color: #aaa;">Sortieren:</label>
                 <select id="sortSelect" onchange="sortAndRenderList()" style="margin: 0; padding: 6px; font-size: 13px;">
@@ -112,7 +111,12 @@
                         <div class="form-group"><label>Kalium (K)</label><select id="modalK"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
                         <div class="form-group"><label>Magnesium (Mg)</label><select id="modalMg"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
                     </div>
-                    <button onclick="saveFieldDetails()" style="margin-top: 25px;">Bodendaten speichern</button>
+                    
+                    <!-- Buttons unten links -->
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button onclick="saveFieldDetails()" style="flex-grow: 1;">Bodendaten speichern</button>
+                        <button onclick="deleteField()" style="background-color: #d32f2f; width: 45px;" title="Feld löschen">🗑️</button>
+                    </div>
                     <div id="modal-status" style="color: #4caf50; margin-top: 10px; text-align: center; height: 20px; font-weight:bold;"></div>
                 </div>
                 <div>
@@ -151,7 +155,7 @@
         let activeFieldId = null; 
         
         let fieldMapLayers = {}; 
-        let globalFieldsData = []; // Zwischenspeicher für die Sortierfunktion
+        let globalFieldsData = [];
 
         var map = L.map('map').setView([53.620, 8.930], 16);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -164,14 +168,10 @@
 
         var drawControl = new L.Control.Draw({
             draw: { polygon: { shapeOptions: { color: '#ff9800', weight: 3 } }, polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false },
-            edit: { 
-                featureGroup: savedFieldsGroup, // Dadurch lassen sich jetzt bestehende Felder bearbeiten!
-                remove: false // Löschen sicherheitshalber noch deaktiviert, damit du dir nichts zerschießt
-            }
+            edit: { featureGroup: savedFieldsGroup, remove: false }
         });
         map.addControl(drawControl);
 
-        // Event: Wenn ein komplett NEUES Feld gezeichnet wurde
         map.on(L.Draw.Event.CREATED, function (event) {
             var layer = event.layer;
             let latlngs = layer.getLatLngs()[0];
@@ -179,24 +179,21 @@
             coords.push(`${latlngs[0].lng} ${latlngs[0].lat}`); 
             drawnPolygonWKT = `SRID=4326;POLYGON(({{${coords.join(', ')}}}))`.replace("{{", "").replace("}}", "");
             
-            // Nur kurz optisch auf die Karte werfen, bis es in Supabase liegt
             savedFieldsGroup.addLayer(layer);
             document.getElementById("btnSave").disabled = false;
         });
 
-        // Event: Wenn ein BESTEHENDES Feld im Edit-Modus verändert wurde
         map.on(L.Draw.Event.EDITED, async function (event) {
             let layers = event.layers;
             let promises = [];
             
             layers.eachLayer(function (layer) {
-                if (layer.supabaseId) { // Prüfen, ob wir die Supabase-ID kennen
+                if (layer.supabaseId) { 
                     let latlngs = layer.getLatLngs()[0];
                     let coords = latlngs.map(ll => `${ll.lng} ${ll.lat}`);
                     coords.push(`${latlngs[0].lng} ${latlngs[0].lat}`); 
                     let wkt = `SRID=4326;POLYGON((${coords.join(', ')}))`;
                     
-                    // Wir schicken die neuen Grenzen an den Aktenschrank
                     promises.push(fetch(SUPABASE_URL + `/rest/v1/fields?id=eq.${layer.supabaseId}`, {
                         method: "PATCH", headers: headers, body: JSON.stringify({ boundary_polygon: wkt })
                     }));
@@ -208,8 +205,6 @@
                 await Promise.all(promises);
                 document.getElementById("status-msg").innerText = "✅ Grenzen aktualisiert!";
                 setTimeout(() => { document.getElementById("status-msg").innerText = ""; }, 3000);
-                
-                // Karte neu laden, damit die neuen Hektar aus der Datenbank geholt werden
                 loadFields(); 
             }
         });
@@ -253,11 +248,11 @@
                 
                 savedFieldsGroup.clearLayers();
                 fieldMapLayers = {};
-                globalFieldsData = []; // Zwischenspeicher leeren
+                globalFieldsData = [];
 
                 fields.forEach(f => { 
                     let currentCrop = fieldCrops[f.id] || "";
-                    let baseColor = "#8d6e63"; // Ackerland
+                    let baseColor = "#8d6e63"; 
                     
                     if (f.nutzungsart === "Dauergrünland" || currentCrop === "Dauergrünland" || currentCrop === "Ackergras") {
                         baseColor = "#4caf50";
@@ -266,20 +261,17 @@
                     } else if (currentCrop === "Roggen") { baseColor = "#d7ccc8";
                     } else if (currentCrop === "Stilllegung" || currentCrop === "Brache") { baseColor = "#9e9e9e"; }
                     
-                    // Feld in den Zwischenspeicher für die Liste packen
                     globalFieldsData.push({
                         id: f.id, name: f.name, area_hectares: f.area_hectares || 0,
                         currentCrop: currentCrop, nutzungsart: f.nutzungsart, baseColor: baseColor
                     });
                     
-                    // Feld auf die Karte malen
                     let latlngs = parsePolygonData(f.boundary_wkt);
                     if(latlngs && latlngs.length > 0) {
                         let poly = L.polygon(latlngs, { color: baseColor, weight: 2, fillOpacity: 0.3 });
                         poly.defaultColor = baseColor; 
-                        poly.supabaseId = f.id; // WICHTIG FÜRS BEARBEITEN
+                        poly.supabaseId = f.id; 
                         
-                        // Das neue Schildchen: Name + Frucht + Hektar
                         let tooltipText = `<b>${f.name}</b><br>${currentCrop || f.nutzungsart || 'Keine Frucht'}<br>${f.area_hectares ? f.area_hectares + ' ha' : 'Keine Größe'}`;
                         poly.bindTooltip(tooltipText);
                         
@@ -288,11 +280,10 @@
                     }
                 });
                 
-                sortAndRenderList(); // Baut die Seitenleiste basierend auf der Sortierung
+                sortAndRenderList(); 
             } catch (error) { console.error(error); }
         }
 
-        // Baut die Liste links auf und sortiert sie
         function sortAndRenderList() {
             let sortVal = document.getElementById("sortSelect").value;
             let sorted = [...globalFieldsData];
@@ -332,11 +323,31 @@
                 if (response.ok) {
                     document.getElementById("feldName").value = "";
                     drawnPolygonWKT = null;
-                    // Keine Sorge wegen clearLayers, loadFields überschreibt die Gruppe sauber
                     setTimeout(loadFields, 500); 
                     document.getElementById("btnSave").disabled = true;
                 }
             } catch (error) { console.error(error); }
+        }
+        
+        // --- NEUE LÖSCHEN FUNKTION ---
+        async function deleteField() {
+            // Sicherheitsabfrage, bevor etwas gelöscht wird!
+            let userConfirmed = confirm("Möchtest du dieses Feld und alle zugehörigen Daten (Bodenproben, Anbauplanung) WIRKLICH unwiderruflich löschen?");
+            
+            if (userConfirmed) {
+                try {
+                    let response = await fetch(SUPABASE_URL + `/rest/v1/fields?id=eq.${activeFieldId}`, {
+                        method: "DELETE", headers: headers
+                    });
+                    
+                    if (response.ok) {
+                        closeModal(); // Fenster schließen und Karte/Liste neu laden
+                        alert("Feld wurde erfolgreich gelöscht.");
+                    } else {
+                        alert("Fehler beim Löschen des Feldes.");
+                    }
+                } catch (error) { console.error(error); }
+            }
         }
         
         async function openModal(id, name) {
