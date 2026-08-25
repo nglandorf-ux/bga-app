@@ -196,7 +196,6 @@
         
         function unhoverField(id) {
             if(fieldMapLayers[id]) {
-                // Hier greifen wir auf die gespeicherte Originalfarbe zurück!
                 fieldMapLayers[id].setStyle({ color: fieldMapLayers[id].defaultColor, weight: 2, fillOpacity: 0.3 });
             }
         }
@@ -207,15 +206,12 @@
                 let farms = await resFarm.json();
                 if (farms.length > 0) currentFarmId = farms[0].id;
 
-                // 1. Alle Felder holen
                 let resFields = await fetch(SUPABASE_URL + "/rest/v1/fields?select=*", { headers });
                 let fields = await resFields.json();
                 
-                // 2. Anbauplanung holen, um die aktuelle Frucht zu kennen (sortiert nach Jahr absteigend)
                 let resAnbau = await fetch(SUPABASE_URL + "/rest/v1/anbauplanung?select=field_id,fruchtart&order=wirtschaftsjahr.desc", { headers });
                 let anbauData = await resAnbau.json();
                 
-                // Wir speichern uns für jedes Feld die aktuellste Frucht
                 let fieldCrops = {};
                 anbauData.forEach(a => {
                     if(!fieldCrops[a.field_id]) fieldCrops[a.field_id] = a.fruchtart;
@@ -229,33 +225,35 @@
                     let currentCrop = fieldCrops[f.id] || "";
                     let baseColor = "#8d6e63"; // Standard: Ackerland Hellbraun
                     
-                    // Farb-Logik basierend auf Fruchtart oder Nutzungsart
                     if (f.nutzungsart === "Dauergrünland" || currentCrop === "Dauergrünland" || currentCrop === "Ackergras") {
-                        baseColor = "#4caf50"; // Grün
+                        baseColor = "#4caf50";
                     } else if (currentCrop === "Silomais") {
-                        baseColor = "#ffeb3b"; // Mais-Gelb
+                        baseColor = "#ffeb3b";
                     } else if (currentCrop === "Winterweizen") {
-                        baseColor = "#fb8c00"; // Weizen-Orange/Braun
+                        baseColor = "#fb8c00";
                     } else if (currentCrop === "Roggen") {
-                        baseColor = "#d7ccc8"; // Roggen-Beige
+                        baseColor = "#d7ccc8";
                     } else if (currentCrop === "Stilllegung" || currentCrop === "Brache") {
-                        baseColor = "#9e9e9e"; // Brache-Grau
+                        baseColor = "#9e9e9e";
                     }
                     
-                    let cropText = currentCrop ? ` - ${currentCrop}` : '';
                     let areaText = f.area_hectares ? ` (${f.area_hectares} ha)` : '';
                     
+                    // HIER IST DER FIX: Die Fruchtart als Text wurde entfernt. 
+                    // Der Punkt hat "flex-shrink: 0" bekommen, damit er sich nicht mehr oval quetschen lässt!
                     listHtml += `<li onmouseenter="hoverField('${f.id}')" onmouseleave="unhoverField('${f.id}')" onclick="openModal('${f.id}', '${f.name}')">
-                        <span style="display:inline-block; width:10px; height:10px; background:${baseColor}; border-radius:50%; margin-right:8px;"></span>
-                        ${f.name}${areaText} <span style="color:#aaa; font-size:12px;">${cropText}</span> <span style="float:right;">⚙️</span>
+                        <span style="display:flex; align-items:center;">
+                            <span style="display:inline-block; width:12px; height:12px; background:${baseColor}; border-radius:50%; margin-right:10px; flex-shrink:0;"></span>
+                            ${f.name}${areaText}
+                        </span>
+                        <span>⚙️</span>
                     </li>`; 
                     
                     let latlngs = parsePolygonData(f.boundary_wkt);
                     if(latlngs && latlngs.length > 0) {
                         let poly = L.polygon(latlngs, { color: baseColor, weight: 2, fillOpacity: 0.3 });
-                        poly.defaultColor = baseColor; // Originalfarbe speichern für den Hover-Effekt
+                        poly.defaultColor = baseColor; 
                         
-                        // Tooltip zeigt Name und Frucht an
                         poly.bindTooltip(`<b>${f.name}</b><br>${currentCrop || f.nutzungsart || 'Keine Frucht eingetragen'}`);
                         savedFieldsGroup.addLayer(poly);
                         fieldMapLayers[f.id] = poly; 
@@ -311,7 +309,6 @@
         function closeModal() {
             document.getElementById("fieldModal").style.display = "none";
             activeFieldId = null;
-            // Nach dem Schließen die Karte neu laden, falls sich Farben/Früchte geändert haben!
             loadFields(); 
         }
 
