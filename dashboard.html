@@ -69,7 +69,6 @@
     <div id="map"></div>
 
     <div id="fieldModal" class="modal-overlay">
-        <!-- Der Inhalt des Modals bleibt exakt gleich -->
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Feld Details</h2>
@@ -121,7 +120,7 @@
         // HIER SPEICHERN WIR ALLE GEZEICHNETEN FELDER FÜR DIE KARTE
         let fieldMapLayers = {}; 
 
-        // Startposition & Super-Zoom
+        // Startposition Lührsfelde & Super-Zoom
         var map = L.map('map').setView([53.620, 8.930], 16);
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri',
@@ -189,7 +188,7 @@
                 let farms = await resFarm.json();
                 if (farms.length > 0) currentFarmId = farms[0].id;
 
-                // Wir holen jetzt ALLE Daten (inklusive GPS) mit select=*
+                // Wir holen jetzt ALLE Daten (inklusive GPS)
                 let resFields = await fetch(SUPABASE_URL + "/rest/v1/fields?select=*", { headers });
                 let fields = await resFields.json();
                 
@@ -198,17 +197,17 @@
                 fieldMapLayers = {};
 
                 fields.forEach(f => { 
-                    // 1. Liste aufbauen (mit onmouseenter und onmouseleave)
+                    // 1. Liste aufbauen (mit Hektar-Anzeige)
                     let areaText = f.area_hectares ? ` (${f.area_hectares} ha)` : '';
                     listHtml += `<li onmouseenter="hoverField('${f.id}')" onmouseleave="unhoverField('${f.id}')" onclick="openModal('${f.id}', '${f.name}')">${f.name}${areaText} <span>⚙️</span></li>`; 
                     
-                    // 2. Felder auf die Karte zeichnen
-                    let latlngs = parsePolygonData(f.boundary_polygon);
+                    // 2. Felder auf die Karte zeichnen (WICHTIG: Er nutzt jetzt f.boundary_wkt!)
+                    let latlngs = parsePolygonData(f.boundary_wkt);
                     if(latlngs && latlngs.length > 0) {
                         let poly = L.polygon(latlngs, { color: '#4caf50', weight: 2, fillOpacity: 0.2 });
                         poly.bindTooltip(f.name);
                         savedFieldsGroup.addLayer(poly);
-                        fieldMapLayers[f.id] = poly; // In unserem "Gedächtnis" speichern fürs Highlighting
+                        fieldMapLayers[f.id] = poly; // In unserem "Gedächtnis" speichern
                     }
                 });
                 
@@ -231,7 +230,8 @@
                     document.getElementById("feldName").value = "";
                     drawnPolygonWKT = null;
                     drawnItems.clearLayers();
-                    loadFields(); // Lädt die Liste und die Karte neu!
+                    // Kurz warten, damit die Datenbank Zeit hat, die Hektar und WKT auszurechnen
+                    setTimeout(loadFields, 1000);
                 }
             } catch (error) { console.error(error); }
         }
