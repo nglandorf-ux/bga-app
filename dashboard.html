@@ -273,26 +273,57 @@
 <!-- TAB 3: RINDER & FUTTER -->
 <div id="view-cattle" class="view-container">
     <div class="full-view-content">
-        <h2>🐄 Rinder-Herdenmanagement & Fütterungsrechner</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+            <h2 style="border:none; padding:0; margin:0;">🐄 Rinder-Herdenmanagement & Fütterungsrechner</h2>
+            <div style="font-size:13px; color:#4caf50; background:#1e1e1e; border:1px solid #333; padding:8px 15px; border-radius:6px;" id="supabase-status-badge">
+                ⏳ Lade Rinder aus Supabase...
+            </div>
+        </div>
+
+        <!-- Live Herden-Bestand KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card" style="border-left: 4px solid #4caf50;">
+                <div class="lbl">Gesamtbestand Aktiv</div>
+                <div class="val" id="cnt-total">0 Rinder</div>
+            </div>
+            <div class="kpi-card">
+                <div class="lbl">Kälber (0–6 Mo.)</div>
+                <div class="val" id="cnt-kaelber" style="color:#ffb74d;">0 Stk</div>
+            </div>
+            <div class="kpi-card">
+                <div class="lbl">Jungvieh (6–12 Mo.)</div>
+                <div class="val" id="cnt-jungvieh" style="color:#a5d6a7;">0 Stk</div>
+            </div>
+            <div class="kpi-card">
+                <div class="lbl">Färsen (12–24 Mo.)</div>
+                <div class="val" id="cnt-faersen" style="color:#90caf9;">0 Stk</div>
+            </div>
+            <div class="kpi-card">
+                <div class="lbl">Kühe / Altrinder (> 24 Mo.)</div>
+                <div class="val" id="cnt-kuehe" style="color:#ffe0b2;">0 Stk</div>
+            </div>
+        </div>
 
         <div class="grid-2" style="gap: 25px; margin-bottom: 25px;">
-            <!-- Spalte 1: Tiergruppen & Bestand -->
+            <!-- Spalte 1: Bestandsauszählung aus Supabase -->
             <div class="table-container" style="margin-bottom: 0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <h3 style="margin:0;">🐮 Tiergruppen & Bestand</h3>
-                    <button onclick="openGroupModal()" style="width:auto; margin:0; padding:8px 14px; font-size:13px; background:#388e3c;">➕ Gruppe anlegen</button>
+                    <h3 style="margin:0;">🐮 Altersgruppen & Stückzahlen (Supabase)</h3>
+                    <button onclick="loadCattleFromSupabase()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#444;">🔄 Supabase Aktualisieren</button>
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Gruppe</th>
-                            <th>Bestand</th>
-                            <th>Ø-Gewicht</th>
-                            <th>Zuwachs</th>
+                            <th>Kategorie / Altersgruppe</th>
+                            <th>Altersbereich</th>
+                            <th>Bestand (Supabase)</th>
+                            <th>Ø-Gewicht (Est.)</th>
                             <th>Aktion</th>
                         </tr>
                     </thead>
-                    <tbody id="cattleGroupTableBody"></tbody>
+                    <tbody id="cattleCategoryTableBody">
+                        <tr><td colspan="5" style="text-align:center; color:#888;">Lade Daten aus Supabase...</td></tr>
+                    </tbody>
                 </table>
             </div>
 
@@ -300,7 +331,7 @@
             <div class="table-container" style="margin-bottom: 0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                     <h3 style="margin:0;">🌾 Futtermittel-Datenbank</h3>
-                    <button onclick="openFeedModal()" style="width:auto; margin:0; padding:8px 14px; font-size:13px; background:#ff9800;">➕ Futtermittel anlegen</button>
+                    <button onclick="openFeedModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#ff9800;">➕ Futtermittel anlegen</button>
                 </div>
                 <table class="data-table">
                     <thead>
@@ -309,7 +340,7 @@
                             <th>TM %</th>
                             <th>MJ ME / kg TM</th>
                             <th>Rohprotein</th>
-                            <th>Preis (€/t FM)</th>
+                            <th>Preis (€/t)</th>
                             <th>Aktion</th>
                         </tr>
                     </thead>
@@ -323,26 +354,27 @@
             <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                 <div>
                     <h3 style="margin:0; font-size: 20px; color: #4caf50;">🧮 Fütterungsrechner & Bedarfsanalyse</h3>
-                    <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Wähle eine Tiergruppe zur Rationsberechnung und Hochrechnung des Monats- & Jahresfutterbedarfs.</p>
+                    <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Berechnet auf Basis der echten Supabase-Tieranzahlen den monatlichen und jährlichen Futterbedarf in Tonnen.</p>
                 </div>
-                <div style="display:flex; align-items:center; gap: 10px; min-width: 280px;">
-                    <label style="font-size:12px; color:#aaa; font-weight:bold; white-space:nowrap;">Gewählte Gruppe:</label>
-                    <select id="calcGroupSelect" onchange="renderFeedingCalculator()" style="margin:0; padding:10px; font-size:14px; background:#2a2a2a; border-color:#4caf50; font-weight:bold;"></select>
+                <div style="display:flex; align-items:center; gap: 10px; min-width: 340px;">
+                    <label style="font-size:12px; color:#aaa; font-weight:bold; white-space:nowrap;">Gefilterte Auswertung:</label>
+                    <select id="calcCategorySelect" onchange="renderFeedingCalculator()" style="margin:0; padding:10px; font-size:14px; background:#2a2a2a; border-color:#4caf50; font-weight:bold;"></select>
                 </div>
             </div>
 
+            <!-- Rations-KPI Cards -->
             <div class="kpi-grid">
                 <div class="kpi-card">
-                    <div class="lbl">Trockensubstanz (TM / Tier)</div>
-                    <div class="val" id="calc-kpi-tm">0 kg/Tag</div>
+                    <div class="lbl">Futteraufnahme / Tier</div>
+                    <div class="val" id="calc-kpi-tm">0 kg TM/Tag</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="lbl">Energiedichte (ME / kg TM)</div>
-                    <div class="val" id="calc-kpi-me" style="color:#ffb74d;">0 MJ</div>
+                    <div class="lbl">Energiedichte (ME)</div>
+                    <div class="val" id="calc-kpi-me" style="color:#ffb74d;">0 MJ / kg TM</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="lbl">Rohprotein (XP / Tier)</div>
-                    <div class="val" id="calc-kpi-xp" style="color:#a5d6a7;">0 g/Tag</div>
+                    <div class="lbl">Rohprotein / Tier</div>
+                    <div class="val" id="calc-kpi-xp" style="color:#a5d6a7;">0 g XP/Tag</div>
                 </div>
                 <div class="kpi-card">
                     <div class="lbl">Jahresbedarf Herde (Frischmasse)</div>
@@ -350,13 +382,13 @@
                 </div>
                 <div class="kpi-card">
                     <div class="lbl">Geschätzte Futterkosten / Jahr</div>
-                    <div class="val" id="calc-kpi-cost" style="color:#ffe0b2;">0 €</div>
+                    <div class="val" id="calc-kpi-cost" style="color:#ffe0b2;">0 €/Jahr</div>
                 </div>
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h4 style="color:#fff; margin:0;">📋 Rationsaufstellung & Bedarfsberechnung</h4>
-                <button onclick="openRationEditModal()" style="width:auto; margin:0; background:#ff9800; padding:8px 16px; font-size:13px;">✏️ Ration für diese Gruppe anpassen</button>
+                <h4 style="color:#fff; margin:0;">📋 Futterbedarf & Rationsauswertung (aus Supabase-Bestand)</h4>
+                <button id="btnRationEdit" onclick="openRationEditModal()" style="width:auto; margin:0; background:#ff9800; padding:8px 16px; font-size:13px;">✏️ Ration für diese Kategorie anpassen</button>
             </div>
 
             <table class="data-table">
@@ -367,10 +399,10 @@
                         <th>kg TM / Tier / Tag</th>
                         <th>MJ ME / Tier</th>
                         <th>g XP / Tier</th>
-                        <th>t FM / Monat (Herde)</th>
-                        <th>t TM / Monat (Herde)</th>
-                        <th>t FM / Jahr (Herde)</th>
-                        <th>t TM / Jahr (Herde)</th>
+                        <th>t FM / Monat (Bestand)</th>
+                        <th>t TM / Monat (Bestand)</th>
+                        <th>t FM / Jahr (Bestand)</th>
+                        <th>t TM / Jahr (Bestand)</th>
                         <th>Kosten (€/Jahr)</th>
                     </tr>
                 </thead>
@@ -466,33 +498,28 @@
     </div>
 </div>
 
-<!-- MODAL 2: TIERGRUPPE ANLEGEN / BEARBEITEN -->
-<div id="groupModal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 500px;">
+<!-- MODAL 2: TIERDETAILS / INDIVIDUELLE RINDER LISTE -->
+<div id="cattleDetailModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 750px;">
         <div class="modal-header">
-            <h2 id="groupModalTitle">Tiergruppe bearbeiten</h2>
-            <button class="close-btn" onclick="closeGroupModal()">×</button>
+            <h2 id="cattleDetailModalTitle">Rinder in Kategorie</h2>
+            <button class="close-btn" onclick="closeCattleDetailModal()">×</button>
         </div>
-        <div class="form-group">
-            <label>Name der Tiergruppe</label>
-            <input type="text" id="grp-name" placeholder="z.B. Mastbullen (Endmast)">
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Ohrmarke</th>
+                        <th>Geburtsdatum</th>
+                        <th>Alter (Monate)</th>
+                        <th>Rasse</th>
+                        <th>Zukaufsdatum</th>
+                    </tr>
+                </thead>
+                <tbody id="cattleDetailModalTableBody"></tbody>
+            </table>
         </div>
-        <div class="form-group">
-            <label>Stückzahl (Anzahl Tiere)</label>
-            <input type="number" id="grp-count" placeholder="z.B. 45">
-        </div>
-        <div class="form-group">
-            <label>Durchschnittsgewicht (kg)</label>
-            <input type="number" id="grp-weight" placeholder="z.B. 550">
-        </div>
-        <div class="form-group">
-            <label>Angestrebter Zuwachs (g / Tier / Tag)</label>
-            <input type="number" id="grp-gain" placeholder="z.B. 1350">
-        </div>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-            <button onclick="saveGroupModal()" style="flex-grow:1;">Speichern</button>
-            <button onclick="closeGroupModal()" style="background:#555; width:auto;">Abbrechen</button>
-        </div>
+        <button onclick="closeCattleDetailModal()" style="margin-top:20px; background:#555;">Schließen</button>
     </div>
 </div>
 
@@ -1112,10 +1139,10 @@
         document.getElementById("statsTripTableBody").innerHTML = tripRowsHtml;
     }
 
-    // --- MODUL: RINDER & FUTTERMITTEL ---
+    // --- MODUL: RINDER (SUPABASE LIVE-BESTAND) & FUTTERMITTEL ---
 
-    const KEY_FEEDS = 'hofbuch_feed_items_v1';
-    const KEY_GROUPS = 'hofbuch_cattle_groups_v1';
+    const KEY_FEEDS = 'hofbuch_feed_items_v2';
+    const KEY_RATIONS = 'hofbuch_category_rations_v2';
 
     const defaultFeeds = [
         { id: 'f1', name: 'Silomais (33% TM)', tm: 33, me: 11.0, xp: 75, preis: 45 },
@@ -1126,72 +1153,141 @@
         { id: 'f6', name: 'Futterstroh', tm: 86, me: 6.5, xp: 40, preis: 80 }
     ];
 
-    const defaultGroups = [
-        {
-            id: 'g1',
-            name: 'Mastbullen (Endmast)',
-            count: 45,
-            weight: 550,
-            targetGain: 1350,
-            ration: { 'f1': 16.0, 'f2': 5.0, 'f3': 2.5, 'f4': 3.0, 'f6': 0.8 }
-        },
-        {
-            id: 'g2',
-            name: 'Jungvieh (12-24 Monate)',
-            count: 30,
-            weight: 380,
-            targetGain: 950,
-            ration: { 'f1': 8.0, 'f2': 10.0, 'f6': 1.2, 'f4': 1.5 }
-        },
-        {
-            id: 'g3',
-            name: 'Kälber (Aufzucht)',
-            count: 20,
-            weight: 150,
-            targetGain: 1000,
-            ration: { 'f2': 4.0, 'f1': 3.0, 'f4': 2.0 }
-        }
-    ];
+    // Standard Altersgruppen-Definitionen für weibliche Rinder
+    const CATTLE_CATEGORIES = {
+        'cat_kaelber': { id: 'cat_kaelber', name: 'Kälber (0–6 Mo.)', range: '0 - 6 Monate', defaultWeight: 120 },
+        'cat_jungvieh': { id: 'cat_jungvieh', name: 'Jungvieh (6–12 Mo.)', range: '6 - 12 Monate', defaultWeight: 280 },
+        'cat_faersen': { id: 'cat_faersen', name: 'Färsen (12–24 Mo.)', range: '12 - 24 Monate', defaultWeight: 480 },
+        'cat_kuehe': { id: 'cat_kuehe', name: 'Kühe / Altrinder (> 24 Mo.)', range: '> 24 Monate', defaultWeight: 650 }
+    };
+
+    const defaultCategoryRations = {
+        'cat_kaelber': { 'f2': 4.0, 'f1': 3.0, 'f4': 2.0 },
+        'cat_jungvieh': { 'f1': 8.0, 'f2': 10.0, 'f6': 1.0, 'f4': 1.5 },
+        'cat_faersen': { 'f1': 12.0, 'f2': 8.0, 'f6': 1.2, 'f4': 2.0 },
+        'cat_kuehe': { 'f1': 18.0, 'f2': 12.0, 'f6': 1.5, 'f4': 3.5 }
+    };
 
     let feedItems = [];
-    let cattleGroups = [];
-    let editingGroupId = null;
+    let categoryRations = {};
+    let supabaseCattleList = [];
+    let cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0, 'cat_kuehe': 0 };
+    let cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [], 'cat_kuehe': [] };
     let editingFeedId = null;
 
-    function initCattleModule() {
+    function parseBirthDate(dateStr) {
+        if (!dateStr || dateStr === '0' || dateStr === 'null') return null;
+        if (dateStr.includes('.')) {
+            let parts = dateStr.split('.');
+            if (parts.length === 3) {
+                let day = parseInt(parts[0]);
+                let month = parseInt(parts[1]) - 1;
+                let year = parseInt(parts[2]);
+                return new Date(year, month, day);
+            }
+        }
+        let d = new Date(dateStr);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function calculateAgeInMonths(birthDate) {
+        if (!birthDate) return 0;
+        let now = new Date();
+        let years = now.getFullYear() - birthDate.getFullYear();
+        let months = now.getMonth() - birthDate.getMonth();
+        let age = years * 12 + months;
+        return age < 0 ? 0 : age;
+    }
+
+    async function initCattleModule() {
         let savedFeeds = localStorage.getItem(KEY_FEEDS);
         feedItems = savedFeeds ? JSON.parse(savedFeeds) : defaultFeeds;
 
-        let savedGroups = localStorage.getItem(KEY_GROUPS);
-        cattleGroups = savedGroups ? JSON.parse(savedGroups) : defaultGroups;
+        let savedRations = localStorage.getItem(KEY_RATIONS);
+        categoryRations = savedRations ? JSON.parse(savedRations) : defaultCategoryRations;
 
-        renderCattleGroupsTable();
         renderFeedItemsTable();
-        populateCalcGroupSelect();
-        renderFeedingCalculator();
+        await loadCattleFromSupabase();
     }
 
-    function saveCattleData() {
+    function saveCattleModuleData() {
         localStorage.setItem(KEY_FEEDS, JSON.stringify(feedItems));
-        localStorage.setItem(KEY_GROUPS, JSON.stringify(cattleGroups));
+        localStorage.setItem(KEY_RATIONS, JSON.stringify(categoryRations));
     }
 
-    // Tiergruppen Tabelle render
-    function renderCattleGroupsTable() {
+    // Live-Rinderbestand aus Supabase laden und nach Altersgruppen auszählen
+    async function loadCattleFromSupabase() {
+        let badgeEl = document.getElementById("supabase-status-badge");
+        if (badgeEl) badgeEl.innerText = "⏳ Lade Supabase...";
+
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/rinder?select=*&order=geburtsdatum.desc", { headers });
+            let rawList = await res.json();
+
+            // Nur aktive Tiere filtern (kein Verkaufsdatum gesetzt)
+            supabaseCattleList = rawList.filter(c => !c.verkaufsdatum || c.verkaufsdatum === '' || c.verkaufsdatum === 'null' || c.verkaufsdatum === '0');
+
+            // Zurücksetzen
+            cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0, 'cat_kuehe': 0 };
+            cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [], 'cat_kuehe': [] };
+
+            supabaseCattleList.forEach(c => {
+                let bDate = parseBirthDate(c.geburtsdatum);
+                let ageMonths = calculateAgeInMonths(bDate);
+
+                let catKey = 'cat_kuehe';
+                if (ageMonths < 6) catKey = 'cat_kaelber';
+                else if (ageMonths < 12) catKey = 'cat_jungvieh';
+                else if (ageMonths < 24) catKey = 'cat_faersen';
+
+                cattleCategoryCounts[catKey]++;
+                cattleCategoryAnimals[catKey].push({ ...c, ageMonths: ageMonths });
+            });
+
+            if (badgeEl) {
+                badgeEl.innerText = `🟢 Supabase: ${supabaseCattleList.length} Rinder geladen`;
+                badgeEl.style.color = "#a5d6a7";
+            }
+
+            renderCattleCategoryKPIs();
+            renderCattleCategoryTable();
+            populateCalcCategorySelect();
+            renderFeedingCalculator();
+
+        } catch (error) {
+            console.error("Fehler beim Laden der Supabase-Rinder:", error);
+            if (badgeEl) {
+                badgeEl.innerText = "❌ Fehler beim Supabase-Laden!";
+                badgeEl.style.color = "red";
+            }
+        }
+    }
+
+    function renderCattleCategoryKPIs() {
+        document.getElementById("cnt-total").innerText = `${supabaseCattleList.length} Rinder`;
+        document.getElementById("cnt-kaelber").innerText = `${cattleCategoryCounts['cat_kaelber']} Stk`;
+        document.getElementById("cnt-jungvieh").innerText = `${cattleCategoryCounts['cat_jungvieh']} Stk`;
+        document.getElementById("cnt-faersen").innerText = `${cattleCategoryCounts['cat_faersen']} Stk`;
+        document.getElementById("cnt-kuehe").innerText = `${cattleCategoryCounts['cat_kuehe']} Stk`;
+    }
+
+    // Herden-Kategorien-Tabelle ausgeben
+    function renderCattleCategoryTable() {
         let html = "";
-        cattleGroups.forEach(g => {
+        Object.keys(CATTLE_CATEGORIES).forEach(key => {
+            let cat = CATTLE_CATEGORIES[key];
+            let cnt = cattleCategoryCounts[key] || 0;
             html += `<tr>
-                <td><strong>🐮 ${g.name}</strong></td>
-                <td><span style="color:#4caf50; font-weight:bold;">${g.count} Stk</span></td>
-                <td>${g.weight} kg</td>
-                <td>${g.targetGain} g/Tag</td>
+                <td><strong>🐮 ${cat.name}</strong></td>
+                <td><span style="color:#aaa;">${cat.range}</span></td>
+                <td><strong style="color:#4caf50; font-size:16px;">${cnt} Stk</strong></td>
+                <td>${cat.defaultWeight} kg</td>
                 <td>
-                    <button class="action-btn" onclick="openGroupModal('${g.id}')">✏️ Edit</button>
-                    <button class="action-btn danger" onclick="deleteCattleGroup('${g.id}')">🗑️</button>
+                    <button class="action-btn" onclick="openCattleDetailModal('${key}')">🔍 Tierliste (${cnt})</button>
                 </td>
             </tr>`;
         });
-        document.getElementById("cattleGroupTableBody").innerHTML = html || '<tr><td colspan="5" style="text-align:center; color:#888;">Keine Tiergruppen vorhanden</td></tr>';
+        document.getElementById("cattleCategoryTableBody").innerHTML = html;
     }
 
     // Futtermittel Tabelle render
@@ -1213,37 +1309,34 @@
         document.getElementById("feedTableBody").innerHTML = html || '<tr><td colspan="6" style="text-align:center; color:#888;">Keine Futtermittel angelegt</td></tr>';
     }
 
-    // Group Select in Calculator füllen
-    function populateCalcGroupSelect() {
-        let sel = document.getElementById("calcGroupSelect");
+    // Select in Fütterungsrechner füllen
+    function populateCalcCategorySelect() {
+        let sel = document.getElementById("calcCategorySelect");
         let currentVal = sel.value;
-        sel.innerHTML = "";
-        cattleGroups.forEach(g => {
-            sel.innerHTML += `<option value="${g.id}">${g.name} (${g.count} Stk)</option>`;
+        sel.innerHTML = `<option value="ALL">Gesamtherde (Alle ${supabaseCattleList.length} Rinder)</option>`;
+
+        Object.keys(CATTLE_CATEGORIES).forEach(key => {
+            let cat = CATTLE_CATEGORIES[key];
+            let cnt = cattleCategoryCounts[key] || 0;
+            sel.innerHTML += `<option value="${key}">${cat.name} – ${cnt} Stk</option>`;
         });
-        if (currentVal && cattleGroups.some(g => g.id === currentVal)) {
-            sel.value = currentVal;
-        } else if (cattleGroups.length > 0) {
-            sel.value = cattleGroups[0].id;
-        }
+
+        if (currentVal) sel.value = currentVal;
     }
 
-    // Fütterungsrechner durchrechnen
+    // Fütterungsrechner durchrechnen auf Basis der echten Supabase-Zahlen
     function renderFeedingCalculator() {
-        let selGroupId = document.getElementById("calcGroupSelect").value;
-        let group = cattleGroups.find(g => g.id === selGroupId);
+        let selCategory = document.getElementById("calcCategorySelect").value;
+        let isAll = (selCategory === "ALL");
 
-        if (!group) {
-            document.getElementById("calcRationTableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:#888;">Bitte eine Tiergruppe auswählen.</td></tr>';
-            return;
-        }
+        let targetCategories = isAll ? Object.keys(CATTLE_CATEGORIES) : [selCategory];
 
-        let ration = group.ration || {};
-        let groupCount = group.count || 1;
+        let aggRation = {}; // feedId -> { totalKgFmDayTierSum, totalCount, totalFmMonth, totalTmMonth, totalFmYear, totalTmYear, costYear, meTierSum, xpTierSum }
 
-        let totalTmDayTier = 0;
-        let totalMeDayTier = 0;
-        let totalXpDayTier = 0;
+        let totalHerdAnimals = 0;
+        let totalTmDayAllTiere = 0;
+        let totalMeDayAllTiere = 0;
+        let totalXpDayAllTiere = 0;
 
         let totalFmMontHerd = 0;
         let totalTmMontHerd = 0;
@@ -1251,70 +1344,111 @@
         let totalTmYearHerd = 0;
         let totalCostYearHerd = 0;
 
+        targetCategories.forEach(catKey => {
+            let cnt = cattleCategoryCounts[catKey] || 0;
+            if (cnt <= 0 && !isAll) return;
+
+            let ration = categoryRations[catKey] || {};
+            totalHerdAnimals += cnt;
+
+            Object.keys(ration).forEach(feedId => {
+                let kgFmTier = parseFloat(ration[feedId]) || 0;
+                if (kgFmTier <= 0) return;
+
+                let feed = feedItems.find(f => f.id === feedId);
+                if (!feed) return;
+
+                let tmFactor = (feed.tm || 0) / 100.0;
+                let kgTmTier = kgFmTier * tmFactor;
+                let meTier = kgTmTier * (feed.me || 0);
+                let xpTier = kgTmTier * (feed.xp || 0);
+
+                let tFmMonat = (kgFmTier * cnt * 30) / 1000.0;
+                let tTmMonat = (kgTmTier * cnt * 30) / 1000.0;
+
+                let tFmJahr = (kgFmTier * cnt * 365) / 1000.0;
+                let tTmJahr = (kgTmTier * cnt * 365) / 1000.0;
+
+                let costYear = tFmJahr * (feed.preis || 0);
+
+                totalTmDayAllTiere += (kgTmTier * cnt);
+                totalMeDayAllTiere += (meTier * cnt);
+                totalXpDayAllTiere += (xpTier * cnt);
+
+                totalFmMontHerd += tFmMonat;
+                totalTmMontHerd += tTmMonat;
+                totalFmYearHerd += tFmJahr;
+                totalTmYearHerd += tTmJahr;
+                totalCostYearHerd += costYear;
+
+                if (!aggRation[feedId]) {
+                    aggRation[feedId] = { feed: feed, kgFmSum: 0, kgTmSum: 0, meSum: 0, xpSum: 0, tFmMonat: 0, tTmMonat: 0, tFmJahr: 0, tTmJahr: 0, costYear: 0, animalCount: 0 };
+                }
+                aggRation[feedId].kgFmSum += (kgFmTier * cnt);
+                aggRation[feedId].kgTmSum += (kgTmTier * cnt);
+                aggRation[feedId].meSum += (meTier * cnt);
+                aggRation[feedId].xpSum += (xpTier * cnt);
+                aggRation[feedId].tFmMonat += tFmMonat;
+                aggRation[feedId].tTmMonat += tTmMonat;
+                aggRation[feedId].tFmJahr += tFmJahr;
+                aggRation[feedId].tTmJahr += tTmJahr;
+                aggRation[feedId].costYear += costYear;
+                aggRation[feedId].animalCount += cnt;
+            });
+        });
+
         let rowsHtml = "";
+        let avgTmPerTier = totalHerdAnimals > 0 ? (totalTmDayAllTiere / totalHerdAnimals) : 0;
+        let avgMePerTier = totalHerdAnimals > 0 ? (totalMeDayAllTiere / totalHerdAnimals) : 0;
+        let avgXpPerTier = totalHerdAnimals > 0 ? (totalXpDayAllTiere / totalHerdAnimals) : 0;
+        let energyDensity = avgTmPerTier > 0 ? (avgMePerTier / avgTmPerTier) : 0;
 
-        Object.keys(ration).forEach(feedId => {
-            let kgFmTier = parseFloat(ration[feedId]) || 0;
-            if (kgFmTier <= 0) return;
+        Object.keys(aggRation).forEach(feedId => {
+            let item = aggRation[feedId];
+            let feed = item.feed;
 
-            let feed = feedItems.find(f => f.id === feedId);
-            if (!feed) return;
-
-            let tmFactor = (feed.tm || 0) / 100.0;
-            let kgTmTier = kgFmTier * tmFactor;
-            let meTier = kgTmTier * (feed.me || 0);
-            let xpTier = kgTmTier * (feed.xp || 0); // in Gramm
-
-            let tFmMonat = (kgFmTier * groupCount * 30) / 1000.0;
-            let tTmMonat = (kgTmTier * groupCount * 30) / 1000.0;
-
-            let tFmJahr = (kgFmTier * groupCount * 365) / 1000.0;
-            let tTmJahr = (kgTmTier * groupCount * 365) / 1000.0;
-
-            let costYear = tFmJahr * (feed.preis || 0);
-
-            totalTmDayTier += kgTmTier;
-            totalMeDayTier += meTier;
-            totalXpDayTier += xpTier;
-
-            totalFmMontHerd += tFmMonat;
-            totalTmMontHerd += tTmMonat;
-            totalFmYearHerd += tFmJahr;
-            totalTmYearHerd += tTmJahr;
-            totalCostYearHerd += costYear;
+            let avgFmTier = totalHerdAnimals > 0 ? (item.kgFmSum / totalHerdAnimals) : 0;
+            let avgTmTier = totalHerdAnimals > 0 ? (item.kgTmSum / totalHerdAnimals) : 0;
+            let avgMeTier = totalHerdAnimals > 0 ? (item.meSum / totalHerdAnimals) : 0;
+            let avgXpTier = totalHerdAnimals > 0 ? (item.xpSum / totalHerdAnimals) : 0;
 
             rowsHtml += `<tr>
                 <td><strong>🌾 ${feed.name}</strong></td>
-                <td>${kgFmTier.toFixed(1)} kg FM</td>
-                <td>${kgTmTier.toFixed(2)} kg TM</td>
-                <td>${meTier.toFixed(1)} MJ</td>
-                <td>${xpTier.toFixed(0)} g</td>
-                <td>${tFmMonat.toFixed(1)} t</td>
-                <td>${tTmMonat.toFixed(1)} t</td>
-                <td><strong style="color:#90caf9;">${tFmJahr.toFixed(1)} t</strong></td>
-                <td><strong>${tTmJahr.toFixed(1)} t</strong></td>
-                <td>${costYear.toFixed(0)} €</td>
+                <td>${avgFmTier.toFixed(1)} kg FM</td>
+                <td>${avgTmTier.toFixed(2)} kg TM</td>
+                <td>${avgMeTier.toFixed(1)} MJ</td>
+                <td>${avgXpTier.toFixed(0)} g</td>
+                <td>${item.tFmMonat.toFixed(1)} t</td>
+                <td>${item.tTmMonat.toFixed(1)} t</td>
+                <td><strong style="color:#90caf9;">${item.tFmJahr.toFixed(1)} t</strong></td>
+                <td><strong>${item.tTmJahr.toFixed(1)} t</strong></td>
+                <td>${item.costYear.toFixed(0)} €</td>
             </tr>`;
         });
 
-        let energyDensity = totalTmDayTier > 0 ? (totalMeDayTier / totalTmDayTier) : 0;
-
         // KPIs aktualisieren
-        document.getElementById("calc-kpi-tm").innerText = `${totalTmDayTier.toFixed(2)} kg/Tag`;
+        document.getElementById("calc-kpi-tm").innerText = `${avgTmPerTier.toFixed(2)} kg TM/Tag`;
         document.getElementById("calc-kpi-me").innerText = `${energyDensity.toFixed(2)} MJ/kg TM`;
-        document.getElementById("calc-kpi-xp").innerText = `${totalXpDayTier.toFixed(0)} g/Tag`;
+        document.getElementById("calc-kpi-xp").innerText = `${avgXpPerTier.toFixed(0)} g XP/Tag`;
         document.getElementById("calc-kpi-year-fm").innerText = `${totalFmYearHerd.toFixed(1)} t FM/Jahr`;
-        document.getElementById("calc-kpi-cost").innerText = `${totalCostYearHerd.toLocaleString('de-DE', {maximumFractionDigits: 0})} €`;
+        document.getElementById("calc-kpi-cost").innerText = `${totalCostYearHerd.toLocaleString('de-DE', {maximumFractionDigits: 0})} €/Jahr`;
 
-        if (Object.keys(ration).length === 0 || rowsHtml === "") {
-            rowsHtml = '<tr><td colspan="10" style="text-align:center; color:#888;">Noch keine Ration für diese Gruppe eingetragen. Klicke auf "Ration für diese Gruppe anpassen".</td></tr>';
+        // Edit Button anzeigen/verstecken
+        let editBtn = document.getElementById("btnRationEdit");
+        if (editBtn) {
+            editBtn.style.display = isAll ? "none" : "inline-block";
+        }
+
+        if (Object.keys(aggRation).length === 0) {
+            rowsHtml = '<tr><td colspan="10" style="text-align:center; color:#888;">Noch keine Ration für diese Kategorie hinterlegt. Klicke auf "Ration für diese Kategorie anpassen".</td></tr>';
         } else {
+            let label = isAll ? `GESAMTHERDE (${totalHerdAnimals} Rinder)` : `${CATTLE_CATEGORIES[selCategory]?.name} (${totalHerdAnimals} Stk)`;
             rowsHtml += `<tr class="sum-row">
-                <td>GESAMTSUMME (${group.name}, ${groupCount} Stk)</td>
+                <td>GESAMTSUMME (${label})</td>
                 <td>-</td>
-                <td>${totalTmDayTier.toFixed(2)} kg TM</td>
-                <td>${totalMeDayTier.toFixed(1)} MJ</td>
-                <td>${totalXpDayTier.toFixed(0)} g</td>
+                <td>${avgTmPerTier.toFixed(2)} kg TM</td>
+                <td>${avgMePerTier.toFixed(1)} MJ</td>
+                <td>${avgXpPerTier.toFixed(0)} g</td>
                 <td>${totalFmMontHerd.toFixed(1)} t</td>
                 <td>${totalTmMontHerd.toFixed(1)} t</td>
                 <td style="color:#90caf9;">${totalFmYearHerd.toFixed(1)} t FM</td>
@@ -1326,64 +1460,34 @@
         document.getElementById("calcRationTableBody").innerHTML = rowsHtml;
     }
 
-    // Modal Tiergruppe
-    function openGroupModal(id = null) {
-        editingGroupId = id;
-        if (id) {
-            let g = cattleGroups.find(x => x.id === id);
-            document.getElementById("groupModalTitle").innerText = "Tiergruppe bearbeiten";
-            document.getElementById("grp-name").value = g.name;
-            document.getElementById("grp-count").value = g.count;
-            document.getElementById("grp-weight").value = g.weight;
-            document.getElementById("grp-gain").value = g.targetGain;
-        } else {
-            document.getElementById("groupModalTitle").innerText = "Neue Tiergruppe anlegen";
-            document.getElementById("grp-name").value = "";
-            document.getElementById("grp-count").value = "30";
-            document.getElementById("grp-weight").value = "400";
-            document.getElementById("grp-gain").value = "1200";
-        }
-        document.getElementById("groupModal").style.display = "flex";
-    }
+    // Modal Tierdetails aus Supabase
+    function openCattleDetailModal(catKey) {
+        let cat = CATTLE_CATEGORIES[catKey];
+        let animals = cattleCategoryAnimals[catKey] || [];
 
-    function closeGroupModal() {
-        document.getElementById("groupModal").style.display = "none";
-        editingGroupId = null;
-    }
+        document.getElementById("cattleDetailModalTitle").innerText = `${cat.name} – (${animals.length} Rinder aus Supabase)`;
 
-    function saveGroupModal() {
-        let name = document.getElementById("grp-name").value.trim();
-        let count = parseInt(document.getElementById("grp-count").value) || 0;
-        let weight = parseFloat(document.getElementById("grp-weight").value) || 0;
-        let gain = parseInt(document.getElementById("grp-gain").value) || 0;
+        let html = "";
+        animals.forEach(c => {
+            html += `<tr>
+                <td><strong style="color:#4caf50;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
+                <td>${c.geburtsdatum || '-'}</td>
+                <td><strong>${c.ageMonths} Mo.</strong></td>
+                <td>${c.rasse || '-'}</td>
+                <td>${c.zukaufsdatum || '-'}</td>
+            </tr>`;
+        });
 
-        if (!name) return alert("Bitte einen Namen angeben.");
-
-        if (editingGroupId) {
-            let g = cattleGroups.find(x => x.id === editingGroupId);
-            if (g) {
-                g.name = name; g.count = count; g.weight = weight; g.targetGain = gain;
-            }
-        } else {
-            let newId = 'g_' + Date.now();
-            cattleGroups.push({ id: newId, name: name, count: count, weight: weight, targetGain: gain, ration: {} });
+        if (animals.length === 0) {
+            html = '<tr><td colspan="5" style="text-align:center; color:#888;">Keine Rinder in dieser Altersgruppe in Supabase gefunden.</td></tr>';
         }
 
-        saveCattleData();
-        closeGroupModal();
-        renderCattleGroupsTable();
-        populateCalcGroupSelect();
-        renderFeedingCalculator();
+        document.getElementById("cattleDetailModalTableBody").innerHTML = html;
+        document.getElementById("cattleDetailModal").style.display = "flex";
     }
 
-    function deleteCattleGroup(id) {
-        if (confirm("Tiergruppe wirklich löschen?")) {
-            cattleGroups = cattleGroups.filter(g => g.id !== id);
-            saveCattleData();
-            renderCattleGroupsTable();
-            populateCalcGroupSelect();
-            renderFeedingCalculator();
-        }
+    function closeCattleDetailModal() {
+        document.getElementById("cattleDetailModal").style.display = "none";
     }
 
     // Modal Futtermittel
@@ -1432,7 +1536,7 @@
             feedItems.push({ id: newId, name: name, tm: tm, me: me, xp: xp, preis: preis });
         }
 
-        saveCattleData();
+        saveCattleModuleData();
         closeFeedModal();
         renderFeedItemsTable();
         renderFeedingCalculator();
@@ -1441,11 +1545,10 @@
     function deleteFeedItem(id) {
         if (confirm("Futtermittel wirklich aus der Datenbank löschen?")) {
             feedItems = feedItems.filter(f => f.id !== id);
-            // Auch aus allen Rationen entfernen
-            cattleGroups.forEach(g => {
-                if (g.ration && g.ration[id]) delete g.ration[id];
+            Object.keys(categoryRations).forEach(catKey => {
+                if (categoryRations[catKey] && categoryRations[catKey][id]) delete categoryRations[catKey][id];
             });
-            saveCattleData();
+            saveCattleModuleData();
             renderFeedItemsTable();
             renderFeedingCalculator();
         }
@@ -1453,13 +1556,15 @@
 
     // Modal Ration anpassen
     function openRationEditModal() {
-        let selGroupId = document.getElementById("calcGroupSelect").value;
-        let group = cattleGroups.find(g => g.id === selGroupId);
-        if (!group) return alert("Bitte zuerst eine Tiergruppe auswählen.");
+        let selCategory = document.getElementById("calcCategorySelect").value;
+        if (selCategory === "ALL") return alert("Bitte wähle eine spezifische Kategorie aus, um die Ration anzupassen.");
 
-        document.getElementById("rationModalTitle").innerText = `Ration anpassen: ${group.name}`;
+        let cat = CATTLE_CATEGORIES[selCategory];
+        if (!cat) return;
 
-        let currentRation = group.ration || {};
+        document.getElementById("rationModalTitle").innerText = `Ration anpassen: ${cat.name}`;
+
+        let currentRation = categoryRations[selCategory] || {};
         let html = "";
 
         if (feedItems.length === 0) {
@@ -1489,9 +1594,8 @@
     }
 
     function saveRationModal() {
-        let selGroupId = document.getElementById("calcGroupSelect").value;
-        let group = cattleGroups.find(g => g.id === selGroupId);
-        if (!group) return;
+        let selCategory = document.getElementById("calcCategorySelect").value;
+        if (selCategory === "ALL") return;
 
         let newRation = {};
         feedItems.forEach(f => {
@@ -1502,8 +1606,8 @@
             }
         });
 
-        group.ration = newRation;
-        saveCattleData();
+        categoryRations[selCategory] = newRation;
+        saveCattleModuleData();
         closeRationModal();
         renderFeedingCalculator();
     }
