@@ -1533,8 +1533,8 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
-                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
-                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn" onclick="openCattleDossier('${c.id}')">👁️ Akte</button>
+                    <button class="action-btn" onclick="editCattle('${c.id}')">✏️ Edit</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
@@ -1785,8 +1785,8 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
-                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
-                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn" onclick="openCattleDossier('${c.id}')">👁️ Akte</button>
+                    <button class="action-btn" onclick="editCattle('${c.id}')">✏️ Edit</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
@@ -1805,8 +1805,8 @@
         currentDetailCatKey = null;
     }
 
-    // Modal Tierakte (Ansehen)
-    function openCattleAkteModal(id) {
+    // Modal Tierakte / Dossier (Ansehen)
+    function openCattleDossier(id) {
         let c = supabaseCattleList.find(x => x.id === id);
         if (!c) return;
 
@@ -1818,26 +1818,86 @@
         else if (ageM < 12) catName = 'Jungvieh (6–12 Mo.)';
         else if (ageM < 24) catName = 'Färsen (12–24 Mo.)';
 
-        document.getElementById("akte-ohrmarke-title").innerText = c.ohrmarke || "Unbekannt";
-        document.getElementById("akte-ohrmarke").innerText = c.ohrmarke || "Keine Ohrmarke";
-        document.getElementById("akte-geburtsdatum").innerText = formatGermanDate(c.geburtsdatum) || "-";
-        document.getElementById("akte-rasse").innerText = c.rasse || "-";
-        document.getElementById("akte-geschlecht").innerText = c.geschlecht || "-";
-        document.getElementById("akte-vorbesitzer").innerText = c.vorbesitzer || c.geburtsbetrieb || "Eigenbestand / Geburtsbetrieb";
-        document.getElementById("akte-zukaufsdatum").innerText = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : "Eigenbestand";
-        document.getElementById("akte-alter").innerText = `${ageM} Mo. (${catName})`;
-        document.getElementById("akte-status").innerText = c.verkaufsdatum ? `Verkauft (${formatGermanDate(c.verkaufsdatum)})` : "Aktiv im Bestand";
+        let titleEl = document.getElementById("akte-ohrmarke-title");
+        if (titleEl) titleEl.innerText = c.ohrmarke || "Unbekannt";
 
-        document.getElementById("cattleAkteModal").style.display = "flex";
+        let earEl = document.getElementById("akte-ohrmarke");
+        if (earEl) earEl.innerText = c.ohrmarke || "Keine Ohrmarke";
+
+        let birthEl = document.getElementById("akte-geburtsdatum");
+        if (birthEl) birthEl.innerText = formatGermanDate(c.geburtsdatum) || "-";
+
+        let breedEl = document.getElementById("akte-rasse");
+        if (breedEl) breedEl.innerText = c.rasse || "-";
+
+        let genderEl = document.getElementById("akte-geschlecht");
+        if (genderEl) genderEl.innerText = c.geschlecht || "-";
+
+        let ownerEl = document.getElementById("akte-vorbesitzer");
+        if (ownerEl) ownerEl.innerText = c.vorbesitzer || c.geburtsbetrieb || "Eigenbestand / Geburtsbetrieb";
+
+        let zukaufEl = document.getElementById("akte-zukaufsdatum");
+        if (zukaufEl) zukaufEl.innerText = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : "Eigenbestand";
+
+        let alterEl = document.getElementById("akte-alter");
+        if (alterEl) alterEl.innerText = `${ageM} Mo. (${catName})`;
+
+        let statusEl = document.getElementById("akte-status");
+        if (statusEl) statusEl.innerText = c.verkaufsdatum ? `Verkauft (${formatGermanDate(c.verkaufsdatum)})` : "Aktiv im Bestand";
+
+        let modal = document.getElementById("cattleAkteModal");
+        if (modal) modal.style.display = "flex";
+    }
+
+    function openCattleAkteModal(id) {
+        openCattleDossier(id);
     }
 
     function closeCattleAkteModal() {
-        document.getElementById("cattleAkteModal").style.display = "none";
+        let modal = document.getElementById("cattleAkteModal");
+        if (modal) modal.style.display = "none";
     }
 
     // Modal: Rind in Supabase bearbeiten
-    function openEditCattleModal(id) {
+    function editCattle(id) {
         let c = supabaseCattleList.find(x => x.id === id);
+        if (!c) return;
+
+        editingCattleId = id;
+        let o = document.getElementById("edit-ohrmarke");
+        if (o) o.value = c.ohrmarke || "";
+
+        let g = document.getElementById("edit-geburtsdatum");
+        if (g) g.value = formatGermanDate(c.geburtsdatum) || c.geburtsdatum || "";
+
+        let s = document.getElementById("edit-geschlecht");
+        if (s) s.value = c.geschlecht || "weiblich";
+
+        let r = document.getElementById("edit-rasse");
+        if (r) r.value = c.rasse || "";
+
+        let v = document.getElementById("edit-vorbesitzer");
+        if (v) v.value = c.vorbesitzer || "";
+
+        let z = document.getElementById("edit-zukaufsdatum");
+        if (z) z.value = formatGermanDate(c.zukaufsdatum) || c.zukaufsdatum || "";
+
+        let vk = document.getElementById("edit-verkaufsdatum");
+        if (vk) vk.value = (c.verkaufsdatum === "0" ? "" : formatGermanDate(c.verkaufsdatum)) || "";
+
+        let ep = document.getElementById("edit-einkaufspreis");
+        if (ep) ep.value = c.einkaufspreis || 0;
+
+        let vp = document.getElementById("edit-verkaufspreis");
+        if (vp) vp.value = c.verkaufspreis || 0;
+
+        let modal = document.getElementById("editCattleModal");
+        if (modal) modal.style.display = "flex";
+    }
+
+    function openEditCattleModal(id) {
+        editCattle(id);
+    }
         if (!c) return;
 
         editingCattleId = id;
