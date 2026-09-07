@@ -356,9 +356,11 @@
                     <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 Gesamtbestand – Master-Rinderliste (Supabase)</h3>
                     <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Umfassende Gesamtübersicht aller aktuell erfassten Rinder im Bestand.</p>
                 </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; flex-grow:1; max-width: 650px; justify-content:flex-end;">
-                    <input type="text" id="mainCattleSearch" placeholder="🔍 Suche nach Ohrmarke, Geburtsdatum, Rasse..." oninput="renderAllCattleTable()" onkeyup="renderAllCattleTable()" style="margin:0; flex:1; min-width:220px;">
-                    <select id="mainCattleSort" onchange="renderAllCattleTable()" style="margin:0; width:240px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; flex-grow:1; max-width: 750px; justify-content:flex-end; align-items:center;">
+                    <input type="file" id="hitCsvFileInput" accept=".csv, .txt" style="display:none;" onchange="handleHitCsvUpload(event)">
+                    <button onclick="document.getElementById('hitCsvFileInput').click()" style="width:auto; margin:0; background:#0288d1; padding:8px 14px; font-size:13px; font-weight:bold;">📥 HIT-Bestand importieren (CSV)</button>
+                    <input type="text" id="mainCattleSearch" placeholder="🔍 Suche nach Ohrmarke, Geburtsdatum, Rasse..." oninput="renderAllCattleTable()" onkeyup="renderAllCattleTable()" style="margin:0; flex:1; min-width:200px;">
+                    <select id="mainCattleSort" onchange="renderAllCattleTable()" style="margin:0; width:220px;">
                         <option value="geb_desc">Geburtsdatum (Jüngste zuerst)</option>
                         <option value="geb_asc">Geburtsdatum (Älteste zuerst)</option>
                         <option value="zukauf_desc">Zukaufsdatum (Neueste zuerst)</option>
@@ -567,6 +569,40 @@
             </table>
         </div>
         <button onclick="closeCattleDetailModal()" style="margin-top:20px; background:#555;">Schließen</button>
+    </div>
+</div>
+
+<!-- MODAL 2A: TIERAKTE (DETAILANSICHT) -->
+<div id="cattleAkteModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <h2>📜 Tier-Akte: <span id="akte-ohrmarke-title" style="color:#4caf50;"></span></h2>
+            <button class="close-btn" onclick="closeCattleAkteModal()">×</button>
+        </div>
+        <div style="background:#2a2a2a; padding:18px; border-radius:8px; margin-bottom:18px; border:1px solid #333;">
+            <div class="grid-2" style="gap: 15px; line-height: 1.8;">
+                <div><span style="color:#aaa; font-size:12px; display:block;">OHRMARKE</span><strong id="akte-ohrmarke" style="color:#4caf50; font-size:16px;"></strong></div>
+                <div><span style="color:#aaa; font-size:12px; display:block;">GEBURTSDATUM</span><strong id="akte-geburtsdatum"></strong></div>
+                <div><span style="color:#aaa; font-size:12px; display:block;">RASSE</span><strong id="akte-rasse"></strong></div>
+                <div><span style="color:#aaa; font-size:12px; display:block;">GESCHLECHT</span><strong id="akte-geschlecht"></strong></div>
+                <div><span style="color:#aaa; font-size:12px; display:block;">VORBESITZER / GEBURTSBETRIEB</span><strong id="akte-vorbesitzer" style="color:#ffb74d;"></strong></div>
+                <div><span style="color:#aaa; font-size:12px; display:block;">ZUKAUFSDATUM</span><strong id="akte-zukaufsdatum"></strong></div>
+                <div><span style="color:#aaa; font-size:12px; display:block;">ALTER / KATEGORIE</span><strong id="akte-alter"></strong></div>
+                <div><span style="color:#aaa; font-size:12px; display:block;">BESTANDSSTATUS</span><strong id="akte-status"></strong></div>
+            </div>
+        </div>
+
+        <div style="background:#222; padding:15px; border-radius:8px; border:1px solid #333;">
+            <h3 style="margin:0 0 10px 0; color:#ff9800; font-size:15px;">📝 Historie / Notizen</h3>
+            <div id="akte-historie-placeholder" style="color:#aaa; font-size:13px; min-height:80px; background:#1a1a1a; padding:12px; border-radius:6px; border:1px dashed #444; line-height:1.5;">
+                📌 <em>Keine Notizen oder Historien-Einträge vorhanden.</em><br>
+                <span style="font-size:11px; color:#777;">(Platzhalter für zukünftige Tierarzt-Behandlungen, Impfungen, Belegungen/Kalbungen & Umstallungen)</span>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+            <button onclick="closeCattleAkteModal()" style="background:#555; width:auto; padding:8px 22px;">Schließen</button>
+        </div>
     </div>
 </div>
 
@@ -1497,7 +1533,8 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
-                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
+                    <button class="action-btn" onclick="editCattle('${c.id}')">✏️ Bearbeiten</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
@@ -1748,7 +1785,8 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
-                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
+                    <button class="action-btn" onclick="editCattle('${c.id}')">✏️ Bearbeiten</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
@@ -1767,18 +1805,70 @@
         currentDetailCatKey = null;
     }
 
+    // Modal Tierakte (Ansehen)
+    function openCattleAkteModal(id) {
+        let c = supabaseCattleList.find(x => x.id === id);
+        if (!c) return;
+
+        let bDate = parseBirthDate(c.geburtsdatum);
+        let ageM = calculateAgeInMonths(bDate);
+
+        let catName = 'Kühe / Altrinder (> 24 Mo.)';
+        if (ageM < 6) catName = 'Kälber (0–6 Mo.)';
+        else if (ageM < 12) catName = 'Jungvieh (6–12 Mo.)';
+        else if (ageM < 24) catName = 'Färsen (12–24 Mo.)';
+
+        document.getElementById("akte-ohrmarke-title").innerText = c.ohrmarke || "Unbekannt";
+        document.getElementById("akte-ohrmarke").innerText = c.ohrmarke || "Keine Ohrmarke";
+        document.getElementById("akte-geburtsdatum").innerText = formatGermanDate(c.geburtsdatum) || "-";
+        document.getElementById("akte-rasse").innerText = c.rasse || "-";
+        document.getElementById("akte-geschlecht").innerText = c.geschlecht || "-";
+        document.getElementById("akte-vorbesitzer").innerText = c.vorbesitzer || c.geburtsbetrieb || "Eigenbestand / Geburtsbetrieb";
+        document.getElementById("akte-zukaufsdatum").innerText = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : "Eigenbestand";
+        document.getElementById("akte-alter").innerText = `${ageM} Mo. (${catName})`;
+        document.getElementById("akte-status").innerText = c.verkaufsdatum ? `Verkauft (${formatGermanDate(c.verkaufsdatum)})` : "Aktiv im Bestand";
+
+        document.getElementById("cattleAkteModal").style.display = "flex";
+    }
+
+    function closeCattleAkteModal() {
+        document.getElementById("cattleAkteModal").style.display = "none";
+    }
+
+    function formatDateForSupabase(dateStr) {
+        if (!dateStr) return null;
+        let str = String(dateStr).trim();
+        if (!str || str === '0' || str === 'null') return null;
+
+        if (str.includes('.')) {
+            let parts = str.split('.');
+            if (parts.length === 3) {
+                let day = parts[0].padStart(2, '0');
+                let month = parts[1].padStart(2, '0');
+                let year = parts[2];
+                if (year.length === 2) year = '20' + year;
+                return `${year}-${month}-${day}`;
+            }
+        }
+        return str;
+    }
+
     // Modal: Rind in Supabase bearbeiten
+    function editCattle(id) {
+        openEditCattleModal(id);
+    }
+
     function openEditCattleModal(id) {
         let c = supabaseCattleList.find(x => x.id === id);
         if (!c) return;
 
         editingCattleId = id;
         document.getElementById("edit-ohrmarke").value = c.ohrmarke || "";
-        document.getElementById("edit-geburtsdatum").value = formatGermanDate(c.geburtsdatum) || "";
+        document.getElementById("edit-geburtsdatum").value = formatGermanDate(c.geburtsdatum) || c.geburtsdatum || "";
         document.getElementById("edit-geschlecht").value = c.geschlecht || "weiblich";
         document.getElementById("edit-rasse").value = c.rasse || "";
         document.getElementById("edit-vorbesitzer").value = c.vorbesitzer || "";
-        document.getElementById("edit-zukaufsdatum").value = formatGermanDate(c.zukaufsdatum) || "";
+        document.getElementById("edit-zukaufsdatum").value = formatGermanDate(c.zukaufsdatum) || c.zukaufsdatum || "";
         document.getElementById("edit-verkaufsdatum").value = (c.verkaufsdatum === "0" ? "" : formatGermanDate(c.verkaufsdatum)) || "";
         document.getElementById("edit-einkaufspreis").value = c.einkaufspreis || 0;
         document.getElementById("edit-verkaufspreis").value = c.verkaufspreis || 0;
@@ -1796,12 +1886,12 @@
 
         let payload = {
             ohrmarke: document.getElementById("edit-ohrmarke").value.trim(),
-            geburtsdatum: document.getElementById("edit-geburtsdatum").value.trim() || null,
+            geburtsdatum: formatDateForSupabase(document.getElementById("edit-geburtsdatum").value),
             geschlecht: document.getElementById("edit-geschlecht").value.trim(),
             rasse: document.getElementById("edit-rasse").value.trim(),
             vorbesitzer: document.getElementById("edit-vorbesitzer").value.trim(),
-            zukaufsdatum: document.getElementById("edit-zukaufsdatum").value.trim() || null,
-            verkaufsdatum: document.getElementById("edit-verkaufsdatum").value.trim() || null,
+            zukaufsdatum: formatDateForSupabase(document.getElementById("edit-zukaufsdatum").value),
+            verkaufsdatum: formatDateForSupabase(document.getElementById("edit-verkaufsdatum").value),
             einkaufspreis: parseFloat(document.getElementById("edit-einkaufspreis").value) || 0,
             verkaufspreis: parseFloat(document.getElementById("edit-verkaufspreis").value) || 0
         };
@@ -1812,6 +1902,142 @@
                 headers: headers,
                 body: JSON.stringify(payload)
             });
+
+            if (res.ok) {
+                closeEditCattleModal();
+                closeCattleDetailModal();
+                await loadCattleFromSupabase();
+                alert("Tierdaten erfolgreich in Supabase aktualisiert!");
+            } else {
+                let errText = await res.text();
+                alert("Fehler beim Speichern der Tierdaten: " + errText);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Verbindungsfehler beim Speichern.");
+        }
+    }
+
+    // HIT CSV Import Handler
+    async function handleHitCsvUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = async function(e) {
+            try {
+                const text = e.target.result;
+                if (!text || text.trim().length === 0) {
+                    alert("Die ausgewählte CSV-Datei ist leer.");
+                    return;
+                }
+
+                const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                if (lines.length < 2) {
+                    alert("Die CSV-Datei enthält keine Datenzeilen.");
+                    return;
+                }
+
+                let delimiter = ";";
+                if (lines[0].includes(";")) delimiter = ";";
+                else if (lines[0].includes(",")) delimiter = ",";
+                else if (lines[0].includes("\t")) delimiter = "\t";
+
+                let headersList = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+
+                let colIndexEarTag = -1;
+                let colIndexBirthDate = -1;
+                let colIndexBreed = -1;
+                let colIndexGender = -1;
+                let colIndexOwner = -1;
+                let colIndexZukauf = -1;
+
+                headersList.forEach((h, idx) => {
+                    if (h.includes("ohrmarke") || h.includes("lom") || h.includes("tier") || h.includes("ident")) colIndexEarTag = idx;
+                    if (h.includes("geburtsdatum") || h.includes("gebdatum") || h.includes("geb_datum") || h.includes("geb.datum") || h.includes("geb-datum") || h.includes("geb")) {
+                        if (colIndexBirthDate === -1) colIndexBirthDate = idx;
+                    }
+                    if (h.includes("rasse") || h.includes("breed")) colIndexBreed = idx;
+                    if (h.includes("geschlecht") || h.includes("sex") || h === "g") colIndexGender = idx;
+                    if (h.includes("vorbesitzer") || h.includes("geburtsbetrieb") || h.includes("herkunftsbetrieb") || h.includes("züchter") || h.includes("zuechter") || h.includes("halter") || h.includes("betrieb")) {
+                        if (colIndexOwner === -1) colIndexOwner = idx;
+                    }
+                    if (h.includes("zukauf") || h.includes("zugang")) colIndexZukauf = idx;
+                });
+
+                if (colIndexEarTag === -1) colIndexEarTag = 0;
+                if (colIndexBirthDate === -1 && headersList.length > 1) colIndexBirthDate = 1;
+                if (colIndexBreed === -1 && headersList.length > 2) colIndexBreed = 2;
+
+                const newCattleList = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+                    if (cols.length === 0 || !cols[colIndexEarTag]) continue;
+
+                    let earTag = cols[colIndexEarTag];
+                    if (!earTag || earTag.length < 3) continue;
+
+                    let birthDateRaw = colIndexBirthDate >= 0 && cols[colIndexBirthDate] ? cols[colIndexBirthDate] : null;
+                    let breedRaw = colIndexBreed >= 0 && cols[colIndexBreed] ? cols[colIndexBreed] : "Fleckvieh";
+                    let genderRaw = colIndexGender >= 0 && cols[colIndexGender] ? cols[colIndexGender] : "weiblich";
+                    let ownerRaw = colIndexOwner >= 0 && cols[colIndexOwner] ? cols[colIndexOwner] : "HIT-Import";
+                    let zukaufRaw = colIndexZukauf >= 0 && cols[colIndexZukauf] ? cols[colIndexZukauf] : null;
+
+                    let gender = "weiblich";
+                    if (genderRaw) {
+                        let gLow = genderRaw.toLowerCase();
+                        if (gLow.startsWith("m") || gLow === "1" || gLow.includes("männlich")) gender = "männlich";
+                        else if (gLow.startsWith("w") || gLow === "2" || gLow.includes("weiblich")) gender = "weiblich";
+                    }
+
+                    newCattleList.push({
+                        ohrmarke: earTag,
+                        geburtsdatum: formatDateForSupabase(birthDateRaw),
+                        rasse: breedRaw,
+                        geschlecht: gender,
+                        vorbesitzer: ownerRaw,
+                        zukaufsdatum: formatDateForSupabase(zukaufRaw)
+                    });
+                }
+
+                if (newCattleList.length === 0) {
+                    alert("Keine gültigen Rinder-Datensätze in der CSV-Datei gefunden.");
+                    return;
+                }
+
+                let badgeEl = document.getElementById("supabase-status-badge");
+                if (badgeEl) badgeEl.innerText = `⏳ Importiere ${newCattleList.length} Rinder per Bulk-Insert...`;
+
+                let res = await fetch(SUPABASE_URL + "/rest/v1/rinder", {
+                    method: "POST",
+                    headers: {
+                        ...headers,
+                        "Prefer": "return=representation"
+                    },
+                    body: JSON.stringify(newCattleList)
+                });
+
+                if (res.ok || res.status === 201) {
+                    alert(`✅ HIT-Bestand erfolgreich importiert!\n\n${newCattleList.length} Rinder wurden zu Supabase hinzugefügt.`);
+                    await loadCattleFromSupabase();
+                } else {
+                    let errText = await res.text();
+                    alert(`Fehler beim Bulk-Insert nach Supabase: ${errText}`);
+                    if (badgeEl) badgeEl.innerText = "❌ Import-Fehler!";
+                }
+
+            } catch (err) {
+                console.error("Fehler beim CSV Import:", err);
+                alert("Fehler beim Verarbeiten der CSV-Datei: " + err.message);
+            } finally {
+                event.target.value = "";
+            }
+        };
+
+        reader.readAsText(file, 'ISO-8859-1');
+    }
 
             if (res.ok) {
                 closeEditCattleModal();
