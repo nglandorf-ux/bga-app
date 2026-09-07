@@ -1533,6 +1533,7 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
+                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
                     <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
@@ -1784,6 +1785,7 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
+                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
                     <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
@@ -1801,6 +1803,59 @@
     function closeCattleDetailModal() {
         document.getElementById("cattleDetailModal").style.display = "none";
         currentDetailCatKey = null;
+    }
+
+    // Modal Tierakte (Ansehen)
+    function openCattleAkteModal(id) {
+        let c = supabaseCattleList.find(x => x.id === id);
+        if (!c) return;
+
+        let bDate = parseBirthDate(c.geburtsdatum);
+        let ageM = calculateAgeInMonths(bDate);
+
+        let catName = 'Kühe / Altrinder (> 24 Mo.)';
+        if (ageM < 6) catName = 'Kälber (0–6 Mo.)';
+        else if (ageM < 12) catName = 'Jungvieh (6–12 Mo.)';
+        else if (ageM < 24) catName = 'Färsen (12–24 Mo.)';
+
+        let titleEl = document.getElementById("akte-ohrmarke-title");
+        if (titleEl) titleEl.innerText = c.ohrmarke || "Unbekannt";
+
+        let earEl = document.getElementById("akte-ohrmarke");
+        if (earEl) earEl.innerText = c.ohrmarke || "Keine Ohrmarke";
+
+        let birthEl = document.getElementById("akte-geburtsdatum");
+        if (birthEl) birthEl.innerText = formatGermanDate(c.geburtsdatum) || "-";
+
+        let breedEl = document.getElementById("akte-rasse");
+        if (breedEl) breedEl.innerText = c.rasse || "-";
+
+        let genderEl = document.getElementById("akte-geschlecht");
+        if (genderEl) genderEl.innerText = c.geschlecht || "-";
+
+        let ownerEl = document.getElementById("akte-vorbesitzer");
+        if (ownerEl) ownerEl.innerText = c.vorbesitzer || c.geburtsbetrieb || "Eigenbestand / Geburtsbetrieb";
+
+        let zukaufEl = document.getElementById("akte-zukaufsdatum");
+        if (zukaufEl) zukaufEl.innerText = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : "Eigenbestand";
+
+        let alterEl = document.getElementById("akte-alter");
+        if (alterEl) alterEl.innerText = `${ageM} Mo. (${catName})`;
+
+        let statusEl = document.getElementById("akte-status");
+        if (statusEl) statusEl.innerText = c.verkaufsdatum ? `Verkauft (${formatGermanDate(c.verkaufsdatum)})` : "Aktiv im Bestand";
+
+        let modal = document.getElementById("cattleAkteModal");
+        if (modal) modal.style.display = "flex";
+    }
+
+    function openCattleDossier(id) {
+        openCattleAkteModal(id);
+    }
+
+    function closeCattleAkteModal() {
+        let modal = document.getElementById("cattleAkteModal");
+        if (modal) modal.style.display = "none";
     }
 
     // Modal: Rind in Supabase bearbeiten
