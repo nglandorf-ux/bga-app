@@ -90,7 +90,7 @@
         .badge-k { background: #0d47a1; color: #90caf9; }
         .action-btn { background: #444; border: none; padding: 5px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; width: auto; margin: 0 2px; }
         .action-btn:hover { background: #666; }
-        .action-btn.danger { background: #b71c1c; }
+        .action-btn.danger { background: #b71c1c; color: white; }
         .action-btn.danger:hover { background: #d32f2f; }
     </style>
 </head>
@@ -122,7 +122,7 @@
 
         <div class="box">
             <h3>🧪 Nährstoff-Schnellwerte</h3>
-            <p style="font-size: 12px; color: #aaa; margin-top:0;">Gehalt pro m³ Substrat/Gülle:</p>
+            <p style="font-size: 12px; color: #aaa; margin-top:0;">Gehalt pro m³ Substrat/Gülle (Supabase-Sync):</p>
             <div style="font-size: 13px; line-height: 1.8;">
                 <div><span class="nutrient-badge badge-n">N</span> Stickstoff: <strong id="quick-n">4.5</strong> kg/m³</div>
                 <div><span class="nutrient-badge badge-p">P₂O₅</span> Phosphat: <strong id="quick-p">2.0</strong> kg/m³</div>
@@ -349,7 +349,43 @@
             </div>
         </div>
 
-        <!-- Fütterungsrechner & Jahresbedarf -->
+        <!-- BEREICH 1: Neue Master-Liste (Gesamtbestand) mit Live-Suche & Sortierung -->
+        <div class="table-container">
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 Gesamtbestand – Master-Rinderliste (Supabase)</h3>
+                    <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Umfassende Gesamtübersicht aller aktuell erfassten Rinder im Bestand.</p>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; flex-grow:1; max-width: 650px; justify-content:flex-end;">
+                    <input type="text" id="mainCattleSearch" placeholder="🔍 Suche nach Ohrmarke, Geburtsdatum, Rasse..." oninput="renderAllCattleTable()" onkeyup="renderAllCattleTable()" style="margin:0; flex:1; min-width:220px;">
+                    <select id="mainCattleSort" onchange="renderAllCattleTable()" style="margin:0; width:240px;">
+                        <option value="geb_desc">Geburtsdatum (Jüngste zuerst)</option>
+                        <option value="geb_asc">Geburtsdatum (Älteste zuerst)</option>
+                        <option value="zukauf_desc">Zukaufsdatum (Neueste zuerst)</option>
+                        <option value="ohrmarke_asc">Ohrmarke (A - Z)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="max-height: 380px; overflow-y: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Ohrmarke</th>
+                            <th>Geburtsdatum</th>
+                            <th>Alter / Kategorie</th>
+                            <th>Rasse</th>
+                            <th>Zukaufsdatum</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mainCattleTableBody">
+                        <tr><td colspan="6" style="text-align:center; color:#888;">Lade Rinder aus Supabase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BEREICH 2: Fütterungsrechner & Jahresbedarf -->
         <div class="table-container">
             <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                 <div>
@@ -381,7 +417,7 @@
                     <div class="val" id="calc-kpi-year-fm" style="color:#90caf9;">0 t FM/Jahr</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="lbl">Geschätzte Futterkosten / Jahr</div>
+                    <div class="lbl">Futterkosten / Jahr</div>
                     <div class="val" id="calc-kpi-cost" style="color:#ffe0b2;">0 €/Jahr</div>
                 </div>
             </div>
@@ -416,10 +452,10 @@
 <div id="view-settings" class="view-container">
     <div class="full-view-content" style="max-width: 800px; margin: 0 auto;">
         <h2>⚙️ Nährstoff-Einstellungen (Gärsubstrat / Gülle)</h2>
-        <p style="color: #aaa; margin-bottom: 25px;">Trage hier die Laborwerte bzw. Inhaltsstoffe pro Kubikmeter (m³) deines Organischen Düngers ein. Die Werte werden automatisch für alle Auswertungen und Feld-Bilanzen verwendet.</p>
+        <p style="color: #aaa; margin-bottom: 25px;">Trage hier die Laborwerte bzw. Inhaltsstoffe pro Kubikmeter (m³) deines Organischen Düngers ein. Die Werte werden zentral in Supabase gespeichert und sind auf allen Geräten synchron.</p>
 
         <div class="box" style="padding: 25px;">
-            <h3>🧪 Nährstoffgehalte pro m³ Substrat</h3>
+            <h3>🧪 Nährstoffgehalte pro m³ Substrat (Zentral in Supabase)</h3>
 
             <div class="form-group" style="margin-top: 15px;">
                 <label>Stickstoff (N) in kg/m³</label>
@@ -436,7 +472,7 @@
                 <input type="number" step="0.1" id="cfg-k" placeholder="z.B. 3.5">
             </div>
 
-            <button onclick="saveNutrientSettings()" style="margin-top: 25px; padding: 14px; font-size: 16px;">💾 Nährstoffwerte speichern</button>
+            <button onclick="saveNutrientSettings()" style="margin-top: 25px; padding: 14px; font-size: 16px;">💾 Nährstoffwerte zentral speichern</button>
 
             <div id="settings-status" style="margin-top: 15px; font-weight: bold; text-align: center; height: 24px;"></div>
         </div>
@@ -500,26 +536,69 @@
 
 <!-- MODAL 2: TIERDETAILS / INDIVIDUELLE RINDER LISTE -->
 <div id="cattleDetailModal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 750px;">
+    <div class="modal-content" style="max-width: 850px;">
         <div class="modal-header">
             <h2 id="cattleDetailModalTitle">Rinder in Kategorie</h2>
             <button class="close-btn" onclick="closeCattleDetailModal()">×</button>
         </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="modalCattleSearch" placeholder="🔍 Suche (Ohrmarke, Rasse, Datum...)" oninput="filterAndRenderCattleModalTable()" onkeyup="filterAndRenderCattleModalTable()" style="margin:0; flex-grow:1;">
+            <select id="modalCattleSort" onchange="filterAndRenderCattleModalTable()" style="margin:0; width:220px;">
+                <option value="geb_desc">Geburtsdatum (Jüngste zuerst)</option>
+                <option value="geb_asc">Geburtsdatum (Älteste zuerst)</option>
+                <option value="ohrmarke_asc">Ohrmarke (A - Z)</option>
+            </select>
+        </div>
+
         <div style="max-height: 400px; overflow-y: auto;">
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>Ohrmarke</th>
                         <th>Geburtsdatum</th>
-                        <th>Alter (Monate)</th>
+                        <th>Alter</th>
                         <th>Rasse</th>
-                        <th>Zukaufsdatum</th>
+                        <th>Status / Zukauf</th>
+                        <th>Aktionen</th>
                     </tr>
                 </thead>
                 <tbody id="cattleDetailModalTableBody"></tbody>
             </table>
         </div>
         <button onclick="closeCattleDetailModal()" style="margin-top:20px; background:#555;">Schließen</button>
+    </div>
+</div>
+
+<!-- MODAL 2B: TIERE VOLLSTÄNDIG BEARBEITEN (SUPABASE) -->
+<div id="editCattleModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2>Tierakte in Supabase bearbeiten</h2>
+            <button class="close-btn" onclick="closeEditCattleModal()">×</button>
+        </div>
+        <div class="grid-2" style="gap: 15px;">
+            <div class="form-group"><label>Ohrmarke</label><input type="text" id="edit-ohrmarke"></div>
+            <div class="form-group"><label>Geburtsdatum (TT.MM.JJJJ)</label><input type="text" id="edit-geburtsdatum"></div>
+        </div>
+        <div class="grid-2" style="gap: 15px;">
+            <div class="form-group"><label>Geschlecht</label><input type="text" id="edit-geschlecht"></div>
+            <div class="form-group"><label>Rasse</label><input type="text" id="edit-rasse"></div>
+        </div>
+        <div class="grid-2" style="gap: 15px;">
+            <div class="form-group"><label>Vorbesitzer / Züchter</label><input type="text" id="edit-vorbesitzer"></div>
+            <div class="form-group"><label>Zukaufsdatum (TT.MM.JJJJ)</label><input type="text" id="edit-zukaufsdatum"></div>
+        </div>
+        <div class="grid-2" style="gap: 15px;">
+            <div class="form-group"><label>Verkaufsdatum (TT.MM.JJJJ, leer=Bestand)</label><input type="text" id="edit-verkaufsdatum"></div>
+            <div class="form-group"><label>Einkaufspreis (€)</label><input type="number" id="edit-einkaufspreis"></div>
+        </div>
+        <div class="form-group"><label>Verkaufspreis (€)</label><input type="number" id="edit-verkaufspreis"></div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button onclick="saveCattleEdit()" style="flex-grow:1; background:#4caf50;">💾 Änderungen in Supabase speichern</button>
+            <button onclick="closeEditCattleModal()" style="background:#555; width:auto;">Abbrechen</button>
+        </div>
     </div>
 </div>
 
@@ -586,7 +665,7 @@
     let globalFieldsData = [];
     let globalTripsData = [];
 
-    // Nährstoff-Gehalte (Standard-Fallbacks)
+    // Nährstoff-Gehalte (Zentral in Supabase & LocalStorage Backup)
     let nutrientConfig = {
         n: parseFloat(localStorage.getItem('naehrstoff_N')) || 4.5,
         p: parseFloat(localStorage.getItem('naehrstoff_P')) || 2.0,
@@ -613,12 +692,32 @@
         } else if (tabName === 'settings') {
             document.getElementById('btn-tab-settings').classList.add('active');
             document.getElementById('view-settings').classList.add('active');
-            loadNutrientSettings();
+            loadNutrientSettingsFromSupabase();
         }
     }
 
-    // Nährstoff-Einstellungen laden & speichern
-    function loadNutrientSettings() {
+    // Nährstoff-Einstellungen aus Supabase laden & synchronisieren
+    async function loadNutrientSettingsFromSupabase() {
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/hof_einstellungen?select=*&limit=1", { headers });
+            if (res.ok) {
+                let data = await res.json();
+                if (data.length > 0 && data[0].naehrstoff_n !== undefined) {
+                    nutrientConfig.n = parseFloat(data[0].naehrstoff_n) || 4.5;
+                    nutrientConfig.p = parseFloat(data[0].naehrstoff_p) || 2.0;
+                    nutrientConfig.k = parseFloat(data[0].naehrstoff_k) || 3.5;
+                    localStorage.setItem('naehrstoff_N', nutrientConfig.n);
+                    localStorage.setItem('naehrstoff_P', nutrientConfig.p);
+                    localStorage.setItem('naehrstoff_K', nutrientConfig.k);
+                }
+            }
+        } catch (e) {
+            console.log("Nutrient Supabase Load Fallback:", e);
+        }
+        loadNutrientSettingsUI();
+    }
+
+    function loadNutrientSettingsUI() {
         document.getElementById('cfg-n').value = nutrientConfig.n;
         document.getElementById('cfg-p').value = nutrientConfig.p;
         document.getElementById('cfg-k').value = nutrientConfig.k;
@@ -628,7 +727,7 @@
         document.getElementById('quick-k').innerText = nutrientConfig.k.toFixed(1);
     }
 
-    function saveNutrientSettings() {
+    async function saveNutrientSettings() {
         let nVal = parseFloat(document.getElementById('cfg-n').value) || 0;
         let pVal = parseFloat(document.getElementById('cfg-p').value) || 0;
         let kVal = parseFloat(document.getElementById('cfg-k').value) || 0;
@@ -639,12 +738,31 @@
         localStorage.setItem('naehrstoff_P', pVal);
         localStorage.setItem('naehrstoff_K', kVal);
 
-        loadNutrientSettings();
+        loadNutrientSettingsUI();
 
         let statusEl = document.getElementById('settings-status');
-        statusEl.innerText = "✅ Nährstoffwerte erfolgreich gespeichert!";
-        statusEl.style.color = "#4caf50";
-        setTimeout(() => { statusEl.innerText = ""; }, 3000);
+        statusEl.innerText = "⏳ Speichere in Supabase...";
+        statusEl.style.color = "orange";
+
+        try {
+            let payload = { id: 1, naehrstoff_n: nVal, naehrstoff_p: pVal, naehrstoff_k: kVal };
+            let res = await fetch(SUPABASE_URL + "/rest/v1/hof_einstellungen", {
+                method: "POST",
+                headers: { ...headers, "Prefer": "resolution=merge-duplicates" },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok || res.status === 201 || res.status === 204) {
+                statusEl.innerText = "✅ Nährstoffwerte zentral in Supabase & lokal gespeichert!";
+                statusEl.style.color = "#4caf50";
+            } else {
+                statusEl.innerText = "✅ Nährstoffwerte lokal gespeichert!";
+                statusEl.style.color = "#4caf50";
+            }
+        } catch (e) {
+            statusEl.innerText = "✅ Nährstoffwerte lokal gespeichert!";
+            statusEl.style.color = "#4caf50";
+        }
     }
 
     // Leaflet Karte Initialisierung
@@ -1153,7 +1271,6 @@
         { id: 'f6', name: 'Futterstroh', tm: 86, me: 6.5, xp: 40, preis: 80 }
     ];
 
-    // Standard Altersgruppen-Definitionen für weibliche Rinder
     const CATTLE_CATEGORIES = {
         'cat_kaelber': { id: 'cat_kaelber', name: 'Kälber (0–6 Mo.)', range: '0 - 6 Monate', defaultWeight: 120 },
         'cat_jungvieh': { id: 'cat_jungvieh', name: 'Jungvieh (6–12 Mo.)', range: '6 - 12 Monate', defaultWeight: 280 },
@@ -1174,24 +1291,37 @@
     let cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0, 'cat_kuehe': 0 };
     let cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [], 'cat_kuehe': [] };
     let editingFeedId = null;
+    let editingCattleId = null;
+    let currentDetailCatKey = null;
+
+    function formatGermanDate(dateStr) {
+        if (!dateStr || dateStr === '0' || dateStr === 'null') return '';
+        let bDate = parseBirthDate(dateStr);
+        if (!bDate || isNaN(bDate.getTime())) return String(dateStr);
+        let day = String(bDate.getDate()).padStart(2, '0');
+        let month = String(bDate.getMonth() + 1).padStart(2, '0');
+        let year = bDate.getFullYear();
+        return `${day}.${month}.${year}`;
+    }
 
     function parseBirthDate(dateStr) {
         if (!dateStr || dateStr === '0' || dateStr === 'null') return null;
-        if (dateStr.includes('.')) {
-            let parts = dateStr.split('.');
+        let str = String(dateStr).trim();
+        if (str.includes('.')) {
+            let parts = str.split('.');
             if (parts.length === 3) {
-                let day = parseInt(parts[0]);
-                let month = parseInt(parts[1]) - 1;
-                let year = parseInt(parts[2]);
+                let day = parseInt(parts[0], 10);
+                let month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
                 return new Date(year, month, day);
             }
         }
-        let d = new Date(dateStr);
+        let d = new Date(str);
         return isNaN(d.getTime()) ? null : d;
     }
 
     function calculateAgeInMonths(birthDate) {
-        if (!birthDate) return 0;
+        if (!birthDate || isNaN(birthDate.getTime())) return 0;
         let now = new Date();
         let years = now.getFullYear() - birthDate.getFullYear();
         let months = now.getMonth() - birthDate.getMonth();
@@ -1206,6 +1336,21 @@
         let savedRations = localStorage.getItem(KEY_RATIONS);
         categoryRations = savedRations ? JSON.parse(savedRations) : defaultCategoryRations;
 
+        // Bind event listeners for real-time search and sort
+        let mainSearchEl = document.getElementById("mainCattleSearch");
+        if (mainSearchEl) {
+            mainSearchEl.removeEventListener("input", renderAllCattleTable);
+            mainSearchEl.addEventListener("input", renderAllCattleTable);
+            mainSearchEl.removeEventListener("keyup", renderAllCattleTable);
+            mainSearchEl.addEventListener("keyup", renderAllCattleTable);
+        }
+
+        let mainSortEl = document.getElementById("mainCattleSort");
+        if (mainSortEl) {
+            mainSortEl.removeEventListener("change", renderAllCattleTable);
+            mainSortEl.addEventListener("change", renderAllCattleTable);
+        }
+
         renderFeedItemsTable();
         await loadCattleFromSupabase();
     }
@@ -1215,7 +1360,6 @@
         localStorage.setItem(KEY_RATIONS, JSON.stringify(categoryRations));
     }
 
-    // Live-Rinderbestand aus Supabase laden und nach Altersgruppen auszählen
     async function loadCattleFromSupabase() {
         let badgeEl = document.getElementById("supabase-status-badge");
         if (badgeEl) badgeEl.innerText = "⏳ Lade Supabase...";
@@ -1224,10 +1368,8 @@
             let res = await fetch(SUPABASE_URL + "/rest/v1/rinder?select=*&order=geburtsdatum.desc", { headers });
             let rawList = await res.json();
 
-            // Nur aktive Tiere filtern (kein Verkaufsdatum gesetzt)
             supabaseCattleList = rawList.filter(c => !c.verkaufsdatum || c.verkaufsdatum === '' || c.verkaufsdatum === 'null' || c.verkaufsdatum === '0');
 
-            // Zurücksetzen
             cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0, 'cat_kuehe': 0 };
             cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [], 'cat_kuehe': [] };
 
@@ -1251,6 +1393,7 @@
 
             renderCattleCategoryKPIs();
             renderCattleCategoryTable();
+            renderAllCattleTable();
             populateCalcCategorySelect();
             renderFeedingCalculator();
 
@@ -1271,7 +1414,6 @@
         document.getElementById("cnt-kuehe").innerText = `${cattleCategoryCounts['cat_kuehe']} Stk`;
     }
 
-    // Herden-Kategorien-Tabelle ausgeben
     function renderCattleCategoryTable() {
         let html = "";
         Object.keys(CATTLE_CATEGORIES).forEach(key => {
@@ -1290,7 +1432,89 @@
         document.getElementById("cattleCategoryTableBody").innerHTML = html;
     }
 
-    // Futtermittel Tabelle render
+    // Live-Filter & Flexible Sortierung für die Gesamte Rinderliste (Master-Tabelle)
+    function renderAllCattleTable() {
+        let searchEl = document.getElementById("mainCattleSearch");
+        let sortEl = document.getElementById("mainCattleSort");
+
+        let query = searchEl && searchEl.value ? searchEl.value.trim().toLowerCase() : "";
+        let sortVal = sortEl ? sortEl.value : "geb_desc";
+
+        let filtered = supabaseCattleList.filter(c => {
+            if (!query) return true;
+
+            let earTag = String(c.ohrmarke || '').toLowerCase();
+            let breed = String(c.rasse || '').toLowerCase();
+            let owner = String(c.vorbesitzer || '').toLowerCase();
+            let rawDate = String(c.geburtsdatum || '').toLowerCase();
+            let euroDate = formatGermanDate(c.geburtsdatum).toLowerCase();
+            let gender = String(c.geschlecht || '').toLowerCase();
+
+            return earTag.includes(query) ||
+                   rawDate.includes(query) ||
+                   euroDate.includes(query) ||
+                   breed.includes(query) ||
+                   owner.includes(query) ||
+                   gender.includes(query);
+        });
+
+        filtered.sort((a, b) => {
+            let dateA = parseBirthDate(a.geburtsdatum);
+            let dateB = parseBirthDate(b.geburtsdatum);
+            let tA = dateA ? dateA.getTime() : 0;
+            let tB = dateB ? dateB.getTime() : 0;
+
+            if (sortVal === 'geb_desc') return tB - tA; // Jüngste (neuestes Geburtsdatum) zuerst
+            if (sortVal === 'geb_asc') return tA - tB;  // Älteste (ältestes Geburtsdatum) zuerst
+            if (sortVal === 'zukauf_desc') {
+                let zA = parseBirthDate(a.zukaufsdatum) ? parseBirthDate(a.zukaufsdatum).getTime() : 0;
+                let zB = parseBirthDate(b.zukaufsdatum) ? parseBirthDate(b.zukaufsdatum).getTime() : 0;
+                return zB - zA;
+            }
+            if (sortVal === 'ohrmarke_asc') {
+                return String(a.ohrmarke || '').localeCompare(String(b.ohrmarke || ''));
+            }
+            return 0;
+        });
+
+        let html = "";
+        filtered.forEach(c => {
+            let bDate = parseBirthDate(c.geburtsdatum);
+            let ageM = calculateAgeInMonths(bDate);
+            let displayBirthDate = formatGermanDate(c.geburtsdatum) || '-';
+
+            let catName = 'Kühe / Altrinder (> 24 Mo.)';
+            if (ageM < 6) catName = 'Kälber (0–6 Mo.)';
+            else if (ageM < 12) catName = 'Jungvieh (6–12 Mo.)';
+            else if (ageM < 24) catName = 'Färsen (12–24 Mo.)';
+
+            let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : 'Eigenbestand';
+
+            html += `<tr>
+                <td><strong style="color:#4caf50; font-size:15px;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
+                <td>${displayBirthDate}</td>
+                <td><strong>${ageM} Mo.</strong> <span style="font-size:12px; color:#ffb74d;">(${catName})</span></td>
+                <td>${c.rasse || '-'}</td>
+                <td>${displayZukauf}</td>
+                <td>
+                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
+                </td>
+            </tr>`;
+        });
+
+        if (filtered.length === 0) {
+            html = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Rinder ${query ? "für '" + query + "'" : ""} in Supabase gefunden.</td></tr>`;
+        }
+
+        let tbody = document.getElementById("mainCattleTableBody");
+        if (tbody) tbody.innerHTML = html;
+    }
+
+    function filterAndRenderMainCattleTable() {
+        renderAllCattleTable();
+    }
+
     function renderFeedItemsTable() {
         let html = "";
         feedItems.forEach(f => {
@@ -1309,7 +1533,6 @@
         document.getElementById("feedTableBody").innerHTML = html || '<tr><td colspan="6" style="text-align:center; color:#888;">Keine Futtermittel angelegt</td></tr>';
     }
 
-    // Select in Fütterungsrechner füllen
     function populateCalcCategorySelect() {
         let sel = document.getElementById("calcCategorySelect");
         let currentVal = sel.value;
@@ -1324,14 +1547,13 @@
         if (currentVal) sel.value = currentVal;
     }
 
-    // Fütterungsrechner durchrechnen auf Basis der echten Supabase-Zahlen
     function renderFeedingCalculator() {
         let selCategory = document.getElementById("calcCategorySelect").value;
         let isAll = (selCategory === "ALL");
 
         let targetCategories = isAll ? Object.keys(CATTLE_CATEGORIES) : [selCategory];
 
-        let aggRation = {}; // feedId -> { totalKgFmDayTierSum, totalCount, totalFmMonth, totalTmMonth, totalFmYear, totalTmYear, costYear, meTierSum, xpTierSum }
+        let aggRation = {};
 
         let totalHerdAnimals = 0;
         let totalTmDayAllTiere = 0;
@@ -1426,14 +1648,12 @@
             </tr>`;
         });
 
-        // KPIs aktualisieren
         document.getElementById("calc-kpi-tm").innerText = `${avgTmPerTier.toFixed(2)} kg TM/Tag`;
         document.getElementById("calc-kpi-me").innerText = `${energyDensity.toFixed(2)} MJ/kg TM`;
         document.getElementById("calc-kpi-xp").innerText = `${avgXpPerTier.toFixed(0)} g XP/Tag`;
         document.getElementById("calc-kpi-year-fm").innerText = `${totalFmYearHerd.toFixed(1)} t FM/Jahr`;
         document.getElementById("calc-kpi-cost").innerText = `${totalCostYearHerd.toLocaleString('de-DE', {maximumFractionDigits: 0})} €/Jahr`;
 
-        // Edit Button anzeigen/verstecken
         let editBtn = document.getElementById("btnRationEdit");
         if (editBtn) {
             editBtn.style.display = isAll ? "none" : "inline-block";
@@ -1460,34 +1680,170 @@
         document.getElementById("calcRationTableBody").innerHTML = rowsHtml;
     }
 
-    // Modal Tierdetails aus Supabase
+    // Modal Tierdetails aus Supabase mit Suche & Sortierung & Edit/Delete Buttons
     function openCattleDetailModal(catKey) {
+        currentDetailCatKey = catKey;
         let cat = CATTLE_CATEGORIES[catKey];
         let animals = cattleCategoryAnimals[catKey] || [];
 
         document.getElementById("cattleDetailModalTitle").innerText = `${cat.name} – (${animals.length} Rinder aus Supabase)`;
 
+        let searchModalEl = document.getElementById("modalCattleSearch");
+        if (searchModalEl) searchModalEl.value = "";
+
+        let sortModalEl = document.getElementById("modalCattleSort");
+        if (sortModalEl) sortModalEl.value = "geb_desc";
+
+        filterAndRenderCattleModalTable();
+        document.getElementById("cattleDetailModal").style.display = "flex";
+    }
+
+    function filterAndRenderCattleModalTable() {
+        if (!currentDetailCatKey) return;
+        let animals = cattleCategoryAnimals[currentDetailCatKey] || [];
+
+        let queryInput = document.getElementById("modalCattleSearch");
+        let sortInput = document.getElementById("modalCattleSort");
+
+        let query = queryInput && queryInput.value ? queryInput.value.trim().toLowerCase() : "";
+        let sortVal = sortInput ? sortInput.value : "geb_desc";
+
+        let filtered = animals.filter(c => {
+            if (!query) return true;
+
+            let earTag = String(c.ohrmarke || '').toLowerCase();
+            let breed = String(c.rasse || '').toLowerCase();
+            let owner = String(c.vorbesitzer || '').toLowerCase();
+            let rawDate = String(c.geburtsdatum || '').toLowerCase();
+            let euroDate = formatGermanDate(c.geburtsdatum).toLowerCase();
+
+            return earTag.includes(query) ||
+                   rawDate.includes(query) ||
+                   euroDate.includes(query) ||
+                   breed.includes(query) ||
+                   owner.includes(query);
+        });
+
+        filtered.sort((a, b) => {
+            let dateA = parseBirthDate(a.geburtsdatum);
+            let dateB = parseBirthDate(b.geburtsdatum);
+            let tA = dateA ? dateA.getTime() : 0;
+            let tB = dateB ? dateB.getTime() : 0;
+
+            if (sortVal === 'geb_desc') return tB - tA; // jüngste zuerst
+            if (sortVal === 'geb_asc') return tA - tB;  // älteste zuerst
+            if (sortVal === 'ohrmarke_asc') return String(a.ohrmarke || '').localeCompare(String(b.ohrmarke || ''));
+            return 0;
+        });
+
         let html = "";
-        animals.forEach(c => {
+        filtered.forEach(c => {
+            let displayDate = formatGermanDate(c.geburtsdatum) || '-';
+            let displayZukauf = c.zukaufsdatum ? 'Zukauf: ' + formatGermanDate(c.zukaufsdatum) : 'Bestand';
+
             html += `<tr>
                 <td><strong style="color:#4caf50;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
-                <td>${c.geburtsdatum || '-'}</td>
+                <td>${displayDate}</td>
                 <td><strong>${c.ageMonths} Mo.</strong></td>
                 <td>${c.rasse || '-'}</td>
-                <td>${c.zukaufsdatum || '-'}</td>
+                <td>${displayZukauf}</td>
+                <td>
+                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
+                </td>
             </tr>`;
         });
 
-        if (animals.length === 0) {
-            html = '<tr><td colspan="5" style="text-align:center; color:#888;">Keine Rinder in dieser Altersgruppe in Supabase gefunden.</td></tr>';
+        if (filtered.length === 0) {
+            html = '<tr><td colspan="6" style="text-align:center; color:#888;">Keine passenden Rinder in dieser Kategorie gefunden.</td></tr>';
         }
 
-        document.getElementById("cattleDetailModalTableBody").innerHTML = html;
-        document.getElementById("cattleDetailModal").style.display = "flex";
+        let bodyEl = document.getElementById("cattleDetailModalTableBody");
+        if (bodyEl) bodyEl.innerHTML = html;
     }
 
     function closeCattleDetailModal() {
         document.getElementById("cattleDetailModal").style.display = "none";
+        currentDetailCatKey = null;
+    }
+
+    // Modal: Rind in Supabase bearbeiten
+    function openEditCattleModal(id) {
+        let c = supabaseCattleList.find(x => x.id === id);
+        if (!c) return;
+
+        editingCattleId = id;
+        document.getElementById("edit-ohrmarke").value = c.ohrmarke || "";
+        document.getElementById("edit-geburtsdatum").value = formatGermanDate(c.geburtsdatum) || "";
+        document.getElementById("edit-geschlecht").value = c.geschlecht || "weiblich";
+        document.getElementById("edit-rasse").value = c.rasse || "";
+        document.getElementById("edit-vorbesitzer").value = c.vorbesitzer || "";
+        document.getElementById("edit-zukaufsdatum").value = formatGermanDate(c.zukaufsdatum) || "";
+        document.getElementById("edit-verkaufsdatum").value = (c.verkaufsdatum === "0" ? "" : formatGermanDate(c.verkaufsdatum)) || "";
+        document.getElementById("edit-einkaufspreis").value = c.einkaufspreis || 0;
+        document.getElementById("edit-verkaufspreis").value = c.verkaufspreis || 0;
+
+        document.getElementById("editCattleModal").style.display = "flex";
+    }
+
+    function closeEditCattleModal() {
+        document.getElementById("editCattleModal").style.display = "none";
+        editingCattleId = null;
+    }
+
+    async function saveCattleEdit() {
+        if (!editingCattleId) return;
+
+        let payload = {
+            ohrmarke: document.getElementById("edit-ohrmarke").value.trim(),
+            geburtsdatum: document.getElementById("edit-geburtsdatum").value.trim() || null,
+            geschlecht: document.getElementById("edit-geschlecht").value.trim(),
+            rasse: document.getElementById("edit-rasse").value.trim(),
+            vorbesitzer: document.getElementById("edit-vorbesitzer").value.trim(),
+            zukaufsdatum: document.getElementById("edit-zukaufsdatum").value.trim() || null,
+            verkaufsdatum: document.getElementById("edit-verkaufsdatum").value.trim() || null,
+            einkaufspreis: parseFloat(document.getElementById("edit-einkaufspreis").value) || 0,
+            verkaufspreis: parseFloat(document.getElementById("edit-verkaufspreis").value) || 0
+        };
+
+        try {
+            let res = await fetch(SUPABASE_URL + `/rest/v1/rinder?id=eq.${editingCattleId}`, {
+                method: "PATCH",
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                closeEditCattleModal();
+                closeCattleDetailModal();
+                await loadCattleFromSupabase();
+                alert("Tierdaten erfolgreich in Supabase aktualisiert!");
+            } else {
+                alert("Fehler beim Speichern der Tierdaten.");
+            }
+        } catch (e) {
+            alert("Verbindungsfehler beim Speichern.");
+        }
+    }
+
+    async function deleteCattleRecord(id, ohrmarke) {
+        if (confirm(`Möchtest du das Rind (${ohrmarke}) WIRKLICH unumkehrbar aus Supabase löschen?`)) {
+            try {
+                let res = await fetch(SUPABASE_URL + `/rest/v1/rinder?id=eq.${id}`, {
+                    method: "DELETE",
+                    headers: headers
+                });
+                if (res.ok) {
+                    alert("Tier wurde erfolgreich gelöscht.");
+                    closeCattleDetailModal();
+                    await loadCattleFromSupabase();
+                } else {
+                    alert("Fehler beim Löschen des Tiers.");
+                }
+            } catch (e) {
+                alert("Verbindungsfehler beim Löschen.");
+            }
+        }
     }
 
     // Modal Futtermittel
@@ -1614,7 +1970,7 @@
 
     window.onload = function() {
         loadFields();
-        loadNutrientSettings();
+        loadNutrientSettingsFromSupabase();
     };
 </script>
 </body>
