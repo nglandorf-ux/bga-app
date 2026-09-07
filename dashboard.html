@@ -1533,8 +1533,8 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
-                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
-                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn" onclick="openCattleDossier('${c.id}')">👁️ Akte</button>
+                    <button class="action-btn" onclick="editCattle('${c.id}')">✏️ Bearbeiten</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
@@ -1785,8 +1785,8 @@
                 <td>${c.rasse || '-'}</td>
                 <td>${displayZukauf}</td>
                 <td>
-                    <button class="action-btn" onclick="openCattleAkteModal('${c.id}')">👁️ Akte</button>
-                    <button class="action-btn" onclick="openEditCattleModal('${c.id}')">✏️ Edit</button>
+                    <button class="action-btn" onclick="openCattleDossier('${c.id}')">👁️ Akte</button>
+                    <button class="action-btn" onclick="editCattle('${c.id}')">✏️ Bearbeiten</button>
                     <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
@@ -1805,8 +1805,9 @@
         currentDetailCatKey = null;
     }
 
-    // Modal Tierakte (Ansehen)
-    function openCattleAkteModal(id) {
+    // Modal Tierakte / Dossier (Ansehen)
+    function openCattleDossier(id) {
+        if (!supabaseCattleList || !Array.isArray(supabaseCattleList)) return;
         let c = supabaseCattleList.find(x => x.id === id);
         if (!c) return;
 
@@ -1849,8 +1850,8 @@
         if (modal) modal.style.display = "flex";
     }
 
-    function openCattleDossier(id) {
-        openCattleAkteModal(id);
+    function openCattleAkteModal(id) {
+        openCattleDossier(id);
     }
 
     function closeCattleAkteModal() {
@@ -1859,26 +1860,51 @@
     }
 
     // Modal: Rind in Supabase bearbeiten
-    function openEditCattleModal(id) {
+    function editCattle(id) {
+        if (!supabaseCattleList || !Array.isArray(supabaseCattleList)) return;
         let c = supabaseCattleList.find(x => x.id === id);
         if (!c) return;
 
         editingCattleId = id;
-        document.getElementById("edit-ohrmarke").value = c.ohrmarke || "";
-        document.getElementById("edit-geburtsdatum").value = formatGermanDate(c.geburtsdatum) || "";
-        document.getElementById("edit-geschlecht").value = c.geschlecht || "weiblich";
-        document.getElementById("edit-rasse").value = c.rasse || "";
-        document.getElementById("edit-vorbesitzer").value = c.vorbesitzer || "";
-        document.getElementById("edit-zukaufsdatum").value = formatGermanDate(c.zukaufsdatum) || "";
-        document.getElementById("edit-verkaufsdatum").value = (c.verkaufsdatum === "0" ? "" : formatGermanDate(c.verkaufsdatum)) || "";
-        document.getElementById("edit-einkaufspreis").value = c.einkaufspreis || 0;
-        document.getElementById("edit-verkaufspreis").value = c.verkaufspreis || 0;
 
-        document.getElementById("editCattleModal").style.display = "flex";
+        let o = document.getElementById("edit-ohrmarke");
+        if (o) o.value = c.ohrmarke || "";
+
+        let g = document.getElementById("edit-geburtsdatum");
+        if (g) g.value = formatGermanDate(c.geburtsdatum) || c.geburtsdatum || "";
+
+        let s = document.getElementById("edit-geschlecht");
+        if (s) s.value = c.geschlecht || "weiblich";
+
+        let r = document.getElementById("edit-rasse");
+        if (r) r.value = c.rasse || "";
+
+        let v = document.getElementById("edit-vorbesitzer");
+        if (v) v.value = c.vorbesitzer || "";
+
+        let z = document.getElementById("edit-zukaufsdatum");
+        if (z) z.value = formatGermanDate(c.zukaufsdatum) || c.zukaufsdatum || "";
+
+        let vk = document.getElementById("edit-verkaufsdatum");
+        if (vk) vk.value = (c.verkaufsdatum === "0" ? "" : formatGermanDate(c.verkaufsdatum)) || "";
+
+        let ep = document.getElementById("edit-einkaufspreis");
+        if (ep) ep.value = c.einkaufspreis || 0;
+
+        let vp = document.getElementById("edit-verkaufspreis");
+        if (vp) vp.value = c.verkaufspreis || 0;
+
+        let modal = document.getElementById("editCattleModal");
+        if (modal) modal.style.display = "flex";
+    }
+
+    function openEditCattleModal(id) {
+        editCattle(id);
     }
 
     function closeEditCattleModal() {
-        document.getElementById("editCattleModal").style.display = "none";
+        let modal = document.getElementById("editCattleModal");
+        if (modal) modal.style.display = "none";
         editingCattleId = null;
     }
 
