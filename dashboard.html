@@ -304,11 +304,19 @@
             </div>
         </div>
 
-        <div class="grid-2" style="gap: 25px; margin-bottom: 25px;">
-            <!-- Spalte 1: Bestandsauszählung aus Supabase -->
-            <div class="table-container" style="margin-bottom: 0;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <h3 style="margin:0;">🐮 Altersgruppen & Stückzahlen (Supabase)</h3>
+        <!-- REORDERABLE BLOCKS CONTAINER -->
+        <div id="cattle-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
+
+            <!-- BLOCK 1: Altersgruppen & Stückzahlen -->
+            <div class="table-container reorder-block" id="block-altersgruppen" style="margin-bottom: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🐮 1. Altersgruppen & Stückzahlen (Supabase)</h3>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                        </div>
+                    </div>
                     <button onclick="loadCattleFromSupabase()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#444;">🔄 Supabase Aktualisieren</button>
                 </div>
                 <table class="data-table">
@@ -327,10 +335,57 @@
                 </table>
             </div>
 
-            <!-- Spalte 2: Futtermittel-Datenbank -->
-            <div class="table-container" style="margin-bottom: 0;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                    <h3 style="margin:0;">🌾 Futtermittel-Datenbank</h3>
+            <!-- BLOCK 2: Gesamtbestand (Master-Tabelle) -->
+            <div class="table-container reorder-block" id="block-mastertabelle" style="margin-bottom: 0;">
+                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 15px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 2. Gesamtbestand – Master-Rinderliste (Supabase)</h3>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; flex-grow:1; max-width: 750px; justify-content:flex-end; align-items:center;">
+                        <input type="file" id="hitCsvFileInput" accept=".csv, .txt" style="display:none;" onchange="handleHitCsvUpload(event)">
+                        <button onclick="document.getElementById('hitCsvFileInput').click()" style="width:auto; margin:0; background:#0288d1; padding:8px 14px; font-size:13px; font-weight:bold;">📥 HIT-Bestand importieren (CSV)</button>
+                        <input type="text" id="mainCattleSearch" placeholder="🔍 Suche nach Ohrmarke, Geburtsdatum, Rasse..." oninput="renderAllCattleTable()" onkeyup="renderAllCattleTable()" style="margin:0; flex:1; min-width:200px;">
+                        <select id="mainCattleSort" onchange="renderAllCattleTable()" style="margin:0; width:220px;">
+                            <option value="geb_desc">Geburtsdatum (Jüngste zuerst)</option>
+                            <option value="geb_asc">Geburtsdatum (Älteste zuerst)</option>
+                            <option value="zukauf_desc">Zukaufsdatum (Neueste zuerst)</option>
+                            <option value="ohrmarke_asc">Ohrmarke (A - Z)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="max-height: 380px; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Ohrmarke</th>
+                                <th>Geburtsdatum</th>
+                                <th>Alter / Kategorie</th>
+                                <th>Rasse</th>
+                                <th>Zukaufsdatum</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mainCattleTableBody">
+                            <tr><td colspan="6" style="text-align:center; color:#888;">Lade Rinder aus Supabase...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BLOCK 3: Futtermitteldatenbank -->
+            <div class="table-container reorder-block" id="block-futtermittel" style="margin-bottom: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🌾 3. Futtermitteldatenbank</h3>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                        </div>
+                    </div>
                     <button onclick="openFeedModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#ff9800;">➕ Futtermittel anlegen</button>
                 </div>
                 <table class="data-table">
@@ -339,113 +394,52 @@
                             <th>Futtermittel</th>
                             <th>TM %</th>
                             <th>MJ ME / kg TM</th>
-                            <th>Rohprotein</th>
-                            <th>Preis (€/t)</th>
+                            <th>Rohprotein (g XP / kg TM)</th>
+                            <th>Preis (€ / t FM)</th>
                             <th>Aktion</th>
                         </tr>
                     </thead>
                     <tbody id="feedTableBody"></tbody>
                 </table>
             </div>
-        </div>
 
-        <!-- BEREICH 1: Neue Master-Liste (Gesamtbestand) mit Live-Suche & Sortierung -->
-        <div class="table-container">
-            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 15px;">
-                <div>
-                    <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 Gesamtbestand – Master-Rinderliste (Supabase)</h3>
-                    <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Umfassende Gesamtübersicht aller aktuell erfassten Rinder im Bestand.</p>
+            <!-- BLOCK 4: Fütterungsrechner & Bedarfsanalyse -->
+            <div class="table-container reorder-block" id="block-fuetterungsrechner" style="margin-bottom: 0;">
+                <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <div>
+                            <h3 style="margin:0; font-size: 20px; color: #4caf50;">🧮 4. Fütterungsrechner & Bedarfsanalyse (Rationsgestaltung nach Alter)</h3>
+                            <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Stelle Rationen gezielt für jede Altersgruppe ein. Die Bedarfsdeckung (Soll vs. Ist) und Futterkosten werden live berechnet.</p>
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                        </div>
+                    </div>
                 </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; flex-grow:1; max-width: 750px; justify-content:flex-end; align-items:center;">
-                    <input type="file" id="hitCsvFileInput" accept=".csv, .txt" style="display:none;" onchange="handleHitCsvUpload(event)">
-                    <button onclick="document.getElementById('hitCsvFileInput').click()" style="width:auto; margin:0; background:#0288d1; padding:8px 14px; font-size:13px; font-weight:bold;">📥 HIT-Bestand importieren (CSV)</button>
-                    <input type="text" id="mainCattleSearch" placeholder="🔍 Suche nach Ohrmarke, Geburtsdatum, Rasse..." oninput="renderAllCattleTable()" onkeyup="renderAllCattleTable()" style="margin:0; flex:1; min-width:200px;">
-                    <select id="mainCattleSort" onchange="renderAllCattleTable()" style="margin:0; width:220px;">
-                        <option value="geb_desc">Geburtsdatum (Jüngste zuerst)</option>
-                        <option value="geb_asc">Geburtsdatum (Älteste zuerst)</option>
-                        <option value="zukauf_desc">Zukaufsdatum (Neueste zuerst)</option>
-                        <option value="ohrmarke_asc">Ohrmarke (A - Z)</option>
-                    </select>
-                </div>
-            </div>
-            <div style="max-height: 380px; overflow-y: auto;">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Ohrmarke</th>
-                            <th>Geburtsdatum</th>
-                            <th>Alter / Kategorie</th>
-                            <th>Rasse</th>
-                            <th>Zukaufsdatum</th>
-                            <th>Aktionen</th>
-                        </tr>
-                    </thead>
-                    <tbody id="mainCattleTableBody">
-                        <tr><td colspan="6" style="text-align:center; color:#888;">Lade Rinder aus Supabase...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <!-- BEREICH 2: Fütterungsrechner & Jahresbedarf -->
-        <div class="table-container">
-            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                <div>
-                    <h3 style="margin:0; font-size: 20px; color: #4caf50;">🧮 Fütterungsrechner & Bedarfsanalyse</h3>
-                    <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Berechnet auf Basis der echten Supabase-Tieranzahlen den monatlichen und jährlichen Futterbedarf in Tonnen.</p>
-                </div>
-                <div style="display:flex; align-items:center; gap: 10px; min-width: 340px;">
-                    <label style="font-size:12px; color:#aaa; font-weight:bold; white-space:nowrap;">Gefilterte Auswertung:</label>
-                    <select id="calcCategorySelect" onchange="renderFeedingCalculator()" style="margin:0; padding:10px; font-size:14px; background:#2a2a2a; border-color:#4caf50; font-weight:bold;"></select>
+                <!-- Age Group Ration Containers -->
+                <div id="calculatorAgeGroupsContainer" style="display:flex; flex-direction:column; gap:20px; margin-bottom:25px;"></div>
+
+                <!-- Gesamtherden-Zusammenfassung -->
+                <div style="background:#1e1e1e; border:1px solid #333; border-radius:10px; padding:20px;">
+                    <h4 style="color:#4caf50; margin:0 0 12px 0; font-size:16px;">📊 Herden-Gesamtsumme Futterbedarf & Kosten (Alle Altersgruppen)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Futtermittel</th>
+                                <th>Monatsbedarf (t FM)</th>
+                                <th>Monatsbedarf (t TM)</th>
+                                <th>Jahresbedarf (t FM)</th>
+                                <th>Jahresbedarf (t TM)</th>
+                                <th>Jahreskosten (€)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calcMasterSummaryTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Rations-KPI Cards -->
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="lbl">Futteraufnahme / Tier</div>
-                    <div class="val" id="calc-kpi-tm">0 kg TM/Tag</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="lbl">Energiedichte (ME)</div>
-                    <div class="val" id="calc-kpi-me" style="color:#ffb74d;">0 MJ / kg TM</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="lbl">Rohprotein / Tier</div>
-                    <div class="val" id="calc-kpi-xp" style="color:#a5d6a7;">0 g XP/Tag</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="lbl">Jahresbedarf Herde (Frischmasse)</div>
-                    <div class="val" id="calc-kpi-year-fm" style="color:#90caf9;">0 t FM/Jahr</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="lbl">Futterkosten / Jahr</div>
-                    <div class="val" id="calc-kpi-cost" style="color:#ffe0b2;">0 €/Jahr</div>
-                </div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h4 style="color:#fff; margin:0;">📋 Futterbedarf & Rationsauswertung (aus Supabase-Bestand)</h4>
-                <button id="btnRationEdit" onclick="openRationEditModal()" style="width:auto; margin:0; background:#ff9800; padding:8px 16px; font-size:13px;">✏️ Ration für diese Kategorie anpassen</button>
-            </div>
-
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Futtermittel</th>
-                        <th>kg FM / Tier / Tag</th>
-                        <th>kg TM / Tier / Tag</th>
-                        <th>MJ ME / Tier</th>
-                        <th>g XP / Tier</th>
-                        <th>t FM / Monat (Bestand)</th>
-                        <th>t TM / Monat (Bestand)</th>
-                        <th>t FM / Jahr (Bestand)</th>
-                        <th>t TM / Jahr (Bestand)</th>
-                        <th>Kosten (€/Jahr)</th>
-                    </tr>
-                </thead>
-                <tbody id="calcRationTableBody"></tbody>
-            </table>
         </div>
     </div>
 </div>
@@ -1329,6 +1323,21 @@
         document.getElementById("statsTripTableBody").innerHTML = tripRowsHtml;
     }
 
+    // --- BLOCK REORDERING FUNCTIONS ---
+    function moveBlockUp(btn) {
+        let block = btn.closest('.reorder-block');
+        if (block && block.previousElementSibling && block.previousElementSibling.classList.contains('reorder-block')) {
+            block.parentNode.insertBefore(block, block.previousElementSibling);
+        }
+    }
+
+    function moveBlockDown(btn) {
+        let block = btn.closest('.reorder-block');
+        if (block && block.nextElementSibling && block.nextElementSibling.classList.contains('reorder-block')) {
+            block.parentNode.insertBefore(block.nextElementSibling, block);
+        }
+    }
+
     // --- MODUL: RINDER (SUPABASE LIVE-BESTAND) & FUTTERMITTEL ---
 
     const KEY_FEEDS = 'hofbuch_feed_items_v2';
@@ -1350,9 +1359,16 @@
         'cat_kuehe': { id: 'cat_kuehe', name: 'Kühe / Altrinder (> 24 Mo.)', range: '> 24 Monate', defaultWeight: 650 }
     };
 
+    const AGE_GROUP_REQUIREMENTS = {
+        'cat_kaelber': { id: 'cat_kaelber', name: '0–6 Monate (Kälber)', range: '0 - 6 Monate', defaultWeight: 120, targetTM: 3.0, targetME: 33.0, targetXP: 480 },
+        'cat_jungvieh': { id: 'cat_jungvieh', name: '6–12 Monate (Jungvieh)', range: '6 - 12 Monate', defaultWeight: 280, targetTM: 6.2, targetME: 66.0, targetXP: 850 },
+        'cat_faersen': { id: 'cat_faersen', name: '12–24 Monate (Färsen)', range: '12 - 24 Monate', defaultWeight: 480, targetTM: 10.0, targetME: 95.0, targetXP: 1250 },
+        'cat_kuehe': { id: 'cat_kuehe', name: '> 24 Monate (Kühe / Altrinder)', range: '> 24 Monate', defaultWeight: 650, targetTM: 15.5, targetME: 145.0, targetXP: 2200 }
+    };
+
     const defaultCategoryRations = {
-        'cat_kaelber': { 'f2': 4.0, 'f1': 3.0, 'f4': 2.0 },
-        'cat_jungvieh': { 'f1': 8.0, 'f2': 10.0, 'f6': 1.0, 'f4': 1.5 },
+        'cat_kaelber': { 'f2': 3.0, 'f1': 2.0, 'f4': 1.2 },
+        'cat_jungvieh': { 'f1': 8.0, 'f2': 6.0, 'f6': 1.0, 'f4': 1.5 },
         'cat_faersen': { 'f1': 12.0, 'f2': 8.0, 'f6': 1.2, 'f4': 2.0 },
         'cat_kuehe': { 'f1': 18.0, 'f2': 12.0, 'f6': 1.5, 'f4': 3.5 }
     };
@@ -1408,7 +1424,6 @@
         let savedRations = localStorage.getItem(KEY_RATIONS);
         categoryRations = savedRations ? JSON.parse(savedRations) : defaultCategoryRations;
 
-        // Bind event listeners for real-time search and sort
         let mainSearchEl = document.getElementById("mainCattleSearch");
         if (mainSearchEl) {
             mainSearchEl.removeEventListener("input", renderAllCattleTable);
@@ -1466,7 +1481,6 @@
             renderCattleCategoryKPIs();
             renderCattleCategoryTable();
             renderAllCattleTable();
-            populateCalcCategorySelect();
             renderFeedingCalculator();
 
         } catch (error) {
@@ -1504,7 +1518,6 @@
         document.getElementById("cattleCategoryTableBody").innerHTML = html;
     }
 
-    // Live-Filter & Flexible Sortierung für die Gesamte Rinderliste (Master-Tabelle)
     function renderAllCattleTable() {
         let searchEl = document.getElementById("mainCattleSearch");
         let sortEl = document.getElementById("mainCattleSort");
@@ -1536,8 +1549,8 @@
             let tA = dateA ? dateA.getTime() : 0;
             let tB = dateB ? dateB.getTime() : 0;
 
-            if (sortVal === 'geb_desc') return tB - tA; // Jüngste (neuestes Geburtsdatum) zuerst
-            if (sortVal === 'geb_asc') return tA - tB;  // Älteste (ältestes Geburtsdatum) zuerst
+            if (sortVal === 'geb_desc') return tB - tA;
+            if (sortVal === 'geb_asc') return tA - tB;
             if (sortVal === 'zukauf_desc') {
                 let zA = parseBirthDate(a.zukaufsdatum) ? parseBirthDate(a.zukaufsdatum).getTime() : 0;
                 let zB = parseBirthDate(b.zukaufsdatum) ? parseBirthDate(b.zukaufsdatum).getTime() : 0;
@@ -1605,234 +1618,440 @@
         document.getElementById("feedTableBody").innerHTML = html || '<tr><td colspan="6" style="text-align:center; color:#888;">Keine Futtermittel angelegt</td></tr>';
     }
 
-    function populateCalcCategorySelect() {
-        let sel = document.getElementById("calcCategorySelect");
-        let currentVal = sel.value;
-        sel.innerHTML = `<option value="ALL">Gesamtherde (Alle ${supabaseCattleList.length} Rinder)</option>`;
+    function updateRationValue(catKey, feedId, valStr) {
+        let val = parseFloat(valStr);
+        if (isNaN(val) || val < 0) val = 0;
 
-        Object.keys(CATTLE_CATEGORIES).forEach(key => {
-            let cat = CATTLE_CATEGORIES[key];
-            let cnt = cattleCategoryCounts[key] || 0;
-            sel.innerHTML += `<option value="${key}">${cat.name} – ${cnt} Stk</option>`;
-        });
+        if (!categoryRations[catKey]) categoryRations[catKey] = {};
+        if (val > 0) {
+            categoryRations[catKey][feedId] = val;
+        } else {
+            delete categoryRations[catKey][feedId];
+        }
+        saveCattleModuleData();
+        recalculateFeedingCalculatorData();
+    }
 
-        if (currentVal) sel.value = currentVal;
+    function getCoverageBadgeHtml(valStr, pct) {
+        let bg = '#1b5e20'; // Green
+        let text = '#a5d6a7';
+        let statusLabel = 'Optimal';
+
+        if (pct < 90) {
+            bg = '#b71c1c'; // Red
+            text = '#ffcdd2';
+            statusLabel = 'Unterdeckt';
+        } else if (pct > 110) {
+            bg = '#e65100'; // Orange
+            text = '#ffe0b2';
+            statusLabel = 'Überversorgt';
+        }
+
+        return `<span style="background:${bg}; color:${text}; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px; display:inline-block;">
+            ${valStr} (${pct.toFixed(0)}% ${statusLabel})
+        </span>`;
     }
 
     function renderFeedingCalculator() {
-        let selCategory = document.getElementById("calcCategorySelect").value;
-        let isAll = (selCategory === "ALL");
+        let container = document.getElementById("calculatorAgeGroupsContainer");
+        if (!container) return;
 
-        let targetCategories = isAll ? Object.keys(CATTLE_CATEGORIES) : [selCategory];
+        let ageGroupsHtml = "";
 
-        let aggRation = {};
-
-        let totalHerdAnimals = 0;
-        let totalTmDayAllTiere = 0;
-        let totalMeDayAllTiere = 0;
-        let totalXpDayAllTiere = 0;
-
-        let totalFmMontHerd = 0;
-        let totalTmMontHerd = 0;
-        let totalFmYearHerd = 0;
-        let totalTmYearHerd = 0;
-        let totalCostYearHerd = 0;
-
-        targetCategories.forEach(catKey => {
+        Object.keys(AGE_GROUP_REQUIREMENTS).forEach(catKey => {
+            let req = AGE_GROUP_REQUIREMENTS[catKey];
             let cnt = cattleCategoryCounts[catKey] || 0;
-            if (cnt <= 0 && !isAll) return;
-
             let ration = categoryRations[catKey] || {};
-            totalHerdAnimals += cnt;
 
-            Object.keys(ration).forEach(feedId => {
-                let kgFmTier = parseFloat(ration[feedId]) || 0;
-                if (kgFmTier <= 0) return;
+            let feedRowsHtml = "";
+            let groupTM = 0;
+            let groupME = 0;
+            let groupXP = 0;
+            let groupCostDayTier = 0;
 
-                let feed = feedItems.find(f => f.id === feedId);
-                if (!feed) return;
+            if (feedItems.length === 0) {
+                feedRowsHtml = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Futtermittel in der Futtermitteldatenbank vorhanden.</td></tr>`;
+            } else {
+                feedItems.forEach(f => {
+                    let val = ration[f.id] !== undefined ? ration[f.id] : 0;
+                    let tmFactor = f.tm / 100.0;
+                    let tmKg = val * tmFactor;
+                    let meMJ = tmKg * f.me;
+                    let xpG = tmKg * f.xp;
+                    let costEur = (val / 1000.0) * f.preis;
 
-                let tmFactor = (feed.tm || 0) / 100.0;
-                let kgTmTier = kgFmTier * tmFactor;
-                let meTier = kgTmTier * (feed.me || 0);
-                let xpTier = kgTmTier * (feed.xp || 0);
+                    groupTM += tmKg;
+                    groupME += meMJ;
+                    groupXP += xpG;
+                    groupCostDayTier += costEur;
 
-                let tFmMonat = (kgFmTier * cnt * 30) / 1000.0;
-                let tTmMonat = (kgTmTier * cnt * 30) / 1000.0;
+                    feedRowsHtml += `<tr>
+                        <td><strong>🌾 ${f.name}</strong> <span style="font-size:11px; color:#aaa;">(${f.tm}% TM | ${f.me} MJ | ${f.xp}g XP | ${f.preis}€/t)</span></td>
+                        <td>
+                            <input type="number" id="in_${catKey}_${f.id}" step="0.1" min="0" value="${val || ''}" placeholder="0"
+                                   oninput="updateRationValue('${catKey}', '${f.id}', this.value)"
+                                   style="margin:0; padding:6px; font-weight:bold; color:#4caf50; background:#333; text-align:right; width:110px;">
+                        </td>
+                        <td id="cell_tm_${catKey}_${f.id}">${tmKg.toFixed(2)} kg</td>
+                        <td id="cell_me_${catKey}_${f.id}">${meMJ.toFixed(1)} MJ</td>
+                        <td id="cell_xp_${catKey}_${f.id}">${xpG.toFixed(0)} g</td>
+                        <td id="cell_cost_${catKey}_${f.id}">${costEur.toFixed(2)} €</td>
+                    </tr>`;
+                });
+            }
 
-                let tFmJahr = (kgFmTier * cnt * 365) / 1000.0;
-                let tTmJahr = (kgTmTier * cnt * 365) / 1000.0;
+            let groupCostMonth = groupCostDayTier * cnt * 30;
+            let groupCostYear = groupCostDayTier * cnt * 365;
 
-                let costYear = tFmJahr * (feed.preis || 0);
+            let tmCoverage = req.targetTM > 0 ? (groupTM / req.targetTM) * 100 : 100;
+            let meCoverage = req.targetME > 0 ? (groupME / req.targetME) * 100 : 100;
+            let xpCoverage = req.targetXP > 0 ? (groupXP / req.targetXP) * 100 : 100;
 
-                totalTmDayAllTiere += (kgTmTier * cnt);
-                totalMeDayAllTiere += (meTier * cnt);
-                totalXpDayAllTiere += (xpTier * cnt);
+            ageGroupsHtml += `<div class="box" style="background:#1e1e1e; border:1px solid #333; margin-bottom:0; padding:18px; border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:10px; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <h4 style="margin:0; font-size:17px; color:#4caf50;">🐮 ${req.name}</h4>
+                        <div style="font-size:12px; color:#aaa; margin-top:2px;">
+                            Bestand: <strong style="color:#fff;">${cnt} Stk</strong> | Richt-Bedarf/Tier: TM: ${req.targetTM} kg | ME: ${req.targetME} MJ | XP: ${req.targetXP} g
+                        </div>
+                    </div>
+                    <div style="text-align:right;" id="cost_header_${catKey}">
+                        <div style="font-size:14px; font-weight:bold; color:#ffb74d;">Kosten: ${groupCostDayTier.toFixed(2)} € / Tier / Tag</div>
+                        <div style="font-size:11px; color:#aaa;">Gruppe (${cnt} Stk): ${groupCostMonth.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Monat | ${groupCostYear.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Jahr</div>
+                    </div>
+                </div>
 
-                totalFmMontHerd += tFmMonat;
-                totalTmMontHerd += tTmMonat;
-                totalFmYearHerd += tFmJahr;
-                totalTmYearHerd += tTmJahr;
-                totalCostYearHerd += costYear;
+                <!-- Live Coverage Indicators -->
+                <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; background:#262626; padding:10px; border-radius:6px; align-items:center;">
+                    <span style="font-size:12px; font-weight:bold; color:#ccc;">Bedarfsdeckung / Tier / Tag:</span>
+                    <div id="badge_tm_${catKey}">TM: ${getCoverageBadgeHtml(groupTM.toFixed(2) + ' / ' + req.targetTM + ' kg', tmCoverage)}</div>
+                    <div id="badge_me_${catKey}">Energie (ME): ${getCoverageBadgeHtml(groupME.toFixed(1) + ' / ' + req.targetME + ' MJ', meCoverage)}</div>
+                    <div id="badge_xp_${catKey}">Rohprotein (XP): ${getCoverageBadgeHtml(groupXP.toFixed(0) + ' / ' + req.targetXP + ' g', xpCoverage)}</div>
+                </div>
 
-                if (!aggRation[feedId]) {
-                    aggRation[feedId] = { feed: feed, kgFmSum: 0, kgTmSum: 0, meSum: 0, xpSum: 0, tFmMonat: 0, tTmMonat: 0, tFmJahr: 0, tTmJahr: 0, costYear: 0, animalCount: 0 };
+                <!-- Input Table -->
+                <div style="overflow-x:auto;">
+                    <table class="data-table" style="font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th>Futtermittel</th>
+                                <th style="width:130px;">kg FM / Tier / Tag</th>
+                                <th>kg TM / Tag</th>
+                                <th>MJ ME / Tag</th>
+                                <th>g XP / Tag</th>
+                                <th>Kosten (€ / Tier / Tag)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${feedRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = ageGroupsHtml;
+        recalculateFeedingCalculatorData();
+    }
+
+    function recalculateFeedingCalculatorData() {
+        let masterFeedMap = {};
+
+        Object.keys(AGE_GROUP_REQUIREMENTS).forEach(catKey => {
+            let req = AGE_GROUP_REQUIREMENTS[catKey];
+            let cnt = cattleCategoryCounts[catKey] || 0;
+            let ration = categoryRations[catKey] || {};
+
+            let groupTM = 0;
+            let groupME = 0;
+            let groupXP = 0;
+            let groupCostDayTier = 0;
+
+            feedItems.forEach(f => {
+                let inputEl = document.getElementById(`in_${catKey}_${f.id}`);
+                let val = inputEl ? (parseFloat(inputEl.value) || 0) : (ration[f.id] || 0);
+
+                let tmFactor = f.tm / 100.0;
+                let tmKg = val * tmFactor;
+                let meMJ = tmKg * f.me;
+                let xpG = tmKg * f.xp;
+                let costEur = (val / 1000.0) * f.preis;
+
+                groupTM += tmKg;
+                groupME += meMJ;
+                groupXP += xpG;
+                groupCostDayTier += costEur;
+
+                let cellTm = document.getElementById(`cell_tm_${catKey}_${f.id}`);
+                let cellMe = document.getElementById(`cell_me_${catKey}_${f.id}`);
+                let cellXp = document.getElementById(`cell_xp_${catKey}_${f.id}`);
+                let cellCost = document.getElementById(`cell_cost_${catKey}_${f.id}`);
+
+                if (cellTm) cellTm.innerText = `${tmKg.toFixed(2)} kg`;
+                if (cellMe) cellMe.innerText = `${meMJ.toFixed(1)} MJ`;
+                if (cellXp) cellXp.innerText = `${xpG.toFixed(0)} g`;
+                if (cellCost) cellCost.innerText = `${costEur.toFixed(2)} €`;
+
+                if (!masterFeedMap[f.id]) {
+                    masterFeedMap[f.id] = { feed: f, tFmMonth: 0, tTmMonth: 0, tFmYear: 0, tTmYear: 0, costYear: 0 };
                 }
-                aggRation[feedId].kgFmSum += (kgFmTier * cnt);
-                aggRation[feedId].kgTmSum += (kgTmTier * cnt);
-                aggRation[feedId].meSum += (meTier * cnt);
-                aggRation[feedId].xpSum += (xpTier * cnt);
-                aggRation[feedId].tFmMonat += tFmMonat;
-                aggRation[feedId].tTmMonat += tTmMonat;
-                aggRation[feedId].tFmJahr += tFmJahr;
-                aggRation[feedId].tTmJahr += tTmJahr;
-                aggRation[feedId].costYear += costYear;
-                aggRation[feedId].animalCount += cnt;
+                let tFmMonth = (val * cnt * 30) / 1000.0;
+                let tTmMonth = (tmKg * cnt * 30) / 1000.0;
+                let tFmYear = (val * cnt * 365) / 1000.0;
+                let tTmYear = (tmKg * cnt * 365) / 1000.0;
+                let cYear = tFmYear * f.preis;
+
+                masterFeedMap[f.id].tFmMonth += tFmMonth;
+                masterFeedMap[f.id].tTmMonth += tTmMonth;
+                masterFeedMap[f.id].tFmYear += tFmYear;
+                masterFeedMap[f.id].tTmYear += tTmYear;
+                masterFeedMap[f.id].costYear += cYear;
             });
+
+            let tmCoverage = req.targetTM > 0 ? (groupTM / req.targetTM) * 100 : 100;
+            let meCoverage = req.targetME > 0 ? (groupME / req.targetME) * 100 : 100;
+            let xpCoverage = req.targetXP > 0 ? (groupXP / req.targetXP) * 100 : 100;
+
+            let badgeTmEl = document.getElementById(`badge_tm_${catKey}`);
+            let badgeMeEl = document.getElementById(`badge_me_${catKey}`);
+            let badgeXpEl = document.getElementById(`badge_xp_${catKey}`);
+
+            if (badgeTmEl) badgeTmEl.innerHTML = `TM: ${getCoverageBadgeHtml(groupTM.toFixed(2) + ' / ' + req.targetTM + ' kg', tmCoverage)}`;
+            if (badgeMeEl) badgeMeEl.innerHTML = `Energie (ME): ${getCoverageBadgeHtml(groupME.toFixed(1) + ' / ' + req.targetME + ' MJ', meCoverage)}`;
+            if (badgeXpEl) badgeXpEl.innerHTML = `Rohprotein (XP): ${getCoverageBadgeHtml(groupXP.toFixed(0) + ' / ' + req.targetXP + ' g', xpCoverage)}`;
+
+            let costHeaderEl = document.getElementById(`cost_header_${catKey}`);
+            if (costHeaderEl) {
+                let groupCostMonth = groupCostDayTier * cnt * 30;
+                let groupCostYear = groupCostDayTier * cnt * 365;
+                costHeaderEl.innerHTML = `<div style="font-size:14px; font-weight:bold; color:#ffb74d;">Kosten: ${groupCostDayTier.toFixed(2)} € / Tier / Tag</div>
+                <div style="font-size:11px; color:#aaa;">Gruppe (${cnt} Stk): ${groupCostMonth.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Monat | ${groupCostYear.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Jahr</div>`;
+            }
         });
 
-        let rowsHtml = "";
-        let avgTmPerTier = totalHerdAnimals > 0 ? (totalTmDayAllTiere / totalHerdAnimals) : 0;
-        let avgMePerTier = totalHerdAnimals > 0 ? (totalMeDayAllTiere / totalHerdAnimals) : 0;
-        let avgXpPerTier = totalHerdAnimals > 0 ? (totalXpDayAllTiere / totalHerdAnimals) : 0;
-        let energyDensity = avgTmPerTier > 0 ? (avgMePerTier / avgTmPerTier) : 0;
+        let masterSummaryBody = document.getElementById("calcMasterSummaryTableBody");
+        if (masterSummaryBody) {
+            let summaryRowsHtml = "";
+            let sumFmMonth = 0;
+            let sumTmMonth = 0;
+            let sumFmYear = 0;
+            let sumTmYear = 0;
+            let sumCostYear = 0;
 
-        Object.keys(aggRation).forEach(feedId => {
-            let item = aggRation[feedId];
-            let feed = item.feed;
+            Object.keys(masterFeedMap).forEach(feedId => {
+                let item = masterFeedMap[feedId];
+                sumFmMonth += item.tFmMonth;
+                sumTmMonth += item.tTmMonth;
+                sumFmYear += item.tFmYear;
+                sumTmYear += item.tTmYear;
+                sumCostYear += item.costYear;
 
-            let avgFmTier = totalHerdAnimals > 0 ? (item.kgFmSum / totalHerdAnimals) : 0;
-            let avgTmTier = totalHerdAnimals > 0 ? (item.kgTmSum / totalHerdAnimals) : 0;
-            let avgMeTier = totalHerdAnimals > 0 ? (item.meSum / totalHerdAnimals) : 0;
-            let avgXpTier = totalHerdAnimals > 0 ? (item.xpSum / totalHerdAnimals) : 0;
+                summaryRowsHtml += `<tr>
+                    <td><strong>🌾 ${item.feed.name}</strong></td>
+                    <td>${item.tFmMonth.toFixed(1)} t</td>
+                    <td>${item.tTmMonth.toFixed(1)} t</td>
+                    <td><strong style="color:#90caf9;">${item.tFmYear.toFixed(1)} t</strong></td>
+                    <td><strong>${item.tTmYear.toFixed(1)} t</strong></td>
+                    <td style="color:#ffe0b2; font-weight:bold;">${item.costYear.toLocaleString('de-DE', {maximumFractionDigits:0})} €</td>
+                </tr>`;
+            });
 
-            rowsHtml += `<tr>
-                <td><strong>🌾 ${feed.name}</strong></td>
-                <td>${avgFmTier.toFixed(1)} kg FM</td>
-                <td>${avgTmTier.toFixed(2)} kg TM</td>
-                <td>${avgMeTier.toFixed(1)} MJ</td>
-                <td>${avgXpTier.toFixed(0)} g</td>
-                <td>${item.tFmMonat.toFixed(1)} t</td>
-                <td>${item.tTmMonat.toFixed(1)} t</td>
-                <td><strong style="color:#90caf9;">${item.tFmJahr.toFixed(1)} t</strong></td>
-                <td><strong>${item.tTmJahr.toFixed(1)} t</strong></td>
-                <td>${item.costYear.toFixed(0)} €</td>
-            </tr>`;
-        });
+            if (Object.keys(masterFeedMap).length === 0) {
+                summaryRowsHtml = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Fütterungsdaten vorhanden.</td></tr>`;
+            } else {
+                summaryRowsHtml += `<tr class="sum-row">
+                    <td>GESAMTSUMME HERDE</td>
+                    <td>${sumFmMonth.toFixed(1)} t FM</td>
+                    <td>${sumTmMonth.toFixed(1)} t TM</td>
+                    <td style="color:#90caf9;">${sumFmYear.toFixed(1)} t FM</td>
+                    <td>${sumTmYear.toFixed(1)} t TM</td>
+                    <td style="color:#ffe0b2;">${sumCostYear.toLocaleString('de-DE', {maximumFractionDigits:0})} € / Jahr</td>
+                </tr>`;
+            }
 
-        document.getElementById("calc-kpi-tm").innerText = `${avgTmPerTier.toFixed(2)} kg TM/Tag`;
-        document.getElementById("calc-kpi-me").innerText = `${energyDensity.toFixed(2)} MJ/kg TM`;
-        document.getElementById("calc-kpi-xp").innerText = `${avgXpPerTier.toFixed(0)} g XP/Tag`;
-        document.getElementById("calc-kpi-year-fm").innerText = `${totalFmYearHerd.toFixed(1)} t FM/Jahr`;
-        document.getElementById("calc-kpi-cost").innerText = `${totalCostYearHerd.toLocaleString('de-DE', {maximumFractionDigits: 0})} €/Jahr`;
-
-        let editBtn = document.getElementById("btnRationEdit");
-        if (editBtn) {
-            editBtn.style.display = isAll ? "none" : "inline-block";
+            masterSummaryBody.innerHTML = summaryRowsHtml;
         }
-
-        if (Object.keys(aggRation).length === 0) {
-            rowsHtml = '<tr><td colspan="10" style="text-align:center; color:#888;">Noch keine Ration für diese Kategorie hinterlegt. Klicke auf "Ration für diese Kategorie anpassen".</td></tr>';
-        } else {
-            let label = isAll ? `GESAMTHERDE (${totalHerdAnimals} Rinder)` : `${CATTLE_CATEGORIES[selCategory]?.name} (${totalHerdAnimals} Stk)`;
-            rowsHtml += `<tr class="sum-row">
-                <td>GESAMTSUMME (${label})</td>
-                <td>-</td>
-                <td>${avgTmPerTier.toFixed(2)} kg TM</td>
-                <td>${avgMePerTier.toFixed(1)} MJ</td>
-                <td>${avgXpPerTier.toFixed(0)} g</td>
-                <td>${totalFmMontHerd.toFixed(1)} t</td>
-                <td>${totalTmMontHerd.toFixed(1)} t</td>
-                <td style="color:#90caf9;">${totalFmYearHerd.toFixed(1)} t FM</td>
-                <td>${totalTmYearHerd.toFixed(1)} t TM</td>
-                <td style="color:#ffe0b2;">${totalCostYearHerd.toLocaleString('de-DE', {maximumFractionDigits:0})} €</td>
-            </tr>`;
-        }
-
-        document.getElementById("calcRationTableBody").innerHTML = rowsHtml;
     }
 
-    // Modal Tierdetails aus Supabase mit Suche & Sortierung & Edit/Delete Buttons
-    function openCattleDetailModal(catKey) {
-        currentDetailCatKey = catKey;
-        let cat = CATTLE_CATEGORIES[catKey];
-        let animals = cattleCategoryAnimals[catKey] || [];
+    function handleHitCsvUpload(event) {
+        let file = event.target.files[0];
+        if (!file) return;
 
-        document.getElementById("cattleDetailModalTitle").innerText = `${cat.name} – (${animals.length} Rinder aus Supabase)`;
-
-        let searchModalEl = document.getElementById("modalCattleSearch");
-        if (searchModalEl) searchModalEl.value = "";
-
-        let sortModalEl = document.getElementById("modalCattleSort");
-        if (sortModalEl) sortModalEl.value = "geb_desc";
-
-        filterAndRenderCattleModalTable();
-        document.getElementById("cattleDetailModal").style.display = "flex";
-    }
-
-    function filterAndRenderCattleModalTable() {
-        if (!currentDetailCatKey) return;
-        let animals = cattleCategoryAnimals[currentDetailCatKey] || [];
-
-        let queryInput = document.getElementById("modalCattleSearch");
-        let sortInput = document.getElementById("modalCattleSort");
-
-        let query = queryInput && queryInput.value ? queryInput.value.trim().toLowerCase() : "";
-        let sortVal = sortInput ? sortInput.value : "geb_desc";
-
-        let filtered = animals.filter(c => {
-            if (!query) return true;
-
-            let earTag = String(c.ohrmarke || '').toLowerCase();
-            let breed = String(c.rasse || '').toLowerCase();
-            let owner = String(c.vorbesitzer || '').toLowerCase();
-            let rawDate = String(c.geburtsdatum || '').toLowerCase();
-            let euroDate = formatGermanDate(c.geburtsdatum).toLowerCase();
-
-            return earTag.includes(query) ||
-                   rawDate.includes(query) ||
-                   euroDate.includes(query) ||
-                   breed.includes(query) ||
-                   owner.includes(query);
-        });
-
-        filtered.sort((a, b) => {
-            let dateA = parseBirthDate(a.geburtsdatum);
-            let dateB = parseBirthDate(b.geburtsdatum);
-            let tA = dateA ? dateA.getTime() : 0;
-            let tB = dateB ? dateB.getTime() : 0;
-
-            if (sortVal === 'geb_desc') return tB - tA; // jüngste zuerst
-            if (sortVal === 'geb_asc') return tA - tB;  // älteste zuerst
-            if (sortVal === 'ohrmarke_asc') return String(a.ohrmarke || '').localeCompare(String(b.ohrmarke || ''));
-            return 0;
-        });
-
-        let html = "";
-        filtered.forEach(c => {
-            let displayDate = formatGermanDate(c.geburtsdatum) || '-';
-            let displayZukauf = c.zukaufsdatum ? 'Zukauf: ' + formatGermanDate(c.zukaufsdatum) : 'Bestand';
-
-            html += `<tr>
-                <td><strong style="color:#4caf50;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
-                <td>${displayDate}</td>
-                <td><strong>${c.ageMonths} Mo.</strong></td>
-                <td>${c.rasse || '-'}</td>
-                <td>${displayZukauf}</td>
-                <td>
-                    <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
-                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
-                </td>
-            </tr>`;
-        });
-
-        if (filtered.length === 0) {
-            html = '<tr><td colspan="6" style="text-align:center; color:#888;">Keine passenden Rinder in dieser Kategorie gefunden.</td></tr>';
+        let userConfirmed = confirm('Achtung: Dies löscht den gesamten bisherigen Tierbestand aus der Datenbank und ersetzt ihn durch die neue Datei! Fortfahren?');
+        if (!userConfirmed) {
+            event.target.value = "";
+            return;
         }
 
-        let bodyEl = document.getElementById("cattleDetailModalTableBody");
-        if (bodyEl) bodyEl.innerHTML = html;
+        let reader = new FileReader();
+
+        reader.onload = async function(e) {
+            try {
+                let content = e.target.result;
+                if (!content) {
+                    throw new Error("Die ausgewählte CSV-Datei ist leer.");
+                }
+
+                let lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                if (lines.length === 0) {
+                    throw new Error("Keine Daten in der CSV-Datei gefunden.");
+                }
+
+                let delimiter = ";";
+                let sampleLine = lines.find(l => l.length > 0) || "";
+                if (!sampleLine.includes(";") && sampleLine.includes(",")) {
+                    delimiter = ",";
+                } else if (!sampleLine.includes(";") && sampleLine.includes("\t")) {
+                    delimiter = "\t";
+                }
+
+                let headerIndex = -1;
+                let colMap = {
+                    ohrmarke: -1,
+                    geburtsdatum: -1,
+                    geschlecht: -1,
+                    rasse: -1,
+                    zukaufsdatum: -1,
+                    vorbesitzer: -1
+                };
+
+                for (let i = 0; i < Math.min(10, lines.length); i++) {
+                    let cols = lines[i].split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, '').toLowerCase());
+
+                    let hasOhrmarke = cols.some(c => c.includes("ohrmarke") || c.includes("lom") || c.includes("tier-id") || c.includes("tierid") || c.includes("ident"));
+                    let hasGeburt = cols.some(c => c.includes("geburt") || c.includes("gebdat") || c.includes("geb_dat"));
+
+                    if (hasOhrmarke || hasGeburt) {
+                        headerIndex = i;
+                        cols.forEach((colName, idx) => {
+                            if (colName.includes("ohrmarke") || colName.includes("lom") || colName.includes("tier-id") || colName.includes("ident")) {
+                                colMap.ohrmarke = idx;
+                            } else if (colName.includes("geburt") || colName.includes("gebdat") || colName.includes("geb_dat")) {
+                                colMap.geburtsdatum = idx;
+                            } else if (colName.includes("geschl") || colName === "m/w" || colName === "sex") {
+                                colMap.geschlecht = idx;
+                            } else if (colName.includes("rasse")) {
+                                colMap.rasse = idx;
+                            } else if (colName.includes("zukauf") || colName.includes("zugang")) {
+                                colMap.zukaufsdatum = idx;
+                            } else if (colName.includes("vorbesitzer") || colName.includes("herkunft") || colName.includes("betrieb")) {
+                                colMap.vorbesitzer = idx;
+                            }
+                        });
+                        break;
+                    }
+                }
+
+                let insertArray = [];
+                let startLine = headerIndex >= 0 ? headerIndex + 1 : 0;
+
+                for (let i = startLine; i < lines.length; i++) {
+                    let line = lines[i];
+                    if (line.startsWith("#") || line.startsWith("*") || line.startsWith("//")) continue;
+
+                    let row = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+                    if (row.length < 2) continue;
+
+                    let rawOhrmarke = "";
+                    let rawGeburtsdatum = "";
+                    let rawGeschlecht = "";
+                    let rawRasse = "";
+                    let rawZukaufsdatum = "";
+                    let rawVorbesitzer = "";
+
+                    if (headerIndex >= 0) {
+                        if (colMap.ohrmarke >= 0 && row[colMap.ohrmarke]) rawOhrmarke = row[colMap.ohrmarke];
+                        if (colMap.geburtsdatum >= 0 && row[colMap.geburtsdatum]) rawGeburtsdatum = row[colMap.geburtsdatum];
+                        if (colMap.geschlecht >= 0 && row[colMap.geschlecht]) rawGeschlecht = row[colMap.geschlecht];
+                        if (colMap.rasse >= 0 && row[colMap.rasse]) rawRasse = row[colMap.rasse];
+                        if (colMap.zukaufsdatum >= 0 && row[colMap.zukaufsdatum]) rawZukaufsdatum = row[colMap.zukaufsdatum];
+                        if (colMap.vorbesitzer >= 0 && row[colMap.vorbesitzer]) rawVorbesitzer = row[colMap.vorbesitzer];
+                    }
+
+                    if (!rawOhrmarke || !rawGeburtsdatum) {
+                        row.forEach(cell => {
+                            let cleanCell = cell.trim();
+                            if (!rawOhrmarke && (/^DE\s*\d+/i.test(cleanCell) || /^\d{10,12}$/.test(cleanCell))) {
+                                rawOhrmarke = cleanCell;
+                            } else if (/\d{1,2}\.\d{1,2}\.\d{4}/.test(cleanCell) || /\d{4}-\d{2}-\d{2}/.test(cleanCell)) {
+                                if (!rawGeburtsdatum) {
+                                    rawGeburtsdatum = cleanCell;
+                                } else if (!rawZukaufsdatum) {
+                                    rawZukaufsdatum = cleanCell;
+                                }
+                            } else if (!rawGeschlecht && /^(weiblich|männlich|w|m|1|2)$/i.test(cleanCell)) {
+                                rawGeschlecht = cleanCell;
+                            }
+                        });
+                    }
+
+                    if (!rawOhrmarke) continue;
+
+                    let isoGeburtsdatum = convertDateToIso(rawGeburtsdatum);
+                    let isoZukaufsdatum = convertDateToIso(rawZukaufsdatum);
+
+                    let geschlecht = "weiblich";
+                    let gLower = rawGeschlecht.toLowerCase();
+                    if (gLower.includes("m") && !gLower.includes("w")) {
+                        geschlecht = "männlich";
+                    } else if (gLower === "1") {
+                        geschlecht = "männlich";
+                    } else if (gLower === "2" || gLower === "w" || gLower.includes("weiblich")) {
+                        geschlecht = "weiblich";
+                    }
+
+                    insertArray.push({
+                        ohrmarke: rawOhrmarke,
+                        geburtsdatum: isoGeburtsdatum,
+                        geschlecht: geschlecht,
+                        rasse: rawRasse || "Fleckvieh",
+                        vorbesitzer: rawVorbesitzer || "",
+                        zukaufsdatum: isoZukaufsdatum,
+                        einkaufspreis: 0,
+                        verkaufspreis: 0
+                    });
+                }
+
+                if (insertArray.length === 0) {
+                    throw new Error("Es konnten keine gültigen Datensätze aus der CSV ausgelesen werden.");
+                }
+
+                let deleteRes = await fetch(SUPABASE_URL + "/rest/v1/rinder?id=not.is.null", {
+                    method: "DELETE",
+                    headers: headers
+                });
+
+                if (!deleteRes.ok) {
+                    let deleteRes2 = await fetch(SUPABASE_URL + "/rest/v1/rinder?ohrmarke=not.is.null", {
+                        method: "DELETE",
+                        headers: headers
+                    });
+                    if (!deleteRes2.ok) {
+                        throw new Error("Fehler beim Löschen des alten Tierbestands aus Supabase.");
+                    }
+                }
+
+                await supabase.from('rinder').insert(insertArray);
+
+                alert(`✅ Wipe & Replace erfolgreich! Der bisherige Tierbestand wurde gelöscht und ${insertArray.length} neue Rinder wurden in Supabase importiert.`);
+
+                if (typeof loadCattleFromSupabase === "function") {
+                    await loadCattleFromSupabase();
+                }
+
+            } catch (error) {
+                console.error("Fehler beim CSV-Import:", error);
+                alert('Datenbank-Fehler beim CSV-Import: ' + error.message);
+            }
+        };
+
+        reader.readAsText(file);
+        event.target.value = "";
     }
+    window.handleHitCsvUpload = handleHitCsvUpload;
+    window.moveBlockUp = moveBlockUp;
+    window.moveBlockDown = moveBlockDown;
+
 
     function closeCattleDetailModal() {
         document.getElementById("cattleDetailModal").style.display = "none";
