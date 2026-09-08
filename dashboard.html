@@ -714,6 +714,39 @@
                         throw new Error(errText || ("HTTP-Fehler " + res.status));
                     }
                     return await res.json().catch(() => ([]));
+                },
+                delete: function() {
+                    return {
+                        not: async function(column, operator, value) {
+                            let queryFilter = "";
+                            if (operator === "is" && value === null) {
+                                queryFilter = `${column}=not.is.null`;
+                            } else if (operator === "is") {
+                                queryFilter = `${column}=not.is.${value}`;
+                            } else {
+                                queryFilter = `${column}=not.${operator}.${value}`;
+                            }
+                            try {
+                                let res = await fetch(SUPABASE_URL + "/rest/v1/" + tableName + "?" + queryFilter, {
+                                    method: "DELETE",
+                                    headers: headers
+                                });
+                                if (!res.ok) {
+                                    let errText = "";
+                                    try {
+                                        let errJson = await res.json();
+                                        errText = errJson.message || errJson.details || errJson.hint || JSON.stringify(errJson);
+                                    } catch(e) {
+                                        errText = await res.text();
+                                    }
+                                    return { error: { message: errText || ("HTTP-Fehler " + res.status) } };
+                                }
+                                return { error: null };
+                            } catch(err) {
+                                return { error: { message: err.message } };
+                            }
+                        }
+                    };
                 }
             };
         },
@@ -2016,19 +2049,11 @@
                     throw new Error("Es konnten keine gültigen Datensätze aus der CSV ausgelesen werden.");
                 }
 
-                let deleteRes = await fetch(SUPABASE_URL + "/rest/v1/rinder?id=not.is.null", {
-                    method: "DELETE",
-                    headers: headers
-                });
+                const { error: deleteError } = await supabase.from('rinder').delete().not('id', 'is', null);
 
-                if (!deleteRes.ok) {
-                    let deleteRes2 = await fetch(SUPABASE_URL + "/rest/v1/rinder?ohrmarke=not.is.null", {
-                        method: "DELETE",
-                        headers: headers
-                    });
-                    if (!deleteRes2.ok) {
-                        throw new Error("Fehler beim Löschen des alten Tierbestands aus Supabase.");
-                    }
+                if (deleteError) {
+                    alert('Fehler beim Löschen der alten Daten: ' + deleteError.message);
+                    return;
                 }
 
                 await supabase.from('rinder').insert(insertArray);
@@ -2189,170 +2214,7 @@
         return null;
     }
 
-    function handleHitCsvUpload(event) {
-        let file = event.target.files[0];
-        if (!file) return;
 
-        alert("HIT-Bestand CSV Import gestartet: " + file.name);
-
-        let reader = new FileReader();
-
-        reader.onload = async function(e) {
-            try {
-                let content = e.target.result;
-                if (!content) {
-                    throw new Error("Die ausgewählte CSV-Datei ist leer.");
-                }
-
-                let lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-                if (lines.length === 0) {
-                    throw new Error("Keine Daten in der CSV-Datei gefunden.");
-                }
-
-                // Trennzeichen ermitteln (Semicolon ; ist Standard bei HI-Tier, sonst , oder \t)
-                let delimiter = ";";
-                let sampleLine = lines.find(l => l.length > 0) || "";
-                if (!sampleLine.includes(";") && sampleLine.includes(",")) {
-                    delimiter = ",";
-                } else if (!sampleLine.includes(";") && sampleLine.includes("\t")) {
-                    delimiter = "\t";
-                }
-
-                // Spalten-Header analysieren
-                let headerIndex = -1;
-                let colMap = {
-                    ohrmarke: -1,
-                    geburtsdatum: -1,
-                    geschlecht: -1,
-                    rasse: -1,
-                    zukaufsdatum: -1,
-                    vorbesitzer: -1
-                };
-
-                for (let i = 0; i < Math.min(10, lines.length); i++) {
-                    let cols = lines[i].split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, '').toLowerCase());
-
-                    let hasOhrmarke = cols.some(c => c.includes("ohrmarke") || c.includes("lom") || c.includes("tier-id") || c.includes("tierid") || c.includes("ident"));
-                    let hasGeburt = cols.some(c => c.includes("geburt") || c.includes("gebdat") || c.includes("geb_dat"));
-
-                    if (hasOhrmarke || hasGeburt) {
-                        headerIndex = i;
-                        cols.forEach((colName, idx) => {
-                            if (colName.includes("ohrmarke") || colName.includes("lom") || colName.includes("tier-id") || colName.includes("ident")) {
-                                colMap.ohrmarke = idx;
-                            } else if (colName.includes("geburt") || colName.includes("gebdat") || colName.includes("geb_dat")) {
-                                colMap.geburtsdatum = idx;
-                            } else if (colName.includes("geschl") || colName === "m/w" || colName === "sex") {
-                                colMap.geschlecht = idx;
-                            } else if (colName.includes("rasse")) {
-                                colMap.rasse = idx;
-                            } else if (colName.includes("zukauf") || colName.includes("zugang")) {
-                                colMap.zukaufsdatum = idx;
-                            } else if (colName.includes("vorbesitzer") || colName.includes("herkunft") || colName.includes("betrieb")) {
-                                colMap.vorbesitzer = idx;
-                            }
-                        });
-                        break;
-                    }
-                }
-
-                let insertArray = [];
-                let startLine = headerIndex >= 0 ? headerIndex + 1 : 0;
-
-                for (let i = startLine; i < lines.length; i++) {
-                    let line = lines[i];
-                    if (line.startsWith("#") || line.startsWith("*") || line.startsWith("//")) continue;
-
-                    let row = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
-                    if (row.length < 2) continue;
-
-                    let rawOhrmarke = "";
-                    let rawGeburtsdatum = "";
-                    let rawGeschlecht = "";
-                    let rawRasse = "";
-                    let rawZukaufsdatum = "";
-                    let rawVorbesitzer = "";
-
-                    if (headerIndex >= 0) {
-                        if (colMap.ohrmarke >= 0 && row[colMap.ohrmarke]) rawOhrmarke = row[colMap.ohrmarke];
-                        if (colMap.geburtsdatum >= 0 && row[colMap.geburtsdatum]) rawGeburtsdatum = row[colMap.geburtsdatum];
-                        if (colMap.geschlecht >= 0 && row[colMap.geschlecht]) rawGeschlecht = row[colMap.geschlecht];
-                        if (colMap.rasse >= 0 && row[colMap.rasse]) rawRasse = row[colMap.rasse];
-                        if (colMap.zukaufsdatum >= 0 && row[colMap.zukaufsdatum]) rawZukaufsdatum = row[colMap.zukaufsdatum];
-                        if (colMap.vorbesitzer >= 0 && row[colMap.vorbesitzer]) rawVorbesitzer = row[colMap.vorbesitzer];
-                    }
-
-                    // Fallback / Pattern-Matching falls kein Header oder leere Spalte
-                    if (!rawOhrmarke || !rawGeburtsdatum) {
-                        row.forEach(cell => {
-                            let cleanCell = cell.trim();
-                            if (!rawOhrmarke && (/^DE\s*\d+/i.test(cleanCell) || /^\d{10,12}$/.test(cleanCell))) {
-                                rawOhrmarke = cleanCell;
-                            } else if (/\d{1,2}\.\d{1,2}\.\d{4}/.test(cleanCell) || /\d{4}-\d{2}-\d{2}/.test(cleanCell)) {
-                                if (!rawGeburtsdatum) {
-                                    rawGeburtsdatum = cleanCell;
-                                } else if (!rawZukaufsdatum) {
-                                    rawZukaufsdatum = cleanCell;
-                                }
-                            } else if (!rawGeschlecht && /^(weiblich|männlich|w|m|1|2)$/i.test(cleanCell)) {
-                                rawGeschlecht = cleanCell;
-                            }
-                        });
-                    }
-
-                    if (!rawOhrmarke) continue;
-
-                    // Datum umwandeln in ISO-Format (JJJJ-MM-TT)
-                    let isoGeburtsdatum = convertDateToIso(rawGeburtsdatum);
-                    let isoZukaufsdatum = convertDateToIso(rawZukaufsdatum);
-
-                    // Geschlecht verarbeiten
-                    let geschlecht = "weiblich";
-                    let gLower = rawGeschlecht.toLowerCase();
-                    if (gLower.includes("m") && !gLower.includes("w")) {
-                        geschlecht = "männlich";
-                    } else if (gLower === "1") {
-                        geschlecht = "männlich";
-                    } else if (gLower === "2" || gLower === "w" || gLower.includes("weiblich")) {
-                        geschlecht = "weiblich";
-                    }
-
-                    insertArray.push({
-                        ohrmarke: rawOhrmarke,
-                        geburtsdatum: isoGeburtsdatum,
-                        geschlecht: geschlecht,
-                        rasse: rawRasse || "Fleckvieh",
-                        vorbesitzer: rawVorbesitzer || "",
-                        zukaufsdatum: isoZukaufsdatum,
-                        einkaufspreis: 0,
-                        verkaufspreis: 0
-                    });
-                }
-
-                if (insertArray.length === 0) {
-                    throw new Error("Es konnten keine gültigen Datensätze aus der CSV ausgelesen werden.");
-                }
-
-                console.log('Daten für Supabase:', insertArray);
-
-                await supabase.from('rinder').insert(insertArray);
-
-                alert(`✅ Import erfolgreich! ${insertArray.length} Tiere wurden in Supabase eingefügt.`);
-
-                if (typeof loadCattleFromSupabase === "function") {
-                    await loadCattleFromSupabase();
-                }
-
-            } catch (error) {
-                console.error("Fehler beim CSV-Import:", error);
-                alert('Datenbank-Fehler: ' + error.message);
-            }
-        };
-
-        reader.readAsText(file);
-        event.target.value = "";
-    }
-    window.handleHitCsvUpload = handleHitCsvUpload;
 
     async function saveCattleCombined() {
         if (!editingCattleId) return;
