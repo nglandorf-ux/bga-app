@@ -1949,25 +1949,37 @@
                 };
 
                 for (let i = 0; i < Math.min(10, lines.length); i++) {
-                    let cols = lines[i].split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, '').toLowerCase());
+                    let rawCols = lines[i].split(delimiter);
+                    let cols = rawCols.map(c => c.trim().replace(/^["']|["']$/g, ''));
 
-                    let hasOhrmarke = cols.some(c => c.includes("ohrmarke") || c.includes("lom") || c.includes("tier-id") || c.includes("tierid") || c.includes("ident"));
-                    let hasGeburt = cols.some(c => c.includes("geburt") || c.includes("gebdat") || c.includes("geb_dat"));
+                    let hasOhrmarke = cols.some(c => {
+                        let lower = c.toLowerCase();
+                        return lower.includes("ohrmarke") || lower.includes("lom") || lower.includes("tier-id") || lower.includes("tierid") || lower.includes("ident");
+                    });
+                    let hasGeburt = cols.some(c => {
+                        let lower = c.toLowerCase();
+                        let upper = c.toUpperCase();
+                        return lower.includes("geburt") || lower.includes("gebdat") || lower.includes("geb_dat") || upper === "DAT_EIN" || upper.startsWith("BNR15_GE");
+                    });
 
                     if (hasOhrmarke || hasGeburt) {
                         headerIndex = i;
                         cols.forEach((colName, idx) => {
-                            if (colName.includes("ohrmarke") || colName.includes("lom") || colName.includes("tier-id") || colName.includes("ident")) {
+                            let cleanCol = colName.trim().replace(/^["']|["']$/g, '');
+                            let lower = cleanCol.toLowerCase();
+                            let upper = cleanCol.toUpperCase();
+
+                            if (lower.includes("ohrmarke") || lower.includes("lom") || lower.includes("tier-id") || lower.includes("ident")) {
                                 colMap.ohrmarke = idx;
-                            } else if (colName.includes("geburt") || colName.includes("gebdat") || colName.includes("geb_dat")) {
+                            } else if (lower.includes("geburt") || lower.includes("gebdat") || lower.includes("geb_dat")) {
                                 colMap.geburtsdatum = idx;
-                            } else if (colName.includes("geschl") || colName === "m/w" || colName === "sex") {
+                            } else if (lower.includes("geschl") || lower === "m/w" || lower === "sex") {
                                 colMap.geschlecht = idx;
-                            } else if (colName.includes("rasse")) {
+                            } else if (lower.includes("rasse")) {
                                 colMap.rasse = idx;
-                            } else if (colName.includes("zukauf") || colName.includes("zugang")) {
+                            } else if (upper === "DAT_EIN" || lower.includes("zukauf") || lower.includes("zugang")) {
                                 colMap.zukaufsdatum = idx;
-                            } else if (colName.includes("vorbesitzer") || colName.includes("herkunft") || colName.includes("betrieb")) {
+                            } else if (upper === "BNR15_GEX" || upper.startsWith("BNR15_GE") || lower.includes("vorbesitzer") || lower.includes("herkunft") || lower.includes("betrieb")) {
                                 colMap.vorbesitzer = idx;
                             }
                         });
@@ -2207,6 +2219,12 @@
                     return `${year}-${month}-${day}`;
                 }
             }
+        }
+        if (/^\d{8}$/.test(str) && (str.startsWith("19") || str.startsWith("20"))) {
+            let year = str.substring(0, 4);
+            let month = str.substring(4, 6);
+            let day = str.substring(6, 8);
+            return `${year}-${month}-${day}`;
         }
         if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
             return str;
