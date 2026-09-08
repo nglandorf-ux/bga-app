@@ -698,6 +698,13 @@
             <button class="close-btn" onclick="closeBetriebeModal()">×</button>
         </div>
 
+        <!-- AUTO-SYNC BUTTON -->
+        <div style="margin-bottom: 15px;">
+            <button onclick="syncBetriebeFromCattle()" style="width:100%; background:linear-gradient(135deg, #1976d2, #1565c0); color:#fff; font-size:14px; font-weight:bold; padding:12px 16px; border:1px solid #2196f3; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 3px 6px rgba(0,0,0,0.25);">
+                🔄 Fehlende Betriebsnummern aus Bestand importieren
+            </button>
+        </div>
+
         <!-- FORMULAR OBEN -->
         <div style="background:#2a2a2a; padding:20px; border-radius:8px; margin-bottom:20px; border:1px solid #333;">
             <h3 style="margin:0 0 15px 0; color:#4caf50; font-size:16px;">➕ Betrieb anlegen / bearbeiten</h3>
@@ -1639,12 +1646,129 @@
         }
     }
 
+    async function syncBetriebeFromCattle() {
+        if (!supabaseCattleList || !Array.isArray(supabaseCattleList) || supabaseCattleList.length === 0) {
+            if (typeof loadCattleFromSupabase === "function") {
+                await loadCattleFromSupabase();
+            }
+        }
+
+        if (!supabaseCattleList || !Array.isArray(supabaseCattleList) || supabaseCattleList.length === 0) {
+            alert("Keine Rinder im Bestand geladen.");
+            return;
+        }
+
+        // 1. Extrahiere alle einzigartigen Werte aus vorbesitzer oder geburtsbetrieb
+        let rawNumbersSet = new Set();
+        supabaseCattleList.forEach(c => {
+            let val = (c.vorbesitzer || c.geburtsbetrieb || "").toString().trim();
+            if (!val || val === "0" || val === "null" || val === "-" || val === "undefined") return;
+
+            // Falls Format z.B. "276031234567890 (Hof Meier)" ist, extrahiere den Teil vor der Klammer
+            if (val.includes("(")) {
+                val = val.split("(")[0].trim();
+            }
+
+            if (val.length > 0) {
+                rawNumbersSet.add(val);
+            }
+        });
+
+        let cattleBetriebe = Array.from(rawNumbersSet);
+        if (cattleBetriebe.length === 0) {
+            alert("Keine Betriebsnummern (Vorbesitzer / Geburtsbetrieb) im Rinderbestand gefunden.");
+            return;
+        }
+
+        // Stelle sicher, dass supabaseBetriebeList geladen ist
+        if (!supabaseBetriebeList || supabaseBetriebeList.length === 0) {
+            await loadBetriebe();
+        }
+
+        // 2. Vergleiche diese Nummern mit den bereits vorhandenen Nummern in supabaseBetriebeList
+        let missingBetriebe = cattleBetriebe.filter(nr => {
+            let found = findBetriebByNummer(nr);
+            if (found) return false;
+
+            let existsDirect = (supabaseBetriebeList || []).some(b => {
+                let bnr = String(b.betriebsnummer || b.bnr || b.hi_tier_nr || b.betriebs_nr || "").trim();
+                if (!bnr) return false;
+                if (bnr === nr) return true;
+                let d1 = bnr.replace(/\D/g, '');
+                let d2 = nr.replace(/\D/g, '');
+                return d1.length >= 5 && d2.length >= 5 && (d1 === d2 || d1.includes(d2) || d2.includes(d1));
+            });
+
+            return !existsDirect;
+        });
+
+        if (missingBetriebe.length === 0) {
+            alert("Keine neuen Betriebsnummern gefunden. Alle Betriebsnummern aus dem Bestand sind bereits vorhanden!");
+            return;
+        }
+
+        // 3. Sende einen Bulk-Insert an die Tabelle partnerbetriebe
+        let payload = missingBetriebe.map(nr => ({
+            betriebsnummer: nr,
+            hofname: 'Name eintragen...',
+            name: 'Name eintragen...',
+            adresse: '',
+            adresse_notiz: ''
+        }));
+
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/partnerbetriebe", {
+                method: "POST",
+                headers: { ...headers, "Prefer": "resolution=merge-duplicates" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                let fallback1 = missingBetriebe.map(nr => ({
+                    betriebsnummer: nr,
+                    hofname: 'Name eintragen...',
+                    adresse: ''
+                }));
+                res = await fetch(SUPABASE_URL + "/rest/v1/partnerbetriebe", {
+                    method: "POST",
+                    headers: { ...headers, "Prefer": "resolution=merge-duplicates" },
+                    body: JSON.stringify(fallback1)
+                });
+            }
+
+            if (!res.ok) {
+                let fallback2 = missingBetriebe.map(nr => ({
+                    betriebsnummer: nr,
+                    name: 'Name eintragen...',
+                    adresse_notiz: ''
+                }));
+                res = await fetch(SUPABASE_URL + "/rest/v1/partnerbetriebe", {
+                    method: "POST",
+                    headers: { ...headers, "Prefer": "resolution=merge-duplicates" },
+                    body: JSON.stringify(fallback2)
+                });
+            }
+
+            if (res.ok) {
+                await loadBetriebe();
+                alert(`${missingBetriebe.length} neue Betriebsnummer(n) gefunden und importiert!`);
+            } else {
+                let errText = await res.text();
+                alert("Fehler beim Importieren der Betriebsnummern: " + errText);
+            }
+        } catch (e) {
+            console.error("Fehler in syncBetriebeFromCattle:", e);
+            alert("Verbindungsfehler beim Synchronisieren der Betriebsnummern.");
+        }
+    }
+
     window.loadBetriebe = loadBetriebe;
     window.saveBetrieb = saveBetrieb;
     window.openBetriebeModal = openBetriebeModal;
     window.closeBetriebeModal = closeBetriebeModal;
     window.editBetrieb = editBetrieb;
     window.deleteBetrieb = deleteBetrieb;
+    window.syncBetriebeFromCattle = syncBetriebeFromCattle;
 
     function formatGermanDate(dateStr) {
         if (!dateStr || dateStr === '0' || dateStr === 'null') return '';
