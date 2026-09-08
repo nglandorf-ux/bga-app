@@ -1541,7 +1541,7 @@
                 <td>${displayZukauf}</td>
                 <td>
                     <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
-                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
+                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
         });
@@ -1792,7 +1792,7 @@
                 <td>${displayZukauf}</td>
                 <td>
                     <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
-                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${c.ohrmarke}')">🗑️ Löschen</button>
+                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
                 </td>
             </tr>`;
         });
@@ -1830,9 +1830,15 @@
 
     // Kombinierte Tier-Akte (Ansehen & Bearbeiten)
     function openCattleAkte(id) {
-        if (!supabaseCattleList || !Array.isArray(supabaseCattleList)) return;
-        let c = supabaseCattleList.find(x => x.id === id);
-        if (!c) return;
+        if (!supabaseCattleList || !Array.isArray(supabaseCattleList)) {
+            console.warn("supabaseCattleList ist noch nicht geladen.");
+            return;
+        }
+        let c = supabaseCattleList.find(x => String(x.id) === String(id));
+        if (!c) {
+            console.warn("Rind nicht in supabaseCattleList gefunden für ID:", id);
+            return;
+        }
 
         editingCattleId = id;
 
@@ -1864,7 +1870,11 @@
         if (vp) vp.value = c.verkaufspreis || 0;
 
         let modal = document.getElementById("cattleCombinedModal");
-        if (modal) modal.style.display = "flex";
+        if (modal) {
+            modal.style.display = "flex";
+        } else {
+            console.error("Modal mit ID 'cattleCombinedModal' wurde nicht im DOM gefunden!");
+        }
     }
 
     function openCattleDossier(id) {
@@ -1896,6 +1906,23 @@
     function closeEditCattleModal() {
         closeCattleCombinedModal();
     }
+
+    // Explitzite Bindung an den globalen Window-Scope
+    window.openCattleAkte = openCattleAkte;
+    window.openCattleDossier = openCattleDossier;
+    window.openCattleAkteModal = openCattleAkteModal;
+    window.editCattle = editCattle;
+    window.openEditCattleModal = openEditCattleModal;
+    window.closeCattleCombinedModal = closeCattleCombinedModal;
+    window.closeCattleAkteModal = closeCattleAkteModal;
+    window.closeEditCattleModal = closeEditCattleModal;
+
+    function handleHitCsvUpload(event) {
+        let file = event.target.files[0];
+        if (!file) return;
+        alert("HIT-Bestand CSV Import gestartet: " + file.name);
+    }
+    window.handleHitCsvUpload = handleHitCsvUpload;
 
     async function saveCattleCombined() {
         if (!editingCattleId) return;
