@@ -735,17 +735,57 @@
                         <th>HI-Tier Betriebsnummer</th>
                         <th>Hofname / Besitzer</th>
                         <th>Adresse / Notiz</th>
+                        <th>Anzahl Kälber</th>
                         <th>Aktionen</th>
                     </tr>
                 </thead>
                 <tbody id="betriebeTableBody">
-                    <tr><td colspan="4" style="text-align:center; color:#888;">Lade Betriebe...</td></tr>
+                    <tr><td colspan="5" style="text-align:center; color:#888;">Lade Betriebe...</td></tr>
                 </tbody>
             </table>
         </div>
 
         <div style="display:flex; justify-content:flex-end; margin-top:20px;">
             <button onclick="closeBetriebeModal()" style="background:#555; width:auto; padding:10px 20px; margin:0;">Schließen</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 6: KÄLBER-HISTORIE PRO BETRIEB (SUB-MODAL) -->
+<div id="betriebKaelberModal" class="modal-overlay" style="z-index: 1100;">
+    <div class="modal-content" style="max-width: 850px; width: 90%;">
+        <div class="modal-header">
+            <h2>🔍 Kälber & Historie von Betrieb: <span id="betriebKaelberModalTitle" style="color:#4caf50;"></span></h2>
+            <button class="close-btn" onclick="closeBetriebKaelberModal()">×</button>
+        </div>
+
+        <div style="margin-bottom: 15px; background: #2a2a2a; padding: 12px 16px; border-radius: 8px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 14px; color: #ccc;">
+                Insg. zugeordnete Tiere im Bestand: <strong id="betriebKaelberModalCount" style="color: #81c784; font-size: 16px;">0</strong>
+            </div>
+            <div style="font-size: 12px; color: #888;">
+                (Gefiltert aus aktuellem Rinderbestand)
+            </div>
+        </div>
+
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #333; border-radius: 8px; background: #181818;">
+            <table class="data-table" style="margin:0; width:100%;">
+                <thead>
+                    <tr style="position: sticky; top: 0; background: #222; z-index: 2;">
+                        <th>Ohrmarke</th>
+                        <th>Zukaufsdatum</th>
+                        <th>Alter</th>
+                        <th>Historie / Notizen</th>
+                    </tr>
+                </thead>
+                <tbody id="betriebKaelberTableBody">
+                    <tr><td colspan="4" style="text-align:center; color:#888;">Lade Kälber...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+            <button onclick="closeBetriebKaelberModal()" style="background:#555; width:auto; padding:10px 20px; margin:0;">Schließen</button>
         </div>
     </div>
 </div>
@@ -1518,6 +1558,44 @@
         if (adr) adr.value = "";
     }
 
+    function getKaelberForBetrieb(rawBnr) {
+        if (!supabaseCattleList || !Array.isArray(supabaseCattleList) || supabaseCattleList.length === 0) {
+            return [];
+        }
+        if (!rawBnr) return [];
+
+        let targetBnrStr = String(rawBnr).trim();
+        let targetDigits = targetBnrStr.replace(/\D/g, '');
+        let betriebObj = typeof findBetriebByNummer === "function" ? findBetriebByNummer(rawBnr) : null;
+
+        return supabaseCattleList.filter(c => {
+            let cVorbesitzer = String(c.vorbesitzer || c.geburtsbetrieb || "").trim();
+            if (!cVorbesitzer || cVorbesitzer === "0" || cVorbesitzer === "null" || cVorbesitzer === "-" || cVorbesitzer === "undefined") return false;
+
+            if (betriebObj) {
+                let matchedB = findBetriebByNummer(cVorbesitzer);
+                if (matchedB) {
+                    let bId1 = betriebObj.id || betriebObj.betriebsnummer || betriebObj.bnr;
+                    let bId2 = matchedB.id || matchedB.betriebsnummer || matchedB.bnr;
+                    if (bId1 && bId2 && bId1 === bId2) return true;
+                }
+            }
+
+            if (cVorbesitzer === targetBnrStr) return true;
+            if (targetBnrStr.length >= 3 && cVorbesitzer.includes(targetBnrStr)) return true;
+            if (cVorbesitzer.length >= 3 && targetBnrStr.includes(cVorbesitzer)) return true;
+
+            let cDigits = cVorbesitzer.replace(/\D/g, '');
+            if (targetDigits.length >= 5 && cDigits.length >= 5) {
+                if (cDigits === targetDigits || cDigits.includes(targetDigits) || targetDigits.includes(cDigits)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    }
+
     async function loadBetriebe() {
         try {
             let res = await fetch(SUPABASE_URL + "/rest/v1/partnerbetriebe?select=*", { headers });
@@ -1540,7 +1618,7 @@
 
         let html = "";
         if (!supabaseBetriebeList || supabaseBetriebeList.length === 0) {
-            html = `<tr><td colspan="4" style="text-align:center; color:#888;">Keine Partnerbetriebe vorhanden.</td></tr>`;
+            html = `<tr><td colspan="5" style="text-align:center; color:#888;">Keine Partnerbetriebe vorhanden.</td></tr>`;
         } else {
             supabaseBetriebeList.forEach(b => {
                 let bnr = b.betriebsnummer || b.bnr || b.hi_tier_nr || b.betriebs_nr || "-";
@@ -1548,11 +1626,20 @@
                 let adr = b.adresse || b.notiz || b.adresse_notiz || "-";
                 let bId = b.id || "";
 
+                let kaelber = getKaelberForBetrieb(bnr);
+                let count = kaelber.length;
+
+                let countBadge = count > 0
+                    ? `<span style="background:#1b5e20; color:#81c784; padding:4px 10px; border-radius:12px; font-weight:bold; font-size:13px; display:inline-flex; align-items:center; gap:4px;">🐄 ${count} Kälber</span>`
+                    : `<span style="color:#777; font-size:13px;">0 Kälber</span>`;
+
                 html += `<tr>
                     <td><strong style="color:#4caf50;">${bnr}</strong></td>
                     <td><strong>${hof}</strong></td>
                     <td>${adr}</td>
+                    <td>${countBadge}</td>
                     <td>
+                        <button class="action-btn" style="background:#00838f;" onclick="showKaelberForBetrieb('${(bnr).replace(/'/g, "\\'")}')">🔍 Kälber anzeigen</button>
                         <button class="action-btn" onclick="editBetrieb('${bId}')">✏️ Edit</button>
                         <button class="action-btn danger" onclick="deleteBetrieb('${bId}', '${(bnr).replace(/'/g, "\\'")}')">🗑️ Löschen</button>
                     </td>
@@ -1762,6 +1849,127 @@
         }
     }
 
+    async function showKaelberForBetrieb(betriebsnummer) {
+        let modal = document.getElementById("betriebKaelberModal");
+        let titleEl = document.getElementById("betriebKaelberModalTitle");
+        let countEl = document.getElementById("betriebKaelberModalCount");
+        let tbody = document.getElementById("betriebKaelberTableBody");
+
+        if (modal) modal.style.display = "flex";
+
+        let bObj = typeof findBetriebByNummer === "function" ? findBetriebByNummer(betriebsnummer) : null;
+        let titleText = betriebsnummer;
+        if (bObj) {
+            let name = bObj.hofname || bObj.name || bObj.besitzer || "";
+            if (name) titleText = `${betriebsnummer} (${name})`;
+        }
+        if (titleEl) titleEl.innerText = titleText;
+
+        if (!supabaseCattleList || !Array.isArray(supabaseCattleList) || supabaseCattleList.length === 0) {
+            if (typeof loadCattleFromSupabase === "function") {
+                await loadCattleFromSupabase();
+            }
+        }
+
+        let kaelber = getKaelberForBetrieb(betriebsnummer);
+        if (countEl) countEl.innerText = kaelber.length;
+
+        if (!tbody) return;
+
+        if (kaelber.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding:20px;">Keine Kälber / Rinder von Betrieb ${betriebsnummer} im Bestand gefunden.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding:20px;">⌛ Lade Tier-Historie & Notizen...</td></tr>`;
+
+        let behandlungenMap = {};
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/behandlungen?select=*", { headers });
+            if (res.ok) {
+                let bList = await res.json();
+                if (Array.isArray(bList)) {
+                    bList.forEach(b => {
+                        let key = String(b.rind_ohrmarke || b.ohrmarke || "").replace(/\s/g, "").toLowerCase();
+                        if (key) {
+                            if (!behandlungenMap[key]) behandlungenMap[key] = [];
+                            behandlungenMap[key].push(b);
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn("Konnte behandlungen nicht laden:", e);
+        }
+
+        let html = "";
+        kaelber.forEach(c => {
+            let earTag = c.ohrmarke || "Keine Ohrmarke";
+            let cleanEar = String(earTag).replace(/\s/g, "").toLowerCase();
+
+            let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : (c.zugangsdatum ? formatGermanDate(c.zugangsdatum) : "Eigenbestand");
+
+            let bDate = parseBirthDate(c.geburtsdatum);
+            let displayAlter = "-";
+            if (bDate && !isNaN(bDate.getTime())) {
+                let ageM = calculateAgeInMonths(bDate);
+                if (ageM < 24) {
+                    displayAlter = `${ageM} Mo.`;
+                } else {
+                    let y = Math.floor(ageM / 12);
+                    let m = ageM % 12;
+                    displayAlter = `${y} J. ${m} M. (${ageM} Mo.)`;
+                }
+            }
+
+            let historyEntries = [];
+
+            let directNote = c.historie || c.notizen || c.notiz || c.behandlung || c.behandlungen || c.krankheit || c.krankheiten || c.bemerkung || c.anmerkung || c.gesundheit || "";
+            if (directNote && String(directNote).trim() !== "" && String(directNote).trim() !== "null") {
+                historyEntries.push(`📝 ${String(directNote).trim()}`);
+            }
+
+            if (behandlungenMap[cleanEar] && behandlungenMap[cleanEar].length > 0) {
+                behandlungenMap[cleanEar].forEach(b => {
+                    let d = b.datum ? formatGermanDate(b.datum) : "";
+                    let kr = b.krankheit || b.diagnose || "";
+                    let med = b.medikament || "";
+                    let not = b.notiz || b.anmerkung || "";
+
+                    let parts = [];
+                    if (kr) parts.push(`Krankheit: ${kr}`);
+                    if (med) parts.push(`Medikament: ${med}`);
+                    if (not) parts.push(`Notiz: ${not}`);
+
+                    let entryStr = parts.join(" | ");
+                    if (d) entryStr = `[${d}] ${entryStr}`;
+                    if (entryStr) historyEntries.push(`⚠️ ${entryStr}`);
+                });
+            }
+
+            let historyHtml = "";
+            if (historyEntries.length > 0) {
+                historyHtml = historyEntries.map(h => `<div style="background:#3a1d1d; border-left:3px solid #ff5252; color:#ffcdd2; padding:4px 8px; margin:2px 0; border-radius:3px; font-size:12px;">${h}</div>`).join("");
+            } else {
+                historyHtml = `<span style="color:#66bb6a; font-size:12px;">🟢 Keine Behandlungen / Unauffällig</span>`;
+            }
+
+            html += `<tr>
+                <td><strong style="color:#4caf50; font-size:14px;">${earTag}</strong></td>
+                <td>${displayZukauf}</td>
+                <td><strong>${displayAlter}</strong></td>
+                <td style="max-width:320px; word-wrap:break-word;">${historyHtml}</td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    function closeBetriebKaelberModal() {
+        let modal = document.getElementById("betriebKaelberModal");
+        if (modal) modal.style.display = "none";
+    }
+
     window.loadBetriebe = loadBetriebe;
     window.saveBetrieb = saveBetrieb;
     window.openBetriebeModal = openBetriebeModal;
@@ -1769,6 +1977,8 @@
     window.editBetrieb = editBetrieb;
     window.deleteBetrieb = deleteBetrieb;
     window.syncBetriebeFromCattle = syncBetriebeFromCattle;
+    window.showKaelberForBetrieb = showKaelberForBetrieb;
+    window.closeBetriebKaelberModal = closeBetriebKaelberModal;
 
     function formatGermanDate(dateStr) {
         if (!dateStr || dateStr === '0' || dateStr === 'null') return '';
@@ -1870,6 +2080,7 @@
             renderCattleCategoryTable();
             renderAllCattleTable();
             renderFeedingCalculator();
+            if (typeof renderBetriebeTable === "function") renderBetriebeTable();
 
         } catch (error) {
             console.error("Fehler beim Laden der Supabase-Rinder:", error);
