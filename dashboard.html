@@ -454,6 +454,60 @@
             <button onclick="loadFuhrparkData()" style="width:auto; margin:0; padding:8px 16px; font-size:13px; background:#444;">🔄 Daten aktualisieren</button>
         </div>
 
+        <!-- BLOCK 0: Fuhrpark-Statistiken (Laufendes Jahr) -->
+        <div class="table-container" style="margin-bottom: 25px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:18px; color:#4caf50;">📊 Fuhrpark-Statistiken (<span id="fuhrpark-stats-year">2026</span>)</h3>
+            </div>
+
+            <!-- 1. Kennzahlen-Karten (Dashboard Cards) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #1e2922 0%, #171f1a 100%); border: 1px solid #2e4d36; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 11px; color: #81c784; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⏱️ Gesamte Betriebsstunden</div>
+                    <div id="stat-card-stunden" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 h</div>
+                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Differenz der Zählerstände im Jahr</div>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #1c2636 0%, #151c28 100%); border: 1px solid #244163; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 11px; color: #64b5f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⛽ Gesamtverbrauch Diesel</div>
+                    <div id="stat-card-diesel" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
+                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe aller Tankungen</div>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #182c33 0%, #122026 100%); border: 1px solid #204b57; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 11px; color: #4dd0e1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">💧 Gesamtverbrauch AdBlue</div>
+                    <div id="stat-card-adblue" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
+                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe AdBlue getankt</div>
+                </div>
+
+                <div style="background: linear-gradient(135deg, #332717 0%, #261d11 100%); border: 1px solid #574020; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 11px; color: #ffb74d; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">📈 Ø Verbrauch</div>
+                    <div id="stat-card-avg" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l/h</div>
+                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Gesamte Liter / Gefahrene Std</div>
+                </div>
+            </div>
+
+            <!-- 2. Die Maschinen-Jahresbilanz (Tabelle) -->
+            <div style="margin-top: 15px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #ddd;">🚜 Maschinen-Jahresbilanz</h4>
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fahrzeug</th>
+                                <th>Gefahrene Stunden (Jahr)</th>
+                                <th>Getankte Liter</th>
+                                <th>Ø Verbrauch (l/h)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fuhrparkStatsTableBody">
+                            <tr><td colspan="4" style="text-align:center; color:#888;">Berechne Jahresbilanz...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- BLOCK 1: TÜV- & Mängel-Radar -->
         <div class="table-container">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
@@ -1087,6 +1141,7 @@
             populateEquipmentDropdowns();
             renderTuevMaengelTable();
             renderTanklogTable();
+            await loadFuhrparkStats();
 
         } catch (error) {
             console.error("Fehler beim Laden der Fuhrpark-Daten:", error);
@@ -1094,7 +1149,144 @@
             if (tuevBody) tuevBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
             let tankBody = document.getElementById("tanklogTableBody");
             if (tankBody) tankBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
+            let statsBody = document.getElementById("fuhrparkStatsTableBody");
+            if (statsBody) statsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
         }
+    }
+
+    async function loadFuhrparkStats() {
+        let tbody = document.getElementById("fuhrparkStatsTableBody");
+        let currentYear = new Date().getFullYear();
+
+        let yearEl = document.getElementById("fuhrpark-stats-year");
+        if (yearEl) yearEl.innerText = currentYear;
+
+        let tanklogs = globalTanklogList;
+        if (!tanklogs || tanklogs.length === 0) {
+            try {
+                let res = await fetch(SUPABASE_URL + "/rest/v1/tanklog?select=*&order=created_at.desc", { headers });
+                if (res.ok) {
+                    tanklogs = await res.json();
+                    globalTanklogList = tanklogs;
+                } else {
+                    tanklogs = [];
+                }
+            } catch (e) {
+                console.error("Fehler beim Abrufen der Tanklogs für Fuhrpark-Statistiken:", e);
+                tanklogs = [];
+            }
+        }
+
+        // Filter tanklog entries for current calendar year based on created_at (or datum fallback)
+        let currentYearLogs = tanklogs.filter(log => {
+            let dateObj = null;
+            if (log.created_at) {
+                dateObj = new Date(log.created_at);
+            } else if (log.datum) {
+                dateObj = new Date(log.datum);
+            }
+            return dateObj && !isNaN(dateObj.getTime()) && dateObj.getFullYear() === currentYear;
+        });
+
+        // Group data by equipment_id
+        let equipmentStatsMap = {};
+
+        currentYearLogs.forEach(log => {
+            let eqId = String(log.equipment_id);
+            if (!equipmentStatsMap[eqId]) {
+                equipmentStatsMap[eqId] = {
+                    dieselSum: 0,
+                    adblueSum: 0,
+                    stundenList: []
+                };
+            }
+
+            let diesel = parseFloat(log.liter) || 0;
+            let adblue = parseFloat(log.liter_adblue) || 0;
+            let stunden = parseFloat(log.betriebsstunden);
+
+            equipmentStatsMap[eqId].dieselSum += diesel;
+            equipmentStatsMap[eqId].adblueSum += adblue;
+
+            if (!isNaN(stunden) && stunden > 0) {
+                equipmentStatsMap[eqId].stundenList.push(stunden);
+            }
+        });
+
+        // Collect all machines from globalEquipmentList and currentYearLogs
+        let eqMap = {};
+        if (globalEquipmentList && globalEquipmentList.length > 0) {
+            globalEquipmentList.forEach(eq => {
+                eqMap[String(eq.id)] = eq;
+            });
+        }
+
+        Object.keys(equipmentStatsMap).forEach(eqId => {
+            if (!eqMap[eqId]) {
+                eqMap[eqId] = { id: eqId, name: "Fahrzeug #" + eqId };
+            }
+        });
+
+        let totalGefahreneStunden = 0;
+        let totalDieselSum = 0;
+        let totalAdBlueSum = 0;
+
+        let tableRowsHtml = "";
+        let eqKeys = Object.keys(eqMap);
+
+        if (eqKeys.length === 0) {
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Keine Fahrzeugdaten vorhanden.</td></tr>`;
+            }
+        } else {
+            eqKeys.forEach(eqId => {
+                let eqObj = eqMap[eqId];
+                let eqName = eqObj ? (eqObj.name || eqObj.bezeichnung || eqObj.fahrzeug || ("Fahrzeug #" + eqId)) : ("Fahrzeug #" + eqId);
+
+                let stats = equipmentStatsMap[eqId] || { dieselSum: 0, adblueSum: 0, stundenList: [] };
+
+                let gefahreneStunden = 0;
+                if (stats.stundenList.length >= 2) {
+                    let maxStunden = Math.max(...stats.stundenList);
+                    let minStunden = Math.min(...stats.stundenList);
+                    gefahreneStunden = Math.max(0, maxStunden - minStunden);
+                }
+
+                let getankteLiter = stats.dieselSum;
+                totalGefahreneStunden += gefahreneStunden;
+                totalDieselSum += getankteLiter;
+                totalAdBlueSum += stats.adblueSum;
+
+                let avgVerbrauch = gefahreneStunden > 0 ? (getankteLiter / gefahreneStunden) : null;
+
+                let avgHtml = avgVerbrauch !== null ? `<strong style="color:#ffb74d;">${avgVerbrauch.toFixed(1)} l/h</strong>` : '-';
+
+                tableRowsHtml += `<tr>
+                    <td><strong>🚜 ${eqName}</strong></td>
+                    <td>${gefahreneStunden > 0 ? gefahreneStunden.toFixed(1) + ' h' : '-'}</td>
+                    <td>${getankteLiter > 0 ? getankteLiter.toFixed(1) + ' l' : '0.0 l'}</td>
+                    <td>${avgHtml}</td>
+                </tr>`;
+            });
+
+            if (tbody) {
+                tbody.innerHTML = tableRowsHtml;
+            }
+        }
+
+        // Update Cards
+        let cardStundenEl = document.getElementById("stat-card-stunden");
+        if (cardStundenEl) cardStundenEl.innerText = totalGefahreneStunden.toFixed(1) + " h";
+
+        let cardDieselEl = document.getElementById("stat-card-diesel");
+        if (cardDieselEl) cardDieselEl.innerText = totalDieselSum.toFixed(1) + " l";
+
+        let cardAdblueEl = document.getElementById("stat-card-adblue");
+        if (cardAdblueEl) cardAdblueEl.innerText = totalAdBlueSum.toFixed(1) + " l";
+
+        let totalAvgVerbrauch = totalGefahreneStunden > 0 ? (totalDieselSum / totalGefahreneStunden) : 0;
+        let cardAvgEl = document.getElementById("stat-card-avg");
+        if (cardAvgEl) cardAvgEl.innerText = totalAvgVerbrauch > 0 ? (totalAvgVerbrauch.toFixed(1) + " l/h") : "0.0 l/h";
     }
 
     async function fetchMaengelFromSupabase() {
@@ -1526,6 +1718,7 @@
     }
 
     window.loadFuhrparkData = loadFuhrparkData;
+    window.loadFuhrparkStats = loadFuhrparkStats;
     window.saveTankung = saveTankung;
     window.openNewTuevModal = openNewTuevModal;
     window.closeTuevModal = closeTuevModal;
