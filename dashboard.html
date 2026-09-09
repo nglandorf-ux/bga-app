@@ -92,6 +92,9 @@
         .action-btn:hover { background: #666; }
         .action-btn.danger { background: #b71c1c; color: white; }
         .action-btn.danger:hover { background: #d32f2f; }
+
+        /* Stats Grid for Individual Machines */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
     </style>
 </head>
 <body>
@@ -484,6 +487,16 @@
                     <div style="font-size: 11px; color: #ffb74d; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">📈 Ø Verbrauch</div>
                     <div id="stat-card-avg" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l/h</div>
                     <div style="font-size: 11px; color: #888; margin-top: 6px;">Gesamte Liter / Gefahrene Std</div>
+                </div>
+            </div>
+
+            <!-- Einzel-Maschinen Tacho-Karten (Schlepper & Teleskoplader) -->
+            <div style="margin-top: 25px; margin-bottom: 25px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 15px; color: #ddd; display: flex; align-items: center; gap: 8px;">
+                    <span>🚜 Einzelne Maschinen-Statistiken (Schlepper & Teleskoplader)</span>
+                </h4>
+                <div id="maschinenStatsGrid" class="stats-grid">
+                    <div style="grid-column: 1/-1; text-align: center; color: #888; padding: 15px;">Berechne Einzel-Maschinen...</div>
                 </div>
             </div>
 
@@ -1287,6 +1300,128 @@
         let totalAvgVerbrauch = totalGefahreneStunden > 0 ? (totalDieselSum / totalGefahreneStunden) : 0;
         let cardAvgEl = document.getElementById("stat-card-avg");
         if (cardAvgEl) cardAvgEl.innerText = totalAvgVerbrauch > 0 ? (totalAvgVerbrauch.toFixed(1) + " l/h") : "0.0 l/h";
+
+        loadEinzelMaschinenStats(equipmentStatsMap, currentYearLogs);
+    }
+
+    function loadEinzelMaschinenStats(equipmentStatsMap, currentYearLogs) {
+        let container = document.getElementById("maschinenStatsGrid");
+        if (!container) return;
+
+        // Filter function to identify non-motorized equipment (trailers, implements)
+        function isTrailerOrImplement(eq) {
+            if (!eq) return false;
+            if (eq.is_trailer === true || eq.trailer === true || eq.is_motorized === false || eq.motorisiert === false) {
+                return true;
+            }
+            let typeStr = (eq.type || eq.typ || eq.category || eq.kategorie || eq.art || eq.fahrzeugtyp || "").toLowerCase();
+            let nameStr = (eq.name || eq.bezeichnung || eq.fahrzeug || "").toLowerCase();
+
+            if (typeStr.includes('anhänger') || typeStr.includes('anhaenger') || typeStr.includes('trailer') ||
+                typeStr.includes('kipper') || typeStr.includes('anbau') || typeStr.includes('gerät') || typeStr.includes('geraet')) {
+                return true;
+            }
+
+            const trailerKeywords = [
+                'anhänger', 'anhaenger', 'kipper', 'fass', 'güllefass', 'guellefass',
+                'ladewagen', 'pflug', 'sämaschine', 'saemaschine', 'mähwerk', 'maehwerk',
+                'spritze', 'feldspritze', 'streuer', 'düngerstreuer', 'duengerstreuer', 'miststreuer',
+                'walze', 'mulcher', 'kreiselegge', 'egge', 'schwader', 'wender', 'heuwender',
+                'presse', 'ballenpresse', 'roder', 'tipper', 'trailer', 'wagen', 'mulde',
+                'schiebeschild', 'gewicht'
+            ];
+
+            for (let kw of trailerKeywords) {
+                if (nameStr.includes(kw) || typeStr.includes(kw)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        let motorizedEquipment = [];
+        let eqMap = {};
+
+        if (globalEquipmentList && globalEquipmentList.length > 0) {
+            globalEquipmentList.forEach(eq => {
+                eqMap[String(eq.id)] = eq;
+            });
+            motorizedEquipment = globalEquipmentList.filter(eq => !isTrailerOrImplement(eq));
+        }
+
+        if (equipmentStatsMap) {
+            Object.keys(equipmentStatsMap).forEach(eqId => {
+                if (!eqMap[eqId]) {
+                    let fallbackEq = { id: eqId, name: "Fahrzeug #" + eqId };
+                    if (!isTrailerOrImplement(fallbackEq) && !motorizedEquipment.some(e => String(e.id) === eqId)) {
+                        motorizedEquipment.push(fallbackEq);
+                    }
+                }
+            });
+        }
+
+        if (motorizedEquipment.length === 0) {
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#888; padding: 20px; background: #1e1e1e; border-radius: 8px;">Keine motorisierten Fahrzeuge (Schlepper & Teleskoplader) vorhanden.</div>`;
+            return;
+        }
+
+        let cardsHtml = "";
+
+        motorizedEquipment.forEach(eq => {
+            let eqId = String(eq.id);
+            let eqName = eq.name || eq.bezeichnung || eq.fahrzeug || ("Fahrzeug #" + eqId);
+
+            let stats = (equipmentStatsMap && equipmentStatsMap[eqId]) ? equipmentStatsMap[eqId] : null;
+
+            let gefahreneStunden = 0;
+            let getankteLiter = 0;
+
+            if (stats) {
+                getankteLiter = stats.dieselSum || 0;
+                if (stats.stundenList && stats.stundenList.length >= 2) {
+                    let maxStunden = Math.max(...stats.stundenList);
+                    let minStunden = Math.min(...stats.stundenList);
+                    gefahreneStunden = Math.max(0, maxStunden - minStunden);
+                }
+            } else if (currentYearLogs) {
+                let eqLogs = currentYearLogs.filter(log => String(log.equipment_id) === eqId);
+                getankteLiter = eqLogs.reduce((sum, log) => sum + (parseFloat(log.liter) || 0), 0);
+                let stList = eqLogs.map(log => parseFloat(log.betriebsstunden)).filter(s => !isNaN(s) && s > 0);
+                if (stList.length >= 2) {
+                    gefahreneStunden = Math.max(0, Math.max(...stList) - Math.min(...stList));
+                }
+            }
+
+            let avgVerbrauch = gefahreneStunden > 0 ? (getankteLiter / gefahreneStunden) : 0;
+
+            let stdFormatted = gefahreneStunden > 0 ? gefahreneStunden.toFixed(1).replace('.', ',') : '0,0';
+            let literFormatted = getankteLiter > 0 ? getankteLiter.toFixed(1).replace('.', ',') : '0,0';
+            let avgFormatted = avgVerbrauch > 0 ? avgVerbrauch.toFixed(1).replace('.', ',') : '0,0';
+
+            cardsHtml += `
+            <div class="machine-stat-card" style="background: linear-gradient(135deg, #1e2922 0%, #171f1a 100%); border: 1px solid #2e4d36; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='#4caf50';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#2e4d36';">
+                <div style="font-size: 16px; font-weight: 700; color: #4caf50; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2e4d36; padding-bottom: 8px;">
+                    <span style="display:flex; align-items:center; gap:8px;">🚜 ${eqName}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 12px; color: #aaa; font-weight: 600;">⏱️ BETRIEBSSTUNDEN</span>
+                        <span style="font-size: 15px; font-weight: 800; color: #ffffff;">${stdFormatted} Std. gefahren</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 12px; color: #aaa; font-weight: 600;">⛽ GETANKT DIESEL</span>
+                        <span style="font-size: 15px; font-weight: 800; color: #64b5f6;">${literFormatted} Liter getankt</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 12px; color: #aaa; font-weight: 600;">📈 DURCHSCHNITT</span>
+                        <span style="font-size: 15px; font-weight: 800; color: #ffb74d;">Ø ${avgFormatted} l/h</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+
+        container.innerHTML = cardsHtml;
     }
 
     async function fetchMaengelFromSupabase() {
@@ -1719,6 +1854,7 @@
 
     window.loadFuhrparkData = loadFuhrparkData;
     window.loadFuhrparkStats = loadFuhrparkStats;
+    window.loadEinzelMaschinenStats = loadEinzelMaschinenStats;
     window.saveTankung = saveTankung;
     window.openNewTuevModal = openNewTuevModal;
     window.closeTuevModal = closeTuevModal;
