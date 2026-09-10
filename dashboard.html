@@ -3681,7 +3681,9 @@
                             let lower = cleanCol.toLowerCase();
                             let upper = cleanCol.toUpperCase();
 
-                            if (lower.includes("ohrmarke") || lower.includes("lom") || lower.includes("tier-id") || lower.includes("ident")) {
+                            if (cleanCol.trim().toUpperCase() === "LOM_X") {
+                                colMap.ohrmarke = idx;
+                            } else if (colMap.ohrmarke === -1 && upper !== "LOM_MUTX" && !lower.includes("mut") && (lower.includes("ohrmarke") || lower.includes("lom") || lower.includes("tier-id") || lower.includes("ident"))) {
                                 colMap.ohrmarke = idx;
                             } else if (lower.includes("geburt") || lower.includes("gebdat") || lower.includes("geb_dat")) {
                                 colMap.geburtsdatum = idx;
