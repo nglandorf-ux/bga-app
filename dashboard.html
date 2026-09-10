@@ -2503,7 +2503,8 @@
             targetME: 11.0,  // MJ ME / kg TM
             targetXP: 160,   // g XP / kg TM
             targetXF: 160,   // g XF / kg TM
-            note: 'Bleibt hoch für maximale Rahmenbildung'
+            targetTM: 'ca. 3,5 kg TM / Tag',
+            note: 'Bleibt hoch für maximale Rahmenbildung, Rohfaser 160 g XF / kg TM'
         },
         {
             id: 'cat_jungvieh',
@@ -2512,7 +2513,8 @@
             targetME: 10.8,  // MJ ME / kg TM
             targetXP: 155,   // g XP / kg TM
             targetXF: 160,   // g XF / kg TM
-            note: 'Mehr Protein für Muskelaufbau, mehr Energie'
+            targetTM: 'ca. 6,5 kg TM / Tag',
+            note: 'Mehr Protein für Muskelaufbau, Rohfaser 160 g XF / kg TM'
         },
         {
             id: 'cat_faersen',
@@ -2521,14 +2523,15 @@
             targetME: 11.2,  // MJ ME / kg TM
             targetXP: 140,   // g XP / kg TM
             targetXF: 160,   // g XF / kg TM
-            note: 'Volle Energie für >1000g Zunahme, Rohfaser 16%'
+            targetTM: 'ca. 9,5 kg TM / Tag',
+            note: 'Volle Energie für >1000g Zunahme, Rohfaser 160 g XF / kg TM'
         }
     ];
 
     const AGE_GROUP_REQUIREMENTS = {
-        'cat_kaelber': { id: 'cat_kaelber', name: '0–6 Monate (Kälber)', range: '0 - 6 Monate', defaultWeight: 120, targetTM: 3.0, targetME: 33.0, targetXP: 480 },
-        'cat_jungvieh': { id: 'cat_jungvieh', name: '6–12 Monate (Jungrinder / Vormast)', range: '6 - 12 Monate', defaultWeight: 280, targetTM: 6.2, targetME: 67.0, targetXP: 961 },
-        'cat_faersen': { id: 'cat_faersen', name: '> 12 Monate (Mittelmast / Endmast)', range: '> 12 Monate', defaultWeight: 480, targetTM: 10.0, targetME: 112.0, targetXP: 1400 }
+        'cat_kaelber': { id: 'cat_kaelber', name: '0–6 Monate (Kälber)', range: '0 - 6 Monate', defaultWeight: 120, targetTM: 3.5, targetME: 33.0, targetXP: 480 },
+        'cat_jungvieh': { id: 'cat_jungvieh', name: '6–12 Monate (Jungrinder / Vormast)', range: '6 - 12 Monate', defaultWeight: 280, targetTM: 6.5, targetME: 67.0, targetXP: 961 },
+        'cat_faersen': { id: 'cat_faersen', name: '> 12 Monate (Mittelmast / Endmast)', range: '> 12 Monate', defaultWeight: 480, targetTM: 9.5, targetME: 112.0, targetXP: 1400 }
     };
 
     const defaultCategoryRations = {
@@ -3540,7 +3543,15 @@
                                 </div>
                                 <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;">
                                     <span>Ist: <strong style="color:#fff;">${evalXF.actualFormatted} g/kg TM</strong></span>
-                                    <span>Ziel: <strong style="color:#ddd;">${evalXF.targetFormatted} g</strong></span>
+                                    <span>Ziel: <strong style="color:#ddd;">${evalXF.targetFormatted} g XF / kg TM</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- Ziel-TM-Aufnahme -->
+                            <div style="background:#1e1e1e; padding:10px; border-radius:6px; border-left:4px solid #81c784;">
+                                <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#ccc; font-weight:bold;">⚖️ Ziel-TM-Aufnahme:</span>
+                                    <strong style="color:#81c784; font-size:12px;">${grp.targetTM}</strong>
                                 </div>
                             </div>
                         </div>
