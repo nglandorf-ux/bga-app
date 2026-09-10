@@ -1103,7 +1103,7 @@
     async function loadFuhrparkData() {
         try {
             let [resEq, resTuev, resMaengel, resTank] = await Promise.all([
-                fetch(SUPABASE_URL + "/rest/v1/equipment?select=*", { headers }),
+                fetch(SUPABASE_URL + "/rest/v1/equipment?select=*&is_own_machine=eq.true", { headers }),
                 fetch(SUPABASE_URL + "/rest/v1/tuev?select=*&order=created_at.desc", { headers }).catch(() => ({ ok: false })),
                 fetchMaengelFromSupabase(),
                 fetch(SUPABASE_URL + "/rest/v1/tanklog?select=*&order=created_at.desc", { headers }).catch(() => ({ ok: false }))
@@ -1375,10 +1375,7 @@
 
     function isOwnMachine(eq) {
         if (!eq) return false;
-        if (eq.is_own_machine === false || eq.is_own_machine === 'false' || eq.is_own_machine === 0) {
-            return false;
-        }
-        return true;
+        return eq.is_own_machine === true || eq.is_own_machine === 'true' || eq.is_own_machine === 1;
     }
 
     function populateEquipmentDropdowns() {
