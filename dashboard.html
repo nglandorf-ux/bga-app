@@ -500,25 +500,7 @@
                 </div>
             </div>
 
-            <!-- 2. Die Maschinen-Jahresbilanz (Tabelle) -->
-            <div style="margin-top: 15px;">
-                <h4 style="margin: 0 0 10px 0; font-size: 15px; color: #ddd;">🚜 Maschinen-Jahresbilanz</h4>
-                <div style="overflow-x: auto;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Fahrzeug</th>
-                                <th>Gefahrene Stunden (Jahr)</th>
-                                <th>Getankte Liter</th>
-                                <th>Ø Verbrauch (l/h)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fuhrparkStatsTableBody">
-                            <tr><td colspan="4" style="text-align:center; color:#888;">Berechne Jahresbilanz...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
         </div>
 
         <!-- BLOCK 1: TÜV- & Mängel-Radar -->
@@ -1162,13 +1144,10 @@
             if (tuevBody) tuevBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
             let tankBody = document.getElementById("tanklogTableBody");
             if (tankBody) tankBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
-            let statsBody = document.getElementById("fuhrparkStatsTableBody");
-            if (statsBody) statsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
         }
     }
 
     async function loadFuhrparkStats() {
-        let tbody = document.getElementById("fuhrparkStatsTableBody");
         let currentYear = new Date().getFullYear();
 
         let yearEl = document.getElementById("fuhrpark-stats-year");
@@ -1226,66 +1205,23 @@
             }
         });
 
-        // Collect all machines from globalEquipmentList and currentYearLogs
-        let eqMap = {};
-        if (globalEquipmentList && globalEquipmentList.length > 0) {
-            globalEquipmentList.forEach(eq => {
-                eqMap[String(eq.id)] = eq;
-            });
-        }
-
-        Object.keys(equipmentStatsMap).forEach(eqId => {
-            if (!eqMap[eqId]) {
-                eqMap[eqId] = { id: eqId, name: "Fahrzeug #" + eqId };
-            }
-        });
-
         let totalGefahreneStunden = 0;
         let totalDieselSum = 0;
         let totalAdBlueSum = 0;
 
-        let tableRowsHtml = "";
-        let eqKeys = Object.keys(eqMap);
-
-        if (eqKeys.length === 0) {
-            if (tbody) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Keine Fahrzeugdaten vorhanden.</td></tr>`;
+        Object.keys(equipmentStatsMap).forEach(eqId => {
+            let stats = equipmentStatsMap[eqId];
+            let gefahreneStunden = 0;
+            if (stats.stundenList && stats.stundenList.length >= 2) {
+                let maxStunden = Math.max(...stats.stundenList);
+                let minStunden = Math.min(...stats.stundenList);
+                gefahreneStunden = Math.max(0, maxStunden - minStunden);
             }
-        } else {
-            eqKeys.forEach(eqId => {
-                let eqObj = eqMap[eqId];
-                let eqName = eqObj ? (eqObj.name || eqObj.bezeichnung || eqObj.fahrzeug || ("Fahrzeug #" + eqId)) : ("Fahrzeug #" + eqId);
 
-                let stats = equipmentStatsMap[eqId] || { dieselSum: 0, adblueSum: 0, stundenList: [] };
-
-                let gefahreneStunden = 0;
-                if (stats.stundenList.length >= 2) {
-                    let maxStunden = Math.max(...stats.stundenList);
-                    let minStunden = Math.min(...stats.stundenList);
-                    gefahreneStunden = Math.max(0, maxStunden - minStunden);
-                }
-
-                let getankteLiter = stats.dieselSum;
-                totalGefahreneStunden += gefahreneStunden;
-                totalDieselSum += getankteLiter;
-                totalAdBlueSum += stats.adblueSum;
-
-                let avgVerbrauch = gefahreneStunden > 0 ? (getankteLiter / gefahreneStunden) : null;
-
-                let avgHtml = avgVerbrauch !== null ? `<strong style="color:#ffb74d;">${avgVerbrauch.toFixed(1)} l/h</strong>` : '-';
-
-                tableRowsHtml += `<tr>
-                    <td><strong>🚜 ${eqName}</strong></td>
-                    <td>${gefahreneStunden > 0 ? gefahreneStunden.toFixed(1) + ' h' : '-'}</td>
-                    <td>${getankteLiter > 0 ? getankteLiter.toFixed(1) + ' l' : '0.0 l'}</td>
-                    <td>${avgHtml}</td>
-                </tr>`;
-            });
-
-            if (tbody) {
-                tbody.innerHTML = tableRowsHtml;
-            }
-        }
+            totalGefahreneStunden += gefahreneStunden;
+            totalDieselSum += (stats.dieselSum || 0);
+            totalAdBlueSum += (stats.adblueSum || 0);
+        });
 
         // Update Cards
         let cardStundenEl = document.getElementById("stat-card-stunden");
@@ -1437,16 +1373,33 @@
         }
     }
 
+    function isOwnMachine(eq) {
+        if (!eq) return false;
+        if (eq.is_own_machine === false || eq.is_own_machine === 'false' || eq.is_own_machine === 0) {
+            return false;
+        }
+        return true;
+    }
+
     function populateEquipmentDropdowns() {
-        let opts = '<option value="">-- Fahrzeug wählen --</option>';
-        globalEquipmentList.forEach(eq => {
+        let optsAll = '<option value="">-- Fahrzeug wählen --</option>';
+        let optsOwn = '<option value="">-- Fahrzeug wählen --</option>';
+
+        (globalEquipmentList || []).forEach(eq => {
             let name = eq.name || eq.bezeichnung || eq.fahrzeug || ("Fahrzeug #" + eq.id);
-            opts += `<option value="${eq.id}">${name}</option>`;
+            let opt = `<option value="${eq.id}">${name}</option>`;
+            optsAll += opt;
+            if (isOwnMachine(eq)) {
+                optsOwn += opt;
+            }
         });
 
-        ['tank-equipment', 'tuev-equipment', 'mangel-equipment'].forEach(id => {
+        let tankEl = document.getElementById('tank-equipment');
+        if (tankEl) tankEl.innerHTML = optsAll;
+
+        ['tuev-equipment', 'mangel-equipment'].forEach(id => {
             let el = document.getElementById(id);
-            if (el) el.innerHTML = opts;
+            if (el) el.innerHTML = optsOwn;
         });
     }
 
@@ -1454,8 +1407,10 @@
         let tbody = document.getElementById("tuevMaengelTableBody");
         if (!tbody) return;
 
-        if (!globalEquipmentList || globalEquipmentList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Keine Fahrzeuge in equipment gefunden.</td></tr>`;
+        let ownEquipment = (globalEquipmentList || []).filter(isOwnMachine);
+
+        if (!ownEquipment || ownEquipment.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Keine eigenen Fahrzeuge in equipment gefunden.</td></tr>`;
             return;
         }
 
@@ -1466,7 +1421,7 @@
 
         let html = "";
 
-        globalEquipmentList.forEach(eq => {
+        ownEquipment.forEach(eq => {
             let name = eq.name || eq.bezeichnung || eq.fahrzeug || ("Fahrzeug #" + eq.id);
 
             let eqTuevList = globalTuevList.filter(t => String(t.equipment_id) === String(eq.id));
