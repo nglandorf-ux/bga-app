@@ -295,15 +295,15 @@
                 <div class="val" id="cnt-kaelber" style="color:#ffb74d;">0 Stk</div>
             </div>
             <div class="kpi-card">
-                <div class="lbl">Jungvieh (6–12 Mo.)</div>
+                <div class="lbl">Jungrinder / Vormast (6–12 Mo.)</div>
                 <div class="val" id="cnt-jungvieh" style="color:#a5d6a7;">0 Stk</div>
             </div>
             <div class="kpi-card">
-                <div class="lbl">Färsen (12–24 Mo.)</div>
+                <div class="lbl">Mittelmast / Endmast (12–24 Mo.)</div>
                 <div class="val" id="cnt-faersen" style="color:#90caf9;">0 Stk</div>
             </div>
             <div class="kpi-card">
-                <div class="lbl">Kühe / Altrinder (> 24 Mo.)</div>
+                <div class="lbl">Ausmast (> 24 Mo.)</div>
                 <div class="val" id="cnt-kuehe" style="color:#ffe0b2;">0 Stk</div>
             </div>
         </div>
@@ -2495,9 +2495,9 @@
 
     const CATTLE_CATEGORIES = {
         'cat_kaelber': { id: 'cat_kaelber', name: 'Kälber (0–6 Mo.)', range: '0 - 6 Monate', defaultWeight: 120 },
-        'cat_jungvieh': { id: 'cat_jungvieh', name: 'Jungvieh (6–12 Mo.)', range: '6 - 12 Monate', defaultWeight: 280 },
-        'cat_faersen': { id: 'cat_faersen', name: 'Färsen (12–24 Mo.)', range: '12 - 24 Monate', defaultWeight: 480 },
-        'cat_kuehe': { id: 'cat_kuehe', name: 'Kühe / Altrinder (> 24 Mo.)', range: '> 24 Monate', defaultWeight: 650 }
+        'cat_jungvieh': { id: 'cat_jungvieh', name: 'Jungrinder / Vormast (6–12 Mo.)', range: '6 - 12 Monate', defaultWeight: 280 },
+        'cat_faersen': { id: 'cat_faersen', name: 'Mittelmast / Endmast (12–24 Mo.)', range: '12 - 24 Monate', defaultWeight: 480 },
+        'cat_kuehe': { id: 'cat_kuehe', name: 'Ausmast (> 24 Mo.)', range: '> 24 Monate', defaultWeight: 650 }
     };
 
     const TARGET_AGE_GROUPS = [
@@ -2508,42 +2508,42 @@
             targetME: 11.0,  // MJ ME / kg TM
             targetXP: 160,   // g XP / kg TM
             targetXF: 160,   // g XF / kg TM
-            note: 'Hoher Energie- & Proteinbedarf für Jungviehwachstum'
+            note: 'Bleibt hoch für maximale Rahmenbildung'
         },
         {
             id: 'cat_jungvieh',
-            name: 'Jungrinder (6–12 Mo.)',
+            name: 'Jungrinder / Vormast (6–12 Mo.)',
             icon: '🐂',
-            targetME: 10.6,  // MJ ME / kg TM
-            targetXP: 138,   // g XP / kg TM
-            targetXF: 210,   // g XF / kg TM
-            note: 'Ausgewogenes Verhältnis für pansenfreundliches Wachstum'
+            targetME: 10.8,  // MJ ME / kg TM
+            targetXP: 155,   // g XP / kg TM
+            targetXF: 170,   // g XF / kg TM
+            note: 'Mehr Protein für Muskelaufbau, mehr Energie'
         },
         {
             id: 'cat_faersen',
-            name: 'Färsen / Rinder (> 12 Mo.)',
+            name: 'Mittelmast / Endmast (> 12 Mo.)',
             icon: '🐄',
-            targetME: 9.5,   // MJ ME / kg TM
-            targetXP: 125,   // g XP / kg TM
-            targetXF: 240,   // g XF / kg TM
-            note: 'Strukturreich zur Vermeidung von Verfettung'
+            targetME: 11.2,  // MJ ME / kg TM
+            targetXP: 140,   // g XP / kg TM
+            targetXF: 150,   // g XF / kg TM
+            note: 'Volle Energie für >1000g Zunahme, Rohfaser runter'
         },
         {
             id: 'cat_kuehe',
-            name: 'Kühe / Altrinder (> 24 Mo.)',
-            icon: '🥛',
-            targetME: 10.8,  // MJ ME / kg TM
-            targetXP: 150,   // g XP / kg TM
-            targetXF: 190,   // g XF / kg TM
-            note: 'Standard Laktations- / Leistungsmischung'
+            name: 'Ausmast (> 24 Mo.)',
+            icon: '🐂',
+            targetME: 11.2,  // MJ ME / kg TM
+            targetXP: 130,   // g XP / kg TM
+            targetXF: 150,   // g XF / kg TM
+            note: 'Falls Tiere so alt werden, reiner Fett/Fleisch-Ansatz'
         }
     ];
 
     const AGE_GROUP_REQUIREMENTS = {
         'cat_kaelber': { id: 'cat_kaelber', name: '0–6 Monate (Kälber)', range: '0 - 6 Monate', defaultWeight: 120, targetTM: 3.0, targetME: 33.0, targetXP: 480 },
-        'cat_jungvieh': { id: 'cat_jungvieh', name: '6–12 Monate (Jungvieh)', range: '6 - 12 Monate', defaultWeight: 280, targetTM: 6.2, targetME: 66.0, targetXP: 850 },
-        'cat_faersen': { id: 'cat_faersen', name: '12–24 Monate (Färsen)', range: '12 - 24 Monate', defaultWeight: 480, targetTM: 10.0, targetME: 95.0, targetXP: 1250 },
-        'cat_kuehe': { id: 'cat_kuehe', name: '> 24 Monate (Kühe / Altrinder)', range: '> 24 Monate', defaultWeight: 650, targetTM: 15.5, targetME: 145.0, targetXP: 2200 }
+        'cat_jungvieh': { id: 'cat_jungvieh', name: '6–12 Monate (Jungrinder / Vormast)', range: '6 - 12 Monate', defaultWeight: 280, targetTM: 6.2, targetME: 67.0, targetXP: 961 },
+        'cat_faersen': { id: 'cat_faersen', name: '12–24 Monate (Mittelmast / Endmast)', range: '12 - 24 Monate', defaultWeight: 480, targetTM: 10.0, targetME: 112.0, targetXP: 1400 },
+        'cat_kuehe': { id: 'cat_kuehe', name: '> 24 Monate (Ausmast)', range: '> 24 Monate', defaultWeight: 650, targetTM: 15.5, targetME: 173.6, targetXP: 2015 }
     };
 
     const defaultCategoryRations = {
@@ -3228,10 +3228,10 @@
             let ageM = calculateAgeInMonths(bDate);
             let displayBirthDate = formatGermanDate(c.geburtsdatum) || '-';
 
-            let catName = 'Kühe / Altrinder (> 24 Mo.)';
+            let catName = 'Ausmast (> 24 Mo.)';
             if (ageM < 6) catName = 'Kälber (0–6 Mo.)';
-            else if (ageM < 12) catName = 'Jungvieh (6–12 Mo.)';
-            else if (ageM < 24) catName = 'Färsen (12–24 Mo.)';
+            else if (ageM < 12) catName = 'Jungrinder / Vormast (6–12 Mo.)';
+            else if (ageM < 24) catName = 'Mittelmast / Endmast (12–24 Mo.)';
 
             let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : 'Eigenbestand';
 
