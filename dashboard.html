@@ -2593,7 +2593,11 @@
     }
 
     function getKaelberForBetrieb(rawBnr) {
-        if (!supabaseCattleList || !Array.isArray(supabaseCattleList) || supabaseCattleList.length === 0) {
+        let listToSearch = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0)
+            ? supabaseAllCattleList
+            : supabaseCattleList;
+
+        if (!listToSearch || !Array.isArray(listToSearch) || listToSearch.length === 0) {
             return [];
         }
         if (!rawBnr) return [];
@@ -2602,7 +2606,7 @@
         let targetDigits = targetBnrStr.replace(/\D/g, '');
         let betriebObj = typeof findBetriebByNummer === "function" ? findBetriebByNummer(rawBnr) : null;
 
-        return supabaseCattleList.filter(c => {
+        return listToSearch.filter(c => {
             let cVorbesitzer = String(c.vorbesitzer || c.geburtsbetrieb || "").trim();
             if (!cVorbesitzer || cVorbesitzer === "0" || cVorbesitzer === "null" || cVorbesitzer === "-" || cVorbesitzer === "undefined") return false;
 
@@ -2942,6 +2946,21 @@
 
             let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : (c.zugangsdatum ? formatGermanDate(c.zugangsdatum) : "Eigenbestand");
 
+            let isDeparted = (c.status === 'abgegangen' || c.status === 'inaktiv') || (c.verkaufsdatum && c.verkaufsdatum !== '0' && c.verkaufsdatum !== 'null' && c.verkaufsdatum !== '') || (c.abgangs_grund || c.abgangsgrund);
+            let grund = String(c.abgangs_grund || c.abgangsgrund || '').toLowerCase();
+            if (!grund && isDeparted) grund = 'verkauft';
+
+            let statusBadge = '';
+            if (!isDeparted) {
+                statusBadge = `<span style="background:#1b5e20; color:#81c784; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Aktiv</span>`;
+            } else if (grund === 'gestorben') {
+                statusBadge = `<span style="background:#b71c1c; color:#ffcdd2; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Gestorben ✝</span>`;
+            } else if (grund === 'eingeschläfert' || grund === 'eingeschlaefert') {
+                statusBadge = `<span style="background:#e65100; color:#ffe0b2; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Eingeschläfert ⚠️</span>`;
+            } else {
+                statusBadge = `<span style="background:#33691e; color:#c5e1a5; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Verkauft 🏷️</span>`;
+            }
+
             let bDate = parseBirthDate(c.geburtsdatum);
             let displayAlter = "-";
             if (bDate && !isNaN(bDate.getTime())) {
@@ -2989,7 +3008,7 @@
 
             html += `<tr>
                 <td><strong style="color:#4caf50; font-size:14px;">${earTag}</strong></td>
-                <td>${displayZukauf}</td>
+                <td>${statusBadge}<br/><span style="font-size:11px; color:#aaa;">Zukauf: ${displayZukauf}</span></td>
                 <td><strong>${displayAlter}</strong></td>
                 <td style="max-width:320px; word-wrap:break-word;">${historyHtml}</td>
             </tr>`;
@@ -3101,7 +3120,8 @@
             let res = await fetch(SUPABASE_URL + "/rest/v1/rinder?select=*&order=geburtsdatum.desc", { headers });
             let rawList = await res.json();
 
-            supabaseCattleList = rawList.filter(c => !c.verkaufsdatum || c.verkaufsdatum === '' || c.verkaufsdatum === 'null' || c.verkaufsdatum === '0');
+            supabaseAllCattleList = rawList;
+            supabaseCattleList = rawList.filter(c => (!c.status || c.status === 'aktiv') && (!c.verkaufsdatum || c.verkaufsdatum === '' || c.verkaufsdatum === 'null' || c.verkaufsdatum === '0') && (!c.abgangs_grund && !c.abgangsgrund));
 
             cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0 };
             cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [] };
