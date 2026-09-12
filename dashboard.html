@@ -363,9 +363,10 @@
                 <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
                     <button type="button" id="btn-cattle-active" class="tab-btn active" onclick="setCattleStatusFilter('aktiv')">🟢 Aktiver Bestand</button>
                     <button type="button" id="btn-cattle-archive" class="tab-btn" onclick="setCattleStatusFilter('archiv')">📦 Archiv / Abgänge</button>
+                    <button type="button" id="btn-cattle-betriebe" class="tab-btn" onclick="setCattleStatusFilter('betriebe')">🏢 Betriebe</button>
                 </div>
 
-                <div style="max-height: 380px; overflow-y: auto;">
+                <div id="cattleTableContainer" style="max-height: 380px; overflow-y: auto;">
                     <table class="data-table">
                         <thead>
                             <tr id="mainCattleTableHeaderRow">
@@ -379,6 +380,22 @@
                         </thead>
                         <tbody id="mainCattleTableBody">
                             <tr><td colspan="6" style="text-align:center; color:#888;">Lade Rinder aus Supabase...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="betriebeAnsicht" style="display:none; max-height: 380px; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Herkunftsbetrieb</th>
+                                <th>Gelieferte Tiere</th>
+                                <th>Behandelte Tiere</th>
+                                <th>Verluste (Gestorben/Eingeschläfert)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="betriebeStatistikTableBody">
+                            <tr><td colspan="4" style="text-align:center; color:#888;">Lade Betriebs-Statistik...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -3195,18 +3212,175 @@
         cattleStatusFilter = status;
         let btnActive = document.getElementById("btn-cattle-active");
         let btnArchive = document.getElementById("btn-cattle-archive");
+        let btnBetriebe = document.getElementById("btn-cattle-betriebe");
         if (btnActive && btnArchive) {
+            btnActive.classList.remove('active');
+            btnArchive.classList.remove('active');
+            if (btnBetriebe) btnBetriebe.classList.remove('active');
+
             if (status === 'aktiv') {
                 btnActive.classList.add('active');
-                btnArchive.classList.remove('active');
-            } else {
+            } else if (status === 'archiv') {
                 btnArchive.classList.add('active');
-                btnActive.classList.remove('active');
+            } else if (status === 'betriebe') {
+                if (btnBetriebe) btnBetriebe.classList.add('active');
             }
         }
         renderAllCattleTable();
     }
     window.setCattleStatusFilter = setCattleStatusFilter;
+
+    async function renderBetriebeStatistikTable() {
+        let tbody = document.getElementById("betriebeStatistikTableBody");
+        if (!tbody) return;
+
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding:20px;">⌛ Berechne Betriebs-Statistiken...</td></tr>`;
+
+        // 1. Alle Rinder laden (aktiv + archiviert)
+        let allCattle = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0)
+            ? supabaseAllCattleList
+            : (typeof supabaseCattleList !== "undefined" ? supabaseCattleList : []);
+
+        if (!supabaseAllCattleList || supabaseAllCattleList.length === 0) {
+            try {
+                let res = await fetch(SUPABASE_URL + "/rest/v1/rinder?select=*&order=geburtsdatum.desc", { headers });
+                if (res.ok) {
+                    let data = await res.json();
+                    if (Array.isArray(data)) {
+                        supabaseAllCattleList = data;
+                        allCattle = data;
+                    }
+                }
+            } catch (e) {
+                console.error("Fehler beim Laden aller Rinder für Betriebs-Statistik:", e);
+            }
+        }
+
+        // 2. Behandlungen-Tabelle laden & Ohrmarken erfassen
+        let treatedOhrmarkenSet = new Set();
+        try {
+            let resB = await fetch(SUPABASE_URL + "/rest/v1/behandlungen?select=*", { headers });
+            if (resB.ok) {
+                let bList = await resB.json();
+                if (Array.isArray(bList)) {
+                    bList.forEach(b => {
+                        let tag = String(b.rind_ohrmarke || b.ohrmarke || "").replace(/\s/g, "").toLowerCase();
+                        if (tag) treatedOhrmarkenSet.add(tag);
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn("Fehler beim Laden der Behandlungen für Betriebs-Statistik:", e);
+        }
+
+        // Stelle sicher, dass Partnerbetriebe geladen sind für schöne Namen
+        if ((!supabaseBetriebeList || supabaseBetriebeList.length === 0) && typeof loadBetriebe === "function") {
+            try { await loadBetriebe(); } catch(e) {}
+        }
+
+        // 3. Rinder nach Herkunftsbetrieb gruppieren
+        let groupsMap = {};
+
+        allCattle.forEach(c => {
+            let rawOwner = String(c.vorbesitzer || c.geburtsbetrieb || "").trim();
+            let isUnknown = !rawOwner || ["0", "null", "-", "undefined"].includes(rawOwner.toLowerCase());
+
+            let groupKey = "";
+            let displayName = "";
+
+            if (isUnknown) {
+                groupKey = "__unknown__";
+                displayName = "Kein Betrieb / Eigenbestand";
+            } else {
+                let matchedB = (typeof findBetriebByNummer === "function") ? findBetriebByNummer(rawOwner) : null;
+                if (matchedB) {
+                    groupKey = "betrieb_" + (matchedB.id || matchedB.betriebsnummer || matchedB.bnr || rawOwner);
+                    let hofname = String(matchedB.hofname || matchedB.name || matchedB.besitzer || "").trim();
+                    let bnr = String(matchedB.betriebsnummer || matchedB.bnr || rawOwner).trim();
+
+                    if (hofname && bnr) {
+                        if (rawOwner.includes(hofname)) {
+                            displayName = rawOwner;
+                        } else if (hofname.includes(bnr)) {
+                            displayName = hofname;
+                        } else {
+                            displayName = `${hofname} (${bnr})`;
+                        }
+                    } else if (hofname) {
+                        displayName = hofname;
+                    } else if (bnr) {
+                        displayName = bnr;
+                    } else {
+                        displayName = rawOwner;
+                    }
+                } else {
+                    groupKey = "owner_" + rawOwner.toLowerCase();
+                    displayName = rawOwner;
+                }
+            }
+
+            if (!groupsMap[groupKey]) {
+                groupsMap[groupKey] = {
+                    key: groupKey,
+                    displayName: displayName,
+                    totalCount: 0,
+                    treatedCount: 0,
+                    lossCount: 0
+                };
+            }
+
+            let grp = groupsMap[groupKey];
+            grp.totalCount++;
+
+            // Mindestens einmal behandelt?
+            let cleanEar = String(c.ohrmarke || "").replace(/\s/g, "").toLowerCase();
+            if (cleanEar && treatedOhrmarkenSet.has(cleanEar)) {
+                grp.treatedCount++;
+            }
+
+            // Verluste (gestorben / eingeschläfert)?
+            let abgangsGrund = String(c.abgangs_grund || c.abgangsgrund || c.status || "").toLowerCase();
+            if (abgangsGrund.includes("gestorben") || abgangsGrund.includes("eingeschläfert") || abgangsGrund.includes("eingeschlaefert") || abgangsGrund.includes("tot") || abgangsGrund.includes("verendet")) {
+                grp.lossCount++;
+            }
+        });
+
+        let groups = Object.values(groupsMap);
+
+        // Suchfilter anwenden falls im Hauptsuchfeld etwas getippt wurde
+        let searchEl = document.getElementById("mainCattleSearch");
+        let query = searchEl && searchEl.value ? searchEl.value.trim().toLowerCase() : "";
+        if (query) {
+            groups = groups.filter(g => g.displayName.toLowerCase().includes(query));
+        }
+
+        // Nach gelieferten Tieren absteigend sortieren
+        groups.sort((a, b) => b.totalCount - a.totalCount);
+
+        if (groups.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding:20px;">Keine Betriebe in der Statistik gefunden.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        groups.forEach(g => {
+            let treatedPct = g.totalCount > 0 ? Math.round((g.treatedCount / g.totalCount) * 100) : 0;
+            let lossPct = g.totalCount > 0 ? Math.round((g.lossCount / g.totalCount) * 100) : 0;
+
+            let treatedColor = g.treatedCount === 0 ? "#81c784" : (treatedPct > 20 ? "#ffb74d" : "#e0e0e0");
+            let lossColor = g.lossCount === 0 ? "#81c784" : (lossPct > 5 ? "#e57373" : "#ffb74d");
+
+            html += `<tr>
+                <td><strong style="color:#e0e0e0; font-size:14px;">🏢 ${g.displayName}</strong></td>
+                <td><strong style="color:#4fc3f7; font-size:15px;">${g.totalCount} Stk</strong></td>
+                <td><strong style="color:${treatedColor}; font-size:14px;">${g.treatedCount}</strong> <span style="font-size:12px; color:#aaa;">(${treatedPct}%)</span></td>
+                <td><strong style="color:${lossColor}; font-size:14px;">${g.lossCount}</strong> <span style="font-size:12px; color:#aaa;">(${lossPct}%)</span></td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+    }
+    window.renderBetriebeStatistikTable = renderBetriebeStatistikTable;
 
     function isCattleArchived(c) {
         if (!c) return false;
@@ -3224,6 +3398,19 @@
     }
 
     function renderAllCattleTable() {
+        let cattleContainer = document.getElementById("cattleTableContainer");
+        let betriebeContainer = document.getElementById("betriebeAnsicht");
+
+        if (cattleStatusFilter === 'betriebe') {
+            if (cattleContainer) cattleContainer.style.display = 'none';
+            if (betriebeContainer) betriebeContainer.style.display = 'block';
+            renderBetriebeStatistikTable();
+            return;
+        }
+
+        if (cattleContainer) cattleContainer.style.display = 'block';
+        if (betriebeContainer) betriebeContainer.style.display = 'none';
+
         let searchEl = document.getElementById("mainCattleSearch");
         let sortEl = document.getElementById("mainCattleSort");
 
