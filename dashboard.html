@@ -358,10 +358,17 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- Rinder-Archiv Umschalter / Filter Tabs -->
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                    <button type="button" id="btn-cattle-active" class="tab-btn active" onclick="setCattleStatusFilter('aktiv')">🟢 Aktiver Bestand</button>
+                    <button type="button" id="btn-cattle-archive" class="tab-btn" onclick="setCattleStatusFilter('archiv')">📦 Archiv / Abgänge</button>
+                </div>
+
                 <div style="max-height: 380px; overflow-y: auto;">
                     <table class="data-table">
                         <thead>
-                            <tr>
+                            <tr id="mainCattleTableHeaderRow">
                                 <th>Ohrmarke</th>
                                 <th>Geburtsdatum</th>
                                 <th>Alter / Kategorie</th>
@@ -836,12 +843,11 @@
             </div>
         </div>
 
-        <!-- UNTEN: HISTORIE / NOTIZEN (AUS DER APP) -->
+        <!-- UNTEN: BEHANDLUNGEN (AUS SUPABASE) -->
         <div style="background:#222; padding:15px; border-radius:8px; border:1px solid #333; margin-bottom:20px;">
-            <h3 style="margin:0 0 10px 0; color:#ff9800; font-size:15px;">📝 Historie / Notizen (aus der App)</h3>
+            <h3 style="margin:0 0 10px 0; color:#ff9800; font-size:15px;">💉 Behandlungen</h3>
             <div id="comb-historie-placeholder" style="color:#aaa; font-size:13px; min-height:80px; background:#1a1a1a; padding:12px; border-radius:6px; border:1px dashed #444; line-height:1.5;">
-                📌 <em>Keine Behandlungen oder Notizen vorhanden.</em><br>
-                <span style="font-size:11px; color:#777;">(Platzhalter für zukünftige Tierarzt-Behandlungen, Impfungen, Kalbungen & Notizen aus der mobilen App)</span>
+                Keine Behandlungen erfasst
             </div>
         </div>
 
@@ -3183,6 +3189,40 @@
         document.getElementById("cattleCategoryTableBody").innerHTML = html;
     }
 
+    let cattleStatusFilter = 'aktiv';
+
+    function setCattleStatusFilter(status) {
+        cattleStatusFilter = status;
+        let btnActive = document.getElementById("btn-cattle-active");
+        let btnArchive = document.getElementById("btn-cattle-archive");
+        if (btnActive && btnArchive) {
+            if (status === 'aktiv') {
+                btnActive.classList.add('active');
+                btnArchive.classList.remove('active');
+            } else {
+                btnArchive.classList.add('active');
+                btnActive.classList.remove('active');
+            }
+        }
+        renderAllCattleTable();
+    }
+    window.setCattleStatusFilter = setCattleStatusFilter;
+
+    function isCattleArchived(c) {
+        if (!c) return false;
+        let st = String(c.status || '').toLowerCase().trim();
+        if (['abgegangen', 'inaktiv', 'verkauft', 'gestorben', 'eingeschläfert', 'eingeschlaefert', 'verendet', 'archiv'].includes(st)) {
+            return true;
+        }
+        if (c.verkaufsdatum && c.verkaufsdatum !== '' && c.verkaufsdatum !== 'null' && c.verkaufsdatum !== '0') return true;
+        if (c.abgangs_datum && c.abgangs_datum !== '' && c.abgangs_datum !== 'null' && c.abgangs_datum !== '0') return true;
+        if (c.abgangsdatum && c.abgangsdatum !== '' && c.abgangsdatum !== 'null' && c.abgangsdatum !== '0') return true;
+        if (c.abgang_datum && c.abgang_datum !== '' && c.abgang_datum !== 'null' && c.abgang_datum !== '0') return true;
+        if (c.abgangs_grund && c.abgangs_grund !== '' && c.abgangs_grund !== 'null' && c.abgangs_grund !== '0') return true;
+        if (c.abgangsgrund && c.abgangsgrund !== '' && c.abgangsgrund !== 'null' && c.abgangsgrund !== '0') return true;
+        return false;
+    }
+
     function renderAllCattleTable() {
         let searchEl = document.getElementById("mainCattleSearch");
         let sortEl = document.getElementById("mainCattleSort");
@@ -3190,7 +3230,40 @@
         let query = searchEl && searchEl.value ? searchEl.value.trim().toLowerCase() : "";
         let sortVal = sortEl ? sortEl.value : "geb_desc";
 
-        let filtered = supabaseCattleList.filter(c => {
+        let isArchivedMode = (cattleStatusFilter === 'archiv');
+
+        let headerRow = document.getElementById("mainCattleTableHeaderRow");
+        if (headerRow) {
+            if (isArchivedMode) {
+                headerRow.innerHTML = `
+                    <th>Ohrmarke</th>
+                    <th>Geburtsdatum</th>
+                    <th>Alter / Kategorie</th>
+                    <th>Rasse</th>
+                    <th>Abgangsgrund</th>
+                    <th>Abgangsdatum</th>
+                    <th>Aktionen</th>
+                `;
+            } else {
+                headerRow.innerHTML = `
+                    <th>Ohrmarke</th>
+                    <th>Geburtsdatum</th>
+                    <th>Alter / Kategorie</th>
+                    <th>Rasse</th>
+                    <th>Zukaufsdatum</th>
+                    <th>Aktionen</th>
+                `;
+            }
+        }
+
+        let sourceList = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0) ? supabaseAllCattleList : supabaseCattleList;
+
+        let statusFiltered = sourceList.filter(c => {
+            let archived = isCattleArchived(c);
+            return isArchivedMode ? archived : !archived;
+        });
+
+        let filtered = statusFiltered.filter(c => {
             if (!query) return true;
 
             let earTag = String(c.ohrmarke || '').toLowerCase();
@@ -3199,13 +3272,15 @@
             let rawDate = String(c.geburtsdatum || '').toLowerCase();
             let euroDate = formatGermanDate(c.geburtsdatum).toLowerCase();
             let gender = String(c.geschlecht || '').toLowerCase();
+            let abgangsgrund = String(c.abgangs_grund || c.abgangsgrund || c.status || '').toLowerCase();
 
             return earTag.includes(query) ||
                    rawDate.includes(query) ||
                    euroDate.includes(query) ||
                    breed.includes(query) ||
                    owner.includes(query) ||
-                   gender.includes(query);
+                   gender.includes(query) ||
+                   abgangsgrund.includes(query);
         });
 
         filtered.sort((a, b) => {
@@ -3237,23 +3312,60 @@
             if (ageM < 6) catName = 'Kälber (0–6 Mo.)';
             else if (ageM < 12) catName = 'Jungrinder / Vormast (6–12 Mo.)';
 
-            let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : 'Eigenbestand';
+            if (isArchivedMode) {
+                let rawReason = c.abgangs_grund || c.abgangsgrund || '';
+                if (!rawReason && c.status && c.status !== 'aktiv') rawReason = c.status;
+                if (!rawReason && c.verkaufsdatum && c.verkaufsdatum !== '0' && c.verkaufsdatum !== 'null' && c.verkaufsdatum !== '') rawReason = 'verkauft';
+                if (!rawReason) rawReason = 'Abgegangen';
 
-            html += `<tr>
-                <td><strong style="color:#4caf50; font-size:15px;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
-                <td>${displayBirthDate}</td>
-                <td><strong>${ageM} Mo.</strong> <span style="font-size:12px; color:#ffb74d;">(${catName})</span></td>
-                <td>${c.rasse || '-'}</td>
-                <td>${displayZukauf}</td>
-                <td>
-                    <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
-                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
-                </td>
-            </tr>`;
+                let reasonLower = rawReason.toLowerCase();
+                let reasonBadge = '';
+                if (reasonLower.includes('gestorben') || reasonLower.includes('tot')) {
+                    reasonBadge = `<span style="background:#b71c1c; color:#ffcdd2; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">Gestorben ✝</span>`;
+                } else if (reasonLower.includes('eingeschläfert') || reasonLower.includes('eingeschlaefert')) {
+                    reasonBadge = `<span style="background:#e65100; color:#ffe0b2; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">Eingeschläfert ⚠️</span>`;
+                } else if (reasonLower.includes('verkauft')) {
+                    reasonBadge = `<span style="background:#33691e; color:#c5e1a5; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">Verkauft 🏷️</span>`;
+                } else {
+                    reasonBadge = `<span style="background:#444; color:#fff; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">${rawReason}</span>`;
+                }
+
+                let rawAbgangsdatum = c.abgangs_datum || c.abgangsdatum || c.verkaufsdatum || c.abgang_datum || '';
+                let displayAbgangsdatum = formatGermanDate(rawAbgangsdatum) || '-';
+
+                html += `<tr>
+                    <td><strong style="color:#4caf50; font-size:15px;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
+                    <td>${displayBirthDate}</td>
+                    <td><strong>${ageM} Mo.</strong> <span style="font-size:12px; color:#ffb74d;">(${catName})</span></td>
+                    <td>${c.rasse || '-'}</td>
+                    <td>${reasonBadge}</td>
+                    <td>${displayAbgangsdatum}</td>
+                    <td>
+                        <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
+                        <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
+                    </td>
+                </tr>`;
+            } else {
+                let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : 'Eigenbestand';
+
+                html += `<tr>
+                    <td><strong style="color:#4caf50; font-size:15px;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
+                    <td>${displayBirthDate}</td>
+                    <td><strong>${ageM} Mo.</strong> <span style="font-size:12px; color:#ffb74d;">(${catName})</span></td>
+                    <td>${c.rasse || '-'}</td>
+                    <td>${displayZukauf}</td>
+                    <td>
+                        <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
+                        <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
+                    </td>
+                </tr>`;
+            }
         });
 
         if (filtered.length === 0) {
-            html = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Rinder ${query ? "für '" + query + "'" : ""} in Supabase gefunden.</td></tr>`;
+            let colSpan = isArchivedMode ? 7 : 6;
+            let emptyMsg = isArchivedMode ? `Keine archivierten Rinder ${query ? "für '" + query + "'" : ""} vorhanden.` : `Keine aktiven Rinder ${query ? "für '" + query + "'" : ""} in Supabase gefunden.`;
+            html = `<tr><td colspan="${colSpan}" style="text-align:center; color:#888;">${emptyMsg}</td></tr>`;
         }
 
         let tbody = document.getElementById("mainCattleTableBody");
@@ -3849,13 +3961,18 @@
 
     // Kombinierte Tier-Akte (Ansehen & Bearbeiten)
     function openCattleAkte(id) {
-        if (!supabaseCattleList || !Array.isArray(supabaseCattleList)) {
-            console.warn("supabaseCattleList ist noch nicht geladen.");
+        let listToSearch = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0)
+            ? supabaseAllCattleList
+            : supabaseCattleList;
+
+        if (!listToSearch || !Array.isArray(listToSearch)) {
+            console.warn("Rinderliste ist noch nicht geladen.");
             return;
         }
-        let c = supabaseCattleList.find(x => String(x.id) === String(id));
+
+        let c = listToSearch.find(x => String(x.id) === String(id));
         if (!c) {
-            console.warn("Rind nicht in supabaseCattleList gefunden für ID:", id);
+            console.warn("Rind nicht gefunden für ID:", id);
             return;
         }
 
@@ -3898,6 +4015,8 @@
         let vp = document.getElementById("comb-verkaufspreis");
         if (vp) vp.value = c.verkaufspreis || 0;
 
+        loadBehandlungenForAkte(c.ohrmarke);
+
         let modal = document.getElementById("cattleCombinedModal");
         if (modal) {
             modal.style.display = "flex";
@@ -3905,6 +4024,93 @@
             console.error("Modal mit ID 'cattleCombinedModal' wurde nicht im DOM gefunden!");
         }
     }
+
+    async function loadBehandlungenForAkte(ohrmarke) {
+        let container = document.getElementById("comb-historie-placeholder");
+        if (!container) return;
+
+        container.innerHTML = `<div style="color:#aaa; text-align:center; padding:15px;">⏳ Lade Behandlungen aus Supabase...</div>`;
+
+        let cleanOhrmarke = String(ohrmarke || "").trim();
+        if (!cleanOhrmarke) {
+            container.innerHTML = `<div style="color:#888; text-align:center; padding:15px; font-weight:bold;">Keine Behandlungen erfasst</div>`;
+            return;
+        }
+
+        try {
+            // WICHTIGER COLUMN-CHECK: Verwende zwingend den Spaltennamen rind_ohrmarke (komplett in Kleinbuchstaben)
+            let queryUrl = SUPABASE_URL + "/rest/v1/behandlungen?rind_ohrmarke=eq." + encodeURIComponent(cleanOhrmarke) + "&order=datum.asc";
+            let res = await fetch(queryUrl, { headers });
+            let behandlungen = [];
+
+            if (res.ok) {
+                behandlungen = await res.json();
+            }
+
+            // Fallback check if space-formatting differs in DB
+            if ((!behandlungen || behandlungen.length === 0) && cleanOhrmarke.includes(" ")) {
+                let noSpace = cleanOhrmarke.replace(/\s+/g, "");
+                let altUrl = SUPABASE_URL + "/rest/v1/behandlungen?rind_ohrmarke=eq." + encodeURIComponent(noSpace) + "&order=datum.asc";
+                let altRes = await fetch(altUrl, { headers });
+                if (altRes.ok) {
+                    let altData = await altRes.json();
+                    if (altData && altData.length > 0) behandlungen = altData;
+                }
+            } else if ((!behandlungen || behandlungen.length === 0) && !cleanOhrmarke.includes(" ")) {
+                let ilikeUrl = SUPABASE_URL + "/rest/v1/behandlungen?rind_ohrmarke=ilike.*" + encodeURIComponent(cleanOhrmarke) + "*&order=datum.asc";
+                let ilikeRes = await fetch(ilikeUrl, { headers });
+                if (ilikeRes.ok) {
+                    let ilikeData = await ilikeRes.json();
+                    if (ilikeData && ilikeData.length > 0) behandlungen = ilikeData;
+                }
+            }
+
+            if (!behandlungen || !Array.isArray(behandlungen) || behandlungen.length === 0) {
+                container.innerHTML = `<div style="color:#888; text-align:center; padding:15px; font-weight:bold;">Keine Behandlungen erfasst</div>`;
+                return;
+            }
+
+            // Chronologische Sortierung nach Datum (älteste zuerst)
+            behandlungen.sort((a, b) => {
+                let dA = a.datum ? new Date(a.datum).getTime() : 0;
+                let dB = b.datum ? new Date(b.datum).getTime() : 0;
+                return dA - dB;
+            });
+
+            let rowsHtml = "";
+            behandlungen.forEach(b => {
+                let dateStr = b.datum ? formatGermanDate(b.datum) : "-";
+                let krankheit = b.krankheit || b.diagnose || "-";
+                let medikament = b.medikament || "-";
+
+                rowsHtml += `<tr>
+                    <td style="white-space:nowrap; font-weight:bold; color:#4caf50;">${dateStr}</td>
+                    <td><strong style="color:#fff;">${krankheit}</strong></td>
+                    <td><span style="color:#ffe0b2;">${medikament}</span></td>
+                </tr>`;
+            });
+
+            container.innerHTML = `
+                <table class="data-table" style="width:100%; margin:0;">
+                    <thead>
+                        <tr>
+                            <th style="width:130px;">Datum</th>
+                            <th>Krankheit</th>
+                            <th>Medikament</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            `;
+
+        } catch (e) {
+            console.error("Fehler beim Laden der Behandlungen:", e);
+            container.innerHTML = `<div style="color:#888; text-align:center; padding:15px; font-weight:bold;">Keine Behandlungen erfasst</div>`;
+        }
+    }
+    window.loadBehandlungenForAkte = loadBehandlungenForAkte;
 
     function openCattleDossier(id) {
         openCattleAkte(id);
