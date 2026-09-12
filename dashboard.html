@@ -105,7 +105,8 @@
     <div class="nav-tabs">
         <button id="btn-tab-map" class="tab-btn active" onclick="switchTab('map')">🗺️ Kartierung & Schlagkartei</button>
         <button id="btn-tab-stats" class="tab-btn" onclick="switchTab('stats')">📊 Statistik & Auswertung</button>
-        <button id="btn-tab-cattle" class="tab-btn" onclick="switchTab('cattle')">🐄 Rinder & Futter</button>
+        <button id="btn-tab-cattle" class="tab-btn" onclick="switchTab('cattle')">🐄 Rinder</button>
+        <button id="btn-tab-futter" class="tab-btn" onclick="switchTab('futter')">🌾 Fütterung</button>
         <button id="btn-tab-fuhrpark" class="tab-btn" onclick="switchTab('fuhrpark')">🚜 Fuhrpark</button>
         <button id="btn-tab-settings" class="tab-btn" onclick="switchTab('settings')">⚙️ Nährstoff-Einstellungen</button>
     </div>
@@ -274,11 +275,11 @@
     </div>
 </div>
 
-<!-- TAB 3: RINDER & FUTTER -->
+<!-- TAB 3: RINDER -->
 <div id="view-cattle" class="view-container">
-    <div class="full-view-content">
+    <div id="rinderTab" class="full-view-content tab-content" style="width:100%;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-            <h2 style="border:none; padding:0; margin:0;">🐄 Rinder-Herdenmanagement & Fütterungsrechner</h2>
+            <h2 style="border:none; padding:0; margin:0;">🐄 Rinder-Herdenmanagement</h2>
             <div style="font-size:13px; color:#4caf50; background:#1e1e1e; border:1px solid #333; padding:8px 15px; border-radius:6px;" id="supabase-status-badge">
                 ⏳ Lade Rinder aus Supabase...
             </div>
@@ -304,7 +305,7 @@
             </div>
         </div>
 
-        <!-- REORDERABLE BLOCKS CONTAINER -->
+        <!-- REORDERABLE BLOCKS CONTAINER (RINDER) -->
         <div id="cattle-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
             <!-- BLOCK 1: Altersgruppen & Stückzahlen -->
@@ -392,14 +393,29 @@
                                 <th>Gelieferte Tiere</th>
                                 <th>Behandelte Tiere</th>
                                 <th>Verluste (Gestorben/Eingeschläfert)</th>
+                                <th>Aktionen</th>
                             </tr>
                         </thead>
                         <tbody id="betriebeStatistikTableBody">
-                            <tr><td colspan="4" style="text-align:center; color:#888;">Lade Betriebs-Statistik...</td></tr>
+                            <tr><td colspan="5" style="text-align:center; color:#888;">Lade Betriebs-Statistik...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- TAB 4: FÜTTERUNG -->
+<div id="view-futter" class="view-container">
+    <div id="futterTab" class="full-view-content tab-content" style="width:100%; display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+            <h2 style="border:none; padding:0; margin:0;">🌾 Fütterung & Futtermitteldatenbank</h2>
+        </div>
+
+        <!-- REORDERABLE BLOCKS CONTAINER (FÜTTERUNG) -->
+        <div id="futter-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
             <!-- BLOCK 3: Futtermitteldatenbank -->
             <div class="table-container reorder-block" id="block-futtermittel" style="margin-bottom: 0;">
@@ -1166,7 +1182,7 @@
 
     // Tab-Wechsel
     function switchTab(tabName) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#top-nav .tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
 
         if (tabName === 'map') {
@@ -1177,10 +1193,24 @@
             document.getElementById('btn-tab-stats').classList.add('active');
             document.getElementById('view-stats').classList.add('active');
             loadStatisticsData();
-        } else if (tabName === 'cattle') {
-            document.getElementById('btn-tab-cattle').classList.add('active');
-            document.getElementById('view-cattle').classList.add('active');
+        } else if (tabName === 'cattle' || tabName === 'rinder') {
+            if (document.getElementById('btn-tab-cattle')) document.getElementById('btn-tab-cattle').classList.add('active');
+            let vCattle = document.getElementById('view-cattle');
+            if (vCattle) vCattle.classList.add('active');
+            let rTab = document.getElementById('rinderTab');
+            if (rTab) rTab.style.display = 'block';
+            let fTab = document.getElementById('futterTab');
+            if (fTab) fTab.style.display = 'none';
             initCattleModule();
+        } else if (tabName === 'futter') {
+            if (document.getElementById('btn-tab-futter')) document.getElementById('btn-tab-futter').classList.add('active');
+            let vFutter = document.getElementById('view-futter');
+            if (vFutter) vFutter.classList.add('active');
+            let fTab = document.getElementById('futterTab');
+            if (fTab) fTab.style.display = 'block';
+            let rTab = document.getElementById('rinderTab');
+            if (rTab) rTab.style.display = 'none';
+            initFutterModule();
         } else if (tabName === 'fuhrpark') {
             document.getElementById('btn-tab-fuhrpark').classList.add('active');
             document.getElementById('view-fuhrpark').classList.add('active');
@@ -2749,6 +2779,9 @@
             if (res.ok) {
                 resetBetriebForm();
                 await loadBetriebe();
+                if (typeof renderBetriebeStatistikTable === "function") {
+                    renderBetriebeStatistikTable();
+                }
                 alert("Betrieb erfolgreich gespeichert!");
             } else {
                 let errText = await res.text();
@@ -2761,8 +2794,32 @@
     }
 
     function editBetrieb(id) {
-        let b = supabaseBetriebeList.find(x => String(x.id) === String(id));
-        if (!b) return;
+        let modal = document.getElementById("betriebeModal");
+        if (modal) modal.style.display = "flex";
+
+        if (!supabaseBetriebeList || supabaseBetriebeList.length === 0) {
+            if (typeof loadBetriebe === "function") {
+                loadBetriebe().then(() => doEditBetrieb(id));
+                return;
+            }
+        }
+        doEditBetrieb(id);
+    }
+
+    function doEditBetrieb(id) {
+        let b = (supabaseBetriebeList || []).find(x => String(x.id) === String(id));
+        if (!b && typeof findBetriebByNummer === "function") {
+            b = findBetriebByNummer(id);
+        }
+
+        if (!b) {
+            resetBetriebForm();
+            if (id && id !== "__unknown__") {
+                let bnrInput = document.getElementById("betr-betriebsnummer");
+                if (bnrInput) bnrInput.value = id;
+            }
+            return;
+        }
 
         editingBetriebId = b.id;
         let bnrInput = document.getElementById("betr-betriebsnummer");
@@ -2773,6 +2830,7 @@
         if (hofInput) hofInput.value = b.hofname || b.name || b.besitzer || "";
         if (adrInput) adrInput.value = b.adresse || b.notiz || b.adresse_notiz || "";
     }
+    window.doEditBetrieb = doEditBetrieb;
 
     async function deleteBetrieb(id, bnr) {
         if (!confirm(`Möchtest du den Betrieb (${bnr}) wirklich löschen?`)) return;
@@ -3090,6 +3148,33 @@
         return age < 0 ? 0 : age;
     }
 
+    async function initFutterModule() {
+        let savedFeeds = localStorage.getItem(KEY_FEEDS);
+        feedItems = savedFeeds ? JSON.parse(savedFeeds) : defaultFeeds;
+        feedItems.forEach(f => {
+            if (f.xf === undefined) {
+                if (f.id === 'f1') f.xf = 180;
+                else if (f.id === 'f2') f.xf = 240;
+                else if (f.id === 'f3') f.xf = 200;
+                else if (f.id === 'f4') f.xf = 110;
+                else if (f.id === 'f5') f.xf = 25;
+                else if (f.id === 'f6') f.xf = 380;
+                else f.xf = 180;
+            }
+        });
+
+        let savedMixerLoad = localStorage.getItem(KEY_MIXER_LOAD);
+        mixerLoad = savedMixerLoad ? JSON.parse(savedMixerLoad) : defaultMixerLoad;
+
+        let savedRations = localStorage.getItem(KEY_RATIONS);
+        categoryRations = savedRations ? JSON.parse(savedRations) : defaultCategoryRations;
+
+        if (typeof renderFeedItemsTable === "function") renderFeedItemsTable();
+        if (typeof calculateMixerTMR === "function") calculateMixerTMR();
+        if (typeof renderFeedingCalculator === "function") renderFeedingCalculator();
+    }
+    window.initFutterModule = initFutterModule;
+
     async function initCattleModule() {
         let savedFeeds = localStorage.getItem(KEY_FEEDS);
         feedItems = savedFeeds ? JSON.parse(savedFeeds) : defaultFeeds;
@@ -3234,7 +3319,7 @@
         let tbody = document.getElementById("betriebeStatistikTableBody");
         if (!tbody) return;
 
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding:20px;">⌛ Berechne Betriebs-Statistiken...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888; padding:20px;">⌛ Berechne Betriebs-Statistiken...</td></tr>`;
 
         // 1. Alle Rinder laden (aktiv + archiviert)
         let allCattle = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0)
@@ -3288,11 +3373,12 @@
             let groupKey = "";
             let displayName = "";
 
+            let matchedB = isUnknown ? null : ((typeof findBetriebByNummer === "function") ? findBetriebByNummer(rawOwner) : null);
+
             if (isUnknown) {
                 groupKey = "__unknown__";
                 displayName = "Kein Betrieb / Eigenbestand";
             } else {
-                let matchedB = (typeof findBetriebByNummer === "function") ? findBetriebByNummer(rawOwner) : null;
                 if (matchedB) {
                     groupKey = "betrieb_" + (matchedB.id || matchedB.betriebsnummer || matchedB.bnr || rawOwner);
                     let hofname = String(matchedB.hofname || matchedB.name || matchedB.besitzer || "").trim();
@@ -3325,7 +3411,9 @@
                     displayName: displayName,
                     totalCount: 0,
                     treatedCount: 0,
-                    lossCount: 0
+                    lossCount: 0,
+                    betriebId: matchedB ? matchedB.id : null,
+                    rawOwner: rawOwner
                 };
             }
 
@@ -3358,7 +3446,7 @@
         groups.sort((a, b) => b.totalCount - a.totalCount);
 
         if (groups.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding:20px;">Keine Betriebe in der Statistik gefunden.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888; padding:20px;">Keine Betriebe in der Statistik gefunden.</td></tr>`;
             return;
         }
 
@@ -3370,11 +3458,28 @@
             let treatedColor = g.treatedCount === 0 ? "#81c784" : (treatedPct > 20 ? "#ffb74d" : "#e0e0e0");
             let lossColor = g.lossCount === 0 ? "#81c784" : (lossPct > 5 ? "#e57373" : "#ffb74d");
 
+            let editTargetId = g.betriebId;
+            if (!editTargetId && g.rawOwner && g.key !== "__unknown__") {
+                let foundLater = (typeof findBetriebByNummer === "function") ? findBetriebByNummer(g.rawOwner) : null;
+                if (foundLater) editTargetId = foundLater.id;
+            }
+
+            let actionBtnHtml = "";
+            if (editTargetId) {
+                actionBtnHtml = `<button class="action-btn" onclick="editBetrieb('${editTargetId}')">✏️ Bearbeiten</button>`;
+            } else if (g.rawOwner && g.key !== "__unknown__") {
+                let safeOwner = String(g.rawOwner).replace(/'/g, "\\'");
+                actionBtnHtml = `<button class="action-btn" onclick="editBetrieb('${safeOwner}')">✏️ Bearbeiten</button>`;
+            } else {
+                actionBtnHtml = `<span style="color:#666; font-size:12px;">-</span>`;
+            }
+
             html += `<tr>
                 <td><strong style="color:#e0e0e0; font-size:14px;">🏢 ${g.displayName}</strong></td>
                 <td><strong style="color:#4fc3f7; font-size:15px;">${g.totalCount} Stk</strong></td>
                 <td><strong style="color:${treatedColor}; font-size:14px;">${g.treatedCount}</strong> <span style="font-size:12px; color:#aaa;">(${treatedPct}%)</span></td>
                 <td><strong style="color:${lossColor}; font-size:14px;">${g.lossCount}</strong> <span style="font-size:12px; color:#aaa;">(${lossPct}%)</span></td>
+                <td>${actionBtnHtml}</td>
             </tr>`;
         });
 
