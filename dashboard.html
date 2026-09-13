@@ -15,7 +15,7 @@
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; background-color: #121212; color: #e0e0e0; overflow: hidden; }
 
         /* Top Navigation Bar */
-        #top-nav { background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 5px 25px; height: 90px; box-sizing: border-box; flex-shrink: 0; }
+        #mainNavbar { background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 5px 25px; height: 90px; box-sizing: border-box; flex-shrink: 0; }
         .nav-title { font-size: 20px; font-weight: bold; color: #4caf50; display: flex; align-items: center; gap: 10px; }
         .header-logo { max-height: 80px; margin-right: 15px; vertical-align: middle; border-radius: 5px; }
         .nav-tabs { display: flex; gap: 10px; }
@@ -24,7 +24,7 @@
         .tab-btn.active { background: #388e3c; color: #fff; border-color: #4caf50; }
 
         /* Main View Container */
-        .view-container { flex-grow: 1; height: calc(100vh - 90px); display: none; overflow: hidden; }
+        .view-container { flex-grow: 1; height: 100%; display: none; overflow: hidden; }
         .view-container.active { display: flex; }
 
         /* Sidebar & Map */
@@ -138,32 +138,37 @@
 
         .cockpit-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            max-width: 1000px;
-            margin: 40px auto;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            max-width: 1200px;
+            width: 90%;
+            margin: 60px auto;
         }
 
         .cockpit-card {
-            background: rgba(255, 255, 255, 0.05);
+            min-height: 250px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.2s, background 0.2s;
             text-align: center;
             backdrop-filter: blur(10px);
+            box-sizing: border-box;
         }
 
         .cockpit-card:hover {
-            transform: translateY(-4px);
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(76, 175, 80, 0.5);
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.25);
+            transform: scale(1.03);
+            background: rgba(255, 255, 255, 0.12);
         }
 
         .cockpit-card:active {
-            transform: translateY(-2px);
+            transform: scale(1.01);
         }
 
         .header-logo, .nav-title {
@@ -182,32 +187,41 @@
         </div>
         <div class="cockpit-grid">
             <div class="cockpit-card" onclick="openTab('cattle')">
-                <div style="font-size: 40px; margin-bottom: 10px;">🐄</div>
-                <div style="font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 8px;">Rinder</div>
-                <div style="font-size: 14px; color: #aaa;">Aktiver Bestand: <strong style="color: #4caf50; font-size: 18px;"><span id="cockpitRinderCount">-</span></strong></div>
+                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">🐄 Rinder</div>
+                <div style="text-align: center;">
+                    <span id="cockpitRinderCount" style="font-size: 2rem; font-weight: bold; color: #4ade80;">-</span><br>
+                    <span style="font-size: 1.2rem; opacity: 0.8;">Aktive Tiere im Bestand</span>
+                </div>
             </div>
             <div class="cockpit-card" onclick="openTab('fuhrpark')">
-                <div style="font-size: 40px; margin-bottom: 10px;">🚜</div>
-                <div style="font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 8px;">Fuhrpark</div>
-                <div style="font-size: 14px; color: #aaa;">Fuhrpark & TÜV: <strong style="color: #4caf50; font-size: 18px;"><span id="cockpitTuvCount">-</span></strong></div>
+                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">🚜 Fuhrpark</div>
+                <div style="text-align: center;">
+                    <span id="cockpitTuvCount" style="font-size: 2rem; font-weight: bold; color: #facc15;">-</span><br>
+                    <span style="font-size: 1.2rem; opacity: 0.8;">TÜV fällig / Mängel</span>
+                </div>
             </div>
             <div class="cockpit-card" onclick="openTab('futter')">
-                <div style="font-size: 40px; margin-bottom: 10px;">🌾</div>
-                <div style="font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 8px;">Fütterung</div>
-                <div style="font-size: 14px; color: #aaa;">Rationen & Futter</div>
+                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">🌾 Fütterung</div>
+                <div style="text-align: center;">
+                    <span style="font-size: 1.5rem;">Rationen berechnen</span>
+                </div>
             </div>
             <div class="cockpit-card" onclick="openTab('stats')">
-                <div style="font-size: 40px; margin-bottom: 10px;">📊</div>
-                <div style="font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 8px;">Statistik</div>
-                <div style="font-size: 14px; color: #aaa;">Ausbringung & Daten</div>
+                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">📊 Statistik</div>
+                <div style="text-align: center;">
+                    <span style="font-size: 1.5rem;">Auswertungen & Protokolle</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Top Navigation -->
-<div id="top-nav">
-    <div class="nav-title" onclick="switchTab('cockpit')" title="Zurück zur Übersicht"><img src="icon3.png" alt="HofBuch Logo" class="header-logo">Hof Glandorf HofBuch</div>
+<div id="mainNavbar" style="display: none;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <button id="btn-tab-start" class="tab-btn" onclick="switchTab('cockpit')" style="background: #388e3c; color: #fff; border-color: #4caf50;">🏠 Start</button>
+        <div class="nav-title" onclick="switchTab('cockpit')" title="Zurück zur Übersicht"><img src="icon3.png" alt="HofBuch Logo" class="header-logo">Hof Glandorf HofBuch</div>
+    </div>
     <div class="nav-tabs">
         <button id="btn-tab-cockpit" class="tab-btn active" onclick="switchTab('cockpit')">🏠 Übersicht</button>
         <button id="btn-tab-map" class="tab-btn" onclick="switchTab('map')">🗺️ Kartierung & Schlagkartei</button>
@@ -1381,49 +1395,56 @@
 
     // Tab-Wechsel
     function switchTab(tabName) {
-        document.querySelectorAll('#top-nav .tab-btn').forEach(b => b.classList.remove('active'));
+        let mainNav = document.getElementById('mainNavbar');
+        if (mainNav) {
+            mainNav.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        }
         document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
 
         if (tabName === 'cockpit' || tabName === 'uebersicht') {
+            if (mainNav) mainNav.style.display = 'none';
             if (document.getElementById('btn-tab-cockpit')) document.getElementById('btn-tab-cockpit').classList.add('active');
             let vCockpit = document.getElementById('view-cockpit');
             if (vCockpit) vCockpit.classList.add('active');
             let cTab = document.getElementById('cockpitTab');
             if (cTab) cTab.classList.add('active');
-        } else if (tabName === 'map') {
-            document.getElementById('btn-tab-map').classList.add('active');
-            document.getElementById('view-map').classList.add('active');
-            setTimeout(() => { if (map) map.invalidateSize(); }, 200);
-        } else if (tabName === 'stats') {
-            document.getElementById('btn-tab-stats').classList.add('active');
-            document.getElementById('view-stats').classList.add('active');
-            loadStatisticsData();
-        } else if (tabName === 'cattle' || tabName === 'rinder') {
-            if (document.getElementById('btn-tab-cattle')) document.getElementById('btn-tab-cattle').classList.add('active');
-            let vCattle = document.getElementById('view-cattle');
-            if (vCattle) vCattle.classList.add('active');
-            let rTab = document.getElementById('rinderTab');
-            if (rTab) rTab.style.display = 'block';
-            let fTab = document.getElementById('futterTab');
-            if (fTab) fTab.style.display = 'none';
-            initCattleModule();
-        } else if (tabName === 'futter') {
-            if (document.getElementById('btn-tab-futter')) document.getElementById('btn-tab-futter').classList.add('active');
-            let vFutter = document.getElementById('view-futter');
-            if (vFutter) vFutter.classList.add('active');
-            let fTab = document.getElementById('futterTab');
-            if (fTab) fTab.style.display = 'block';
-            let rTab = document.getElementById('rinderTab');
-            if (rTab) rTab.style.display = 'none';
-            initFutterModule();
-        } else if (tabName === 'fuhrpark') {
-            document.getElementById('btn-tab-fuhrpark').classList.add('active');
-            document.getElementById('view-fuhrpark').classList.add('active');
-            loadFuhrparkData();
-        } else if (tabName === 'settings') {
-            document.getElementById('btn-tab-settings').classList.add('active');
-            document.getElementById('view-settings').classList.add('active');
-            loadNutrientSettingsFromSupabase();
+        } else {
+            if (mainNav) mainNav.style.display = 'flex';
+            if (tabName === 'map') {
+                document.getElementById('btn-tab-map').classList.add('active');
+                document.getElementById('view-map').classList.add('active');
+                setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+            } else if (tabName === 'stats') {
+                document.getElementById('btn-tab-stats').classList.add('active');
+                document.getElementById('view-stats').classList.add('active');
+                loadStatisticsData();
+            } else if (tabName === 'cattle' || tabName === 'rinder') {
+                if (document.getElementById('btn-tab-cattle')) document.getElementById('btn-tab-cattle').classList.add('active');
+                let vCattle = document.getElementById('view-cattle');
+                if (vCattle) vCattle.classList.add('active');
+                let rTab = document.getElementById('rinderTab');
+                if (rTab) rTab.style.display = 'block';
+                let fTab = document.getElementById('futterTab');
+                if (fTab) fTab.style.display = 'none';
+                initCattleModule();
+            } else if (tabName === 'futter') {
+                if (document.getElementById('btn-tab-futter')) document.getElementById('btn-tab-futter').classList.add('active');
+                let vFutter = document.getElementById('view-futter');
+                if (vFutter) vFutter.classList.add('active');
+                let fTab = document.getElementById('futterTab');
+                if (fTab) fTab.style.display = 'block';
+                let rTab = document.getElementById('rinderTab');
+                if (rTab) rTab.style.display = 'none';
+                initFutterModule();
+            } else if (tabName === 'fuhrpark') {
+                document.getElementById('btn-tab-fuhrpark').classList.add('active');
+                document.getElementById('view-fuhrpark').classList.add('active');
+                loadFuhrparkData();
+            } else if (tabName === 'settings') {
+                document.getElementById('btn-tab-settings').classList.add('active');
+                document.getElementById('view-settings').classList.add('active');
+                loadNutrientSettingsFromSupabase();
+            }
         }
     }
 
