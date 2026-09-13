@@ -106,8 +106,7 @@
             width: 100vw;
             height: 100vh;
             z-index: 9999;
-            background: #181818;
-            background: linear-gradient(135deg, #1f2a20 0%, #121212 100%);
+            background: radial-gradient(circle at center, #2a3b2c 0%, #111812 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -130,62 +129,58 @@
             max-height: 250px;
             max-width: 85vw;
             object-fit: contain;
-            margin-bottom: 20px;
+            margin-bottom: 0;
             filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
         }
 
         .start-title {
-            margin: 0;
-            font-size: 42px;
-            font-weight: 800;
-            color: #ffffff;
+            color: white;
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 0;
             text-align: center;
-            letter-spacing: 1px;
-        }
-
-        .start-subtitle {
-            margin: 5px 0 35px 0;
-            font-size: 24px;
-            font-weight: 600;
-            color: #4caf50;
-            text-align: center;
-            border-bottom: none;
-            padding-bottom: 0;
+            text-shadow: 0px 4px 10px rgba(0,0,0,0.5);
         }
 
         .start-tiles {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            max-width: 800px;
-            width: 100%;
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            max-width: 600px;
+            width: 90%;
+            margin-top: 40px;
             justify-content: center;
         }
 
+        @media (max-width: 600px) {
+            .start-tiles {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .start-tile {
-            background: #262626;
-            border: 2px solid #3d3d3d;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
-            padding: 25px 15px;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 500;
+            padding: 30px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.25s ease;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.35);
-            color: white;
-            margin-top: 0;
-            width: 100%;
-            min-height: 140px;
+            transition: all 0.3s ease;
             box-sizing: border-box;
+            width: 100%;
         }
 
         .start-tile:hover {
-            background: #388e3c;
-            border-color: #4caf50;
             transform: translateY(-5px);
-            box-shadow: 0 10px 22px rgba(56, 142, 60, 0.4);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
         }
 
         .start-tile:active {
@@ -199,10 +194,10 @@
         }
 
         .tile-label {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 1.5rem;
+            font-weight: 500;
             text-align: center;
-            color: #ffffff;
+            color: white;
         }
 
         .header-logo, .nav-title {
@@ -215,8 +210,7 @@
 <!-- Start Screen -->
 <div id="startScreen" class="start-screen">
     <img src="icon3.png" alt="HofBuch Logo" class="start-logo">
-    <h1 class="start-title">Hof Glandorf</h1>
-    <h2 class="start-subtitle">HofBuch</h2>
+    <h1 class="start-title">HofBuch</h1>
     <div class="start-tiles">
         <button class="start-tile" onclick="openTab('map')">
             <span class="tile-icon">🗺️</span>
