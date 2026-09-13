@@ -117,6 +117,8 @@
             overflow-y: auto;
             padding: 30px 20px;
             box-sizing: border-box;
+        }
+
         /* Cockpit Styles */
         .start-logo {
             max-height: 35vh;
@@ -138,37 +140,31 @@
 
         .cockpit-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 40px;
-            max-width: 1200px;
-            width: 90%;
-            margin: 60px auto;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1000px;
+            margin: 40px auto;
         }
 
         .cockpit-card {
-            min-height: 250px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
             text-align: center;
-            backdrop-filter: blur(10px);
             box-sizing: border-box;
         }
 
         .cockpit-card:hover {
-            transform: scale(1.03);
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .cockpit-card:active {
-            transform: scale(1.01);
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
         }
 
         .header-logo, .nav-title {
@@ -187,49 +183,40 @@
         </div>
         <div class="cockpit-grid">
             <div class="cockpit-card" onclick="openTab('cattle')">
-                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">🐄 Rinder</div>
-                <div style="text-align: center;">
-                    <span id="cockpitRinderCount" style="font-size: 2rem; font-weight: bold; color: #4ade80;">-</span><br>
-                    <span style="font-size: 1.2rem; opacity: 0.8;">Aktive Tiere im Bestand</span>
-                </div>
+                <h3>🐄 Rinder-Bestand</h3>
+                <div style="font-size: 2.5rem; font-weight: bold; color: #4ade80; margin: 15px 0;" id="cockpitRinderCount">-</div>
+                <span>Aktive Tiere in der Datenbank</span>
             </div>
             <div class="cockpit-card" onclick="openTab('fuhrpark')">
-                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">🚜 Fuhrpark</div>
-                <div style="text-align: center;">
-                    <span id="cockpitTuvCount" style="font-size: 2rem; font-weight: bold; color: #facc15;">-</span><br>
-                    <span style="font-size: 1.2rem; opacity: 0.8;">TÜV fällig / Mängel</span>
-                </div>
+                <h3>🚜 Fuhrpark & Wartung</h3>
+                <div style="font-size: 2.5rem; font-weight: bold; color: #facc15; margin: 15px 0;" id="cockpitTuvCount">-</div>
+                <span>Maschinen mit TÜV/Mängeln</span>
             </div>
             <div class="cockpit-card" onclick="openTab('futter')">
-                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">🌾 Fütterung</div>
-                <div style="text-align: center;">
-                    <span style="font-size: 1.5rem;">Rationen berechnen</span>
-                </div>
+                <h3>🌾 Fütterung</h3>
+                <div style="font-size: 1.2rem; margin: 15px 0;">Mischwagen-Rechner &<br>Futtermitteldatenbank</div>
             </div>
             <div class="cockpit-card" onclick="openTab('stats')">
-                <div style="font-size: 2.2rem; font-weight: bold; color: #fff; margin-bottom: 20px;">📊 Statistik</div>
-                <div style="text-align: center;">
-                    <span style="font-size: 1.5rem;">Auswertungen & Protokolle</span>
-                </div>
+                <h3>📊 Statistik & Betriebe</h3>
+                <div style="font-size: 1.2rem; margin: 15px 0;">Ausbringungsprotokolle &<br>Lieferanten-Zeugnis</div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Top Navigation -->
-<div id="mainNavbar" style="display: none;">
+<div id="mainNavbar">
     <div style="display: flex; align-items: center; gap: 15px;">
-        <button id="btn-tab-start" class="tab-btn" onclick="switchTab('cockpit')" style="background: #388e3c; color: #fff; border-color: #4caf50;">🏠 Start</button>
         <div class="nav-title" onclick="switchTab('cockpit')" title="Zurück zur Übersicht"><img src="icon3.png" alt="HofBuch Logo" class="header-logo">Hof Glandorf HofBuch</div>
     </div>
     <div class="nav-tabs">
         <button id="btn-tab-cockpit" class="tab-btn active" onclick="switchTab('cockpit')">🏠 Übersicht</button>
-        <button id="btn-tab-map" class="tab-btn" onclick="switchTab('map')">🗺️ Kartierung & Schlagkartei</button>
-        <button id="btn-tab-stats" class="tab-btn" onclick="switchTab('stats')">📊 Statistik & Auswertung</button>
         <button id="btn-tab-cattle" class="tab-btn" onclick="switchTab('cattle')">🐄 Rinder</button>
-        <button id="btn-tab-futter" class="tab-btn" onclick="switchTab('futter')">🌾 Fütterung</button>
         <button id="btn-tab-fuhrpark" class="tab-btn" onclick="switchTab('fuhrpark')">🚜 Fuhrpark</button>
-        <button id="btn-tab-settings" class="tab-btn" onclick="switchTab('settings')">⚙️ Nährstoff-Einstellungen</button>
+        <button id="btn-tab-futter" class="tab-btn" onclick="switchTab('futter')">🌾 Fütterung</button>
+        <button id="btn-tab-stats" class="tab-btn" onclick="switchTab('stats')">📊 Statistik</button>
+        <button id="btn-tab-map" class="tab-btn" onclick="switchTab('map')">🗺️ Kartierung</button>
+        <button id="btn-tab-settings" class="tab-btn" onclick="switchTab('settings')">⚙️ Einstellungen</button>
     </div>
 </div>
 
@@ -1402,49 +1389,45 @@
         document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
 
         if (tabName === 'cockpit' || tabName === 'uebersicht') {
-            if (mainNav) mainNav.style.display = 'none';
             if (document.getElementById('btn-tab-cockpit')) document.getElementById('btn-tab-cockpit').classList.add('active');
             let vCockpit = document.getElementById('view-cockpit');
             if (vCockpit) vCockpit.classList.add('active');
             let cTab = document.getElementById('cockpitTab');
             if (cTab) cTab.classList.add('active');
-        } else {
-            if (mainNav) mainNav.style.display = 'flex';
-            if (tabName === 'map') {
-                document.getElementById('btn-tab-map').classList.add('active');
-                document.getElementById('view-map').classList.add('active');
-                setTimeout(() => { if (map) map.invalidateSize(); }, 200);
-            } else if (tabName === 'stats') {
-                document.getElementById('btn-tab-stats').classList.add('active');
-                document.getElementById('view-stats').classList.add('active');
-                loadStatisticsData();
-            } else if (tabName === 'cattle' || tabName === 'rinder') {
-                if (document.getElementById('btn-tab-cattle')) document.getElementById('btn-tab-cattle').classList.add('active');
-                let vCattle = document.getElementById('view-cattle');
-                if (vCattle) vCattle.classList.add('active');
-                let rTab = document.getElementById('rinderTab');
-                if (rTab) rTab.style.display = 'block';
-                let fTab = document.getElementById('futterTab');
-                if (fTab) fTab.style.display = 'none';
-                initCattleModule();
-            } else if (tabName === 'futter') {
-                if (document.getElementById('btn-tab-futter')) document.getElementById('btn-tab-futter').classList.add('active');
-                let vFutter = document.getElementById('view-futter');
-                if (vFutter) vFutter.classList.add('active');
-                let fTab = document.getElementById('futterTab');
-                if (fTab) fTab.style.display = 'block';
-                let rTab = document.getElementById('rinderTab');
-                if (rTab) rTab.style.display = 'none';
-                initFutterModule();
-            } else if (tabName === 'fuhrpark') {
-                document.getElementById('btn-tab-fuhrpark').classList.add('active');
-                document.getElementById('view-fuhrpark').classList.add('active');
-                loadFuhrparkData();
-            } else if (tabName === 'settings') {
-                document.getElementById('btn-tab-settings').classList.add('active');
-                document.getElementById('view-settings').classList.add('active');
-                loadNutrientSettingsFromSupabase();
-            }
+        } else if (tabName === 'map') {
+            if (document.getElementById('btn-tab-map')) document.getElementById('btn-tab-map').classList.add('active');
+            document.getElementById('view-map').classList.add('active');
+            setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+        } else if (tabName === 'stats') {
+            if (document.getElementById('btn-tab-stats')) document.getElementById('btn-tab-stats').classList.add('active');
+            document.getElementById('view-stats').classList.add('active');
+            loadStatisticsData();
+        } else if (tabName === 'cattle' || tabName === 'rinder') {
+            if (document.getElementById('btn-tab-cattle')) document.getElementById('btn-tab-cattle').classList.add('active');
+            let vCattle = document.getElementById('view-cattle');
+            if (vCattle) vCattle.classList.add('active');
+            let rTab = document.getElementById('rinderTab');
+            if (rTab) rTab.style.display = 'block';
+            let fTab = document.getElementById('futterTab');
+            if (fTab) fTab.style.display = 'none';
+            initCattleModule();
+        } else if (tabName === 'futter') {
+            if (document.getElementById('btn-tab-futter')) document.getElementById('btn-tab-futter').classList.add('active');
+            let vFutter = document.getElementById('view-futter');
+            if (vFutter) vFutter.classList.add('active');
+            let fTab = document.getElementById('futterTab');
+            if (fTab) fTab.style.display = 'block';
+            let rTab = document.getElementById('rinderTab');
+            if (rTab) rTab.style.display = 'none';
+            initFutterModule();
+        } else if (tabName === 'fuhrpark') {
+            if (document.getElementById('btn-tab-fuhrpark')) document.getElementById('btn-tab-fuhrpark').classList.add('active');
+            document.getElementById('view-fuhrpark').classList.add('active');
+            loadFuhrparkData();
+        } else if (tabName === 'settings') {
+            if (document.getElementById('btn-tab-settings')) document.getElementById('btn-tab-settings').classList.add('active');
+            document.getElementById('view-settings').classList.add('active');
+            loadNutrientSettingsFromSupabase();
         }
     }
 
@@ -1763,6 +1746,7 @@
         let curTotalMonths = curYear * 12 + curMonth;
 
         let dueTuevCount = 0;
+        let openMaengelCount = 0;
         if (ownEquipment && ownEquipment.length > 0) {
             ownEquipment.forEach(eq => {
                 let eqTuevList = globalTuevList.filter(t => String(t.equipment_id) === String(eq.id));
@@ -1781,12 +1765,16 @@
                         dueTuevCount++;
                     }
                 }
+
+                let eqMaengel = globalMaengelList.filter(m => String(m.equipment_id) === String(eq.id) && !m.erledigt);
+                openMaengelCount += eqMaengel.length;
             });
         }
 
         let cockpitTuvEl = document.getElementById("cockpitTuvCount");
         if (cockpitTuvEl) {
-            cockpitTuvEl.innerText = dueTuevCount > 0 ? `${dueTuevCount} fällig` : "0 fällig";
+            let totalIssues = dueTuevCount + openMaengelCount;
+            cockpitTuvEl.innerText = totalIssues > 0 ? `${totalIssues}` : "0";
         }
 
         let tbody = document.getElementById("tuevMaengelTableBody");
