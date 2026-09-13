@@ -230,47 +230,66 @@
             </div>
         </div>
 
-        <div class="table-container">
-            <h3>🌾 Nährstoffbilanz pro Schlag / Fläche</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Schlag / Fläche</th>
-                        <th>Größe</th>
-                        <th>Fuhren</th>
-                        <th>Gesamt-Volumen</th>
-                        <th>Ausbringung / ha</th>
-                        <th>N (Stickstoff)</th>
-                        <th>P₂O₅ (Phosphat)</th>
-                        <th>K₂O (Kalium)</th>
-                        <th>N-Fracht / ha</th>
-                    </tr>
-                </thead>
-                <tbody id="statsFieldTableBody">
-                    <tr><td colspan="9" style="text-align:center; color:#888;">Lade Daten...</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- REORDERABLE BLOCKS CONTAINER (STATISTIK) -->
+        <div id="stats-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
-        <div class="table-container">
-            <h3>🚛 Detailliertes Ausbringungsprotokoll</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Datum & Uhrzeit</th>
-                        <th>Schlag / Fläche</th>
-                        <th>Aufgabe</th>
-                        <th>Volumen (m³)</th>
-                        <th>Gewicht (kg)</th>
-                        <th>N (kg)</th>
-                        <th>P₂O₅ (kg)</th>
-                        <th>K₂O (kg)</th>
-                    </tr>
-                </thead>
-                <tbody id="statsTripTableBody">
-                    <tr><td colspan="8" style="text-align:center; color:#888;">Lade Daten...</td></tr>
-                </tbody>
-            </table>
+            <!-- BLOCK 1: Nährstoffbilanz pro Schlag / Fläche -->
+            <div class="table-container reorder-block" id="block-naehrstoffbilanz" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0; font-size:18px; color:#4caf50;">🌾 Nährstoffbilanz pro Schlag / Fläche</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Schlag / Fläche</th>
+                            <th>Größe</th>
+                            <th>Fuhren</th>
+                            <th>Gesamt-Volumen</th>
+                            <th>Ausbringung / ha</th>
+                            <th>N (Stickstoff)</th>
+                            <th>P₂O₅ (Phosphat)</th>
+                            <th>K₂O (Kalium)</th>
+                            <th>N-Fracht / ha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsFieldTableBody">
+                        <tr><td colspan="9" style="text-align:center; color:#888;">Lade Daten...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- BLOCK 2: Detailliertes Ausbringungsprotokoll -->
+            <div class="table-container reorder-block" id="block-ausbringungsprotokoll" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0; font-size:18px; color:#4caf50;">🚛 Detailliertes Ausbringungsprotokoll</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Datum & Uhrzeit</th>
+                            <th>Schlag / Fläche</th>
+                            <th>Aufgabe</th>
+                            <th>Volumen (m³)</th>
+                            <th>Gewicht (kg)</th>
+                            <th>N (kg)</th>
+                            <th>P₂O₅ (kg)</th>
+                            <th>K₂O (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTripTableBody">
+                        <tr><td colspan="8" style="text-align:center; color:#888;">Lade Daten...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 </div>
@@ -312,10 +331,10 @@
             <div class="table-container reorder-block" id="block-altersgruppen" style="margin-bottom: 0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🐮 1. Altersgruppen & Stückzahlen (Supabase)</h3>
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🐮 Altersgruppen & Stückzahlen (Supabase)</h3>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                     <button onclick="loadCattleFromSupabase()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#444;">🔄 Supabase Aktualisieren</button>
@@ -340,10 +359,10 @@
             <div class="table-container reorder-block" id="block-mastertabelle" style="margin-bottom: 0;">
                 <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 15px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 2. Gesamtbestand – Master-Rinderliste (Supabase)</h3>
+                        <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 Gesamtbestand – Master-Rinderliste (Supabase)</h3>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; flex-grow:1; max-width: 750px; justify-content:flex-end; align-items:center;">
@@ -421,10 +440,10 @@
             <div class="table-container reorder-block" id="block-futtermittel" style="margin-bottom: 0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🌾 3. Futtermitteldatenbank</h3>
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🌾 Futtermitteldatenbank</h3>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                     <button onclick="openFeedModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#ff9800;">➕ Futtermittel anlegen</button>
@@ -450,21 +469,21 @@
                 <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                         <div>
-                            <h3 style="margin:0; font-size: 20px; color: #4caf50;">🚜 4. Fütterungsrechner & Bedarfsanalyse (Mischwagen / TMR)</h3>
+                            <h3 style="margin:0; font-size: 20px; color: #4caf50;">🚜 Fütterungsrechner & Bedarfsanalyse (Mischwagen / TMR)</h3>
                             <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Gib die geladene Frischmasse (FM) pro Futtermittel für den Mischwagen ein. Berechne die Nährstoffdichte (Energie, Rohprotein, Rohfaser) der TMR und vergleiche sie live mit den Anforderungen der Altersgruppen.</p>
                         </div>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- 1. Input: Mischwagen-Befüllung -->
+                <!-- Input: Mischwagen-Befüllung -->
                 <div style="background:#1e1e1e; border:1px solid #333; border-radius:10px; padding:20px; margin-bottom:25px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
                         <div>
-                            <h4 style="color:#4caf50; margin:0; font-size:17px;">🌾 1. Mischwagen-Befüllung (Mengen in kg Frischmasse)</h4>
+                            <h4 style="color:#4caf50; margin:0; font-size:17px;">🌾 Mischwagen-Befüllung (Mengen in kg Frischmasse)</h4>
                             <p style="color:#aaa; font-size:12px; margin:4px 0 0 0;">Trage die pro Füllung geladene Menge in kg Frischmasse (FM) für jedes Futtermittel ein.</p>
                         </div>
                         <button type="button" onclick="resetMixerLoad()" style="width:auto; padding:6px 12px; font-size:12px; background:#444;">🔄 Befüllung zurücksetzen</button>
@@ -489,10 +508,10 @@
                     </div>
                 </div>
 
-                <!-- 2. Berechnung der Nährstoffdichte (TMR) -->
+                <!-- Berechnung der Nährstoffdichte (TMR) -->
                 <div style="background:linear-gradient(135deg, #1e2a22 0%, #152018 100%); border:1px solid #2e4d36; border-radius:10px; padding:20px; margin-bottom:25px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
                     <h4 style="color:#81c784; margin:0 0 15px 0; font-size:17px; display:flex; align-items:center; gap:8px;">
-                        <span>📊 2. Berechnete Nährstoffdichte der Mischung (TMR)</span>
+                        <span>📊 Berechnete Nährstoffdichte der Mischung (TMR)</span>
                     </h4>
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:15px;">
                         <div style="background:#18221a; border:1px solid #283d2e; border-radius:8px; padding:14px;">
@@ -527,19 +546,19 @@
                     </div>
                 </div>
 
-                <!-- 3. Ampel-Vergleich für die Altersgruppen -->
+                <!-- Ampel-Vergleich für die Altersgruppen -->
                 <div style="margin-bottom:25px;">
                     <h4 style="color:#4caf50; margin:0 0 8px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
-                        <span>🎯 3. Ampel-Vergleich: Eignung der TMR für verschiedene Altersgruppen</span>
+                        <span>🎯 Ampel-Vergleich: Eignung der TMR für verschiedene Altersgruppen</span>
                     </h4>
                     <p style="color:#aaa; font-size:12px; margin:0 0 16px 0;">Vergleich der Nährstoffdichte des Mischwagens mit den Soll-Empfehlungen der jeweiligen Tiergruppe (Grün = Optimal, Orange = Leichte Abweichung, Rot = Starke Fehlversorgung).</p>
 
                     <div id="targetGroupsComparisonGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:18px;"></div>
                 </div>
 
-                <!-- 4. Herden-Gesamtsumme Futterbedarf & Kosten -->
+                <!-- Herden-Gesamtsumme Futterbedarf & Kosten -->
                 <div style="background:#1e1e1e; border:1px solid #333; border-radius:10px; padding:20px;">
-                    <h4 style="color:#4caf50; margin:0 0 12px 0; font-size:16px;">📊 4. Gesamter Futterbedarf & Kosten der TMR-Mischung</h4>
+                    <h4 style="color:#4caf50; margin:0 0 12px 0; font-size:16px;">📊 Gesamter Futterbedarf & Kosten der TMR-Mischung</h4>
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -568,81 +587,96 @@
             <button onclick="loadFuhrparkData()" style="width:auto; margin:0; padding:8px 16px; font-size:13px; background:#444;">🔄 Daten aktualisieren</button>
         </div>
 
-        <!-- BLOCK 0: Fuhrpark-Statistiken (Laufendes Jahr) -->
-        <div class="table-container" style="margin-bottom: 25px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0; font-size:18px; color:#4caf50;">📊 Fuhrpark-Statistiken (<span id="fuhrpark-stats-year">2026</span>)</h3>
-            </div>
+        <!-- REORDERABLE BLOCKS CONTAINER (FUHRPARK) -->
+        <div id="fuhrpark-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
-            <!-- 1. Kennzahlen-Karten (Dashboard Cards) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 20px;">
-                <div style="background: linear-gradient(135deg, #1e2922 0%, #171f1a 100%); border: 1px solid #2e4d36; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                    <div style="font-size: 11px; color: #81c784; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⏱️ Gesamte Betriebsstunden</div>
-                    <div id="stat-card-stunden" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 h</div>
-                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Differenz der Zählerstände im Jahr</div>
+            <!-- BLOCK 1: Fuhrpark-Statistiken -->
+            <div class="table-container reorder-block" id="block-fuhrpark-stats" style="margin-bottom: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0; font-size:18px; color:#4caf50;">📊 Fuhrpark-Statistiken (<span id="fuhrpark-stats-year">2026</span>)</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
                 </div>
 
-                <div style="background: linear-gradient(135deg, #1c2636 0%, #151c28 100%); border: 1px solid #244163; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                    <div style="font-size: 11px; color: #64b5f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⛽ Gesamtverbrauch Diesel</div>
-                    <div id="stat-card-diesel" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
-                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe aller Tankungen</div>
+                <!-- 1. Kennzahlen-Karten (Dashboard Cards) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #1e2922 0%, #171f1a 100%); border: 1px solid #2e4d36; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #81c784; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⏱️ Gesamte Betriebsstunden</div>
+                        <div id="stat-card-stunden" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 h</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Differenz der Zählerstände im Jahr</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #1c2636 0%, #151c28 100%); border: 1px solid #244163; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #64b5f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⛽ Gesamtverbrauch Diesel</div>
+                        <div id="stat-card-diesel" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe aller Tankungen</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #182c33 0%, #122026 100%); border: 1px solid #204b57; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #4dd0e1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">💧 Gesamtverbrauch AdBlue</div>
+                        <div id="stat-card-adblue" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe AdBlue getankt</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #332717 0%, #261d11 100%); border: 1px solid #574020; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #ffb74d; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">📈 Ø Verbrauch</div>
+                        <div id="stat-card-avg" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l/h</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Gesamte Liter / Gefahrene Std</div>
+                    </div>
                 </div>
 
-                <div style="background: linear-gradient(135deg, #182c33 0%, #122026 100%); border: 1px solid #204b57; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                    <div style="font-size: 11px; color: #4dd0e1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">💧 Gesamtverbrauch AdBlue</div>
-                    <div id="stat-card-adblue" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
-                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe AdBlue getankt</div>
-                </div>
-
-                <div style="background: linear-gradient(135deg, #332717 0%, #261d11 100%); border: 1px solid #574020; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                    <div style="font-size: 11px; color: #ffb74d; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">📈 Ø Verbrauch</div>
-                    <div id="stat-card-avg" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l/h</div>
-                    <div style="font-size: 11px; color: #888; margin-top: 6px;">Gesamte Liter / Gefahrene Std</div>
-                </div>
-            </div>
-
-            <!-- Einzel-Maschinen Tacho-Karten (Schlepper & Teleskoplader) -->
-            <div style="margin-top: 25px; margin-bottom: 25px;">
-                <h4 style="margin: 0 0 12px 0; font-size: 15px; color: #ddd; display: flex; align-items: center; gap: 8px;">
-                    <span>🚜 Einzelne Maschinen-Statistiken (Schlepper & Teleskoplader)</span>
-                </h4>
-                <div id="maschinenStatsGrid" class="stats-grid">
-                    <div style="grid-column: 1/-1; text-align: center; color: #888; padding: 15px;">Berechne Einzel-Maschinen...</div>
-                </div>
-            </div>
-
-
-        </div>
-
-        <!-- BLOCK 1: TÜV- & Mängel-Radar -->
-        <div class="table-container">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-                <h3 style="margin:0; font-size:18px; color:#4caf50;">🛡️ 1. TÜV- & Mängel-Radar</h3>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="openNewTuevModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#2196f3;">📅 TÜV eintragen</button>
-                    <button onclick="openNewMangelModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#ff9800;">🔧 Mangel melden</button>
+                <!-- Einzel-Maschinen Tacho-Karten (Schlepper & Teleskoplader) -->
+                <div style="margin-top: 25px; margin-bottom: 25px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 15px; color: #ddd; display: flex; align-items: center; gap: 8px;">
+                        <span>🚜 Einzelne Maschinen-Statistiken (Schlepper & Teleskoplader)</span>
+                    </h4>
+                    <div id="maschinenStatsGrid" class="stats-grid">
+                        <div style="grid-column: 1/-1; text-align: center; color: #888; padding: 15px;">Berechne Einzel-Maschinen...</div>
+                    </div>
                 </div>
             </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Fahrzeug</th>
-                        <th>Nächster TÜV (Monat/Jahr)</th>
-                        <th>Offene Mängel (Dringlichkeit)</th>
-                        <th>Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody id="tuevMaengelTableBody">
-                    <tr><td colspan="4" style="text-align:center; color:#888;">Lade Fuhrpark-Daten aus Supabase...</td></tr>
-                </tbody>
-            </table>
-        </div>
 
-        <!-- GRID FOR BLOCK 2 & BLOCK 3 -->
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap:25px; margin-bottom:30px;">
-            <!-- BLOCK 2: Tank-Erfassung -->
-            <div class="box" style="margin-bottom:0; height:fit-content;">
-                <h3 style="color:#4caf50; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;">⛽ 2. Tanken eintragen</h3>
+            <!-- BLOCK 2: TÜV- & Mängel-Radar -->
+            <div class="table-container reorder-block" id="block-tuev-maengel" style="margin-bottom: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🛡️ TÜV- & Mängel-Radar</h3>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="openNewTuevModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#2196f3;">📅 TÜV eintragen</button>
+                        <button onclick="openNewMangelModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#ff9800;">🔧 Mangel melden</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fahrzeug</th>
+                            <th>Nächster TÜV (Monat/Jahr)</th>
+                            <th>Offene Mängel (Dringlichkeit)</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tuevMaengelTableBody">
+                        <tr><td colspan="4" style="text-align:center; color:#888;">Lade Fuhrpark-Daten aus Supabase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- BLOCK 3: Tank-Erfassung -->
+            <div class="box reorder-block" id="block-tankerfassung" style="margin-bottom:0; height:fit-content;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h3 style="color:#4caf50; margin:0;">⛽ Tanken eintragen</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
                 <form id="formTankung" onsubmit="event.preventDefault(); saveTankung();">
                     <div class="form-group">
                         <label>Maschine</label>
@@ -671,9 +705,15 @@
                 </form>
             </div>
 
-            <!-- BLOCK 3: Verbrauchs-Statistik -->
-            <div class="table-container" style="margin-bottom:0;">
-                <h3 style="color:#4caf50; margin-bottom:15px;">📊 3. Verbrauchs-Statistik (Letzte Tankungen)</h3>
+            <!-- BLOCK 4: Verbrauchs-Statistik -->
+            <div class="table-container reorder-block" id="block-verbrauchs-stats" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="color:#4caf50; margin:0;">📊 Verbrauchs-Statistik (Letzte Tankungen)</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
                 <div style="max-height:480px; overflow-y:auto;">
                     <table class="data-table">
                         <thead>
@@ -693,6 +733,7 @@
                     </table>
                 </div>
             </div>
+
         </div>
 
     </div>
