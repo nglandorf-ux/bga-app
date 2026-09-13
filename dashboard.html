@@ -15,9 +15,9 @@
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; background-color: #121212; color: #e0e0e0; overflow: hidden; }
 
         /* Top Navigation Bar */
-        #mainNavbar { background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 5px 25px; height: 90px; box-sizing: border-box; flex-shrink: 0; }
+        #mainNavbar { background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 5px 25px; height: 60px; box-sizing: border-box; flex-shrink: 0; }
         .nav-title { font-size: 20px; font-weight: bold; color: #4caf50; display: flex; align-items: center; gap: 10px; }
-        .header-logo { max-height: 80px; margin-right: 15px; vertical-align: middle; border-radius: 5px; }
+        .header-logo { max-height: 40px; margin-right: 15px; vertical-align: middle; border-radius: 5px; }
         .nav-tabs { display: flex; gap: 10px; }
         .tab-btn { background: #2a2a2a; border: 1px solid #444; color: #ccc; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; margin-top: 0; width: auto; }
         .tab-btn:hover { background: #388e3c; color: #fff; }
@@ -98,75 +98,6 @@
         /* Stats Grid for Individual Machines */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
 
-        /* Start Screen Styles */
-        .start-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9999;
-            background: radial-gradient(circle at center, #2a3b2c 0%, #111812 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 1;
-            visibility: visible;
-            transition: opacity 0.35s ease, visibility 0.35s ease;
-            overflow-y: auto;
-            padding: 30px 20px;
-            box-sizing: border-box;
-        }
-
-        /* Cockpit Styles */
-        .start-logo {
-            max-height: 35vh;
-            max-width: 85vw;
-            object-fit: contain;
-            margin-bottom: 10px;
-            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
-        }
-
-        .cockpit-title {
-            color: #ffffff;
-            font-size: 3rem;
-            font-weight: bold;
-            margin: 10px 0 0 0;
-            text-align: center;
-            letter-spacing: 1px;
-            text-shadow: 0px 4px 10px rgba(0,0,0,0.5);
-        }
-
-        .cockpit-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            max-width: 1000px;
-            margin: 40px auto;
-        }
-
-        .cockpit-card {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            box-sizing: border-box;
-        }
-
-        .cockpit-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-
         .header-logo, .nav-title {
             cursor: pointer;
         }
@@ -174,52 +105,23 @@
 </head>
 <body>
 
-<!-- TAB 0: COCKPIT / ÜBERSICHT -->
-<div id="view-cockpit" class="view-container active">
-    <div id="cockpitTab" class="full-view-content tab-content active" style="text-align: center;">
-        <div style="margin-top: 20px;">
-            <img src="icon3.png" alt="HofBuch Logo" style="max-height: 250px; margin-bottom: 0; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));">
-            <h1 class="cockpit-title" style="font-size: 3.5rem; color: #ffffff; text-shadow: 0px 4px 15px rgba(0,0,0,0.6); margin: 10px 0 0 0; font-weight: bold; letter-spacing: 1px;">HofBuch</h1>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 30px; max-width: 900px; margin: 40px auto; width: 95%;">
-            <!-- Panel 1: Hof-Radar -->
-            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left;">
-                <h3 style="margin-top: 0; font-size: 1.2rem; color: #ffffff;">📊 Aktueller Status</h3>
-                <div style="display: flex; justify-content: space-around; align-items: center; text-align: center; margin-top: 20px;">
-                    <div><span style="font-size: 2rem; color: #4ade80;" id="radarRinder">-</span><br>Aktive Rinder</div>
-                    <div><span style="font-size: 2rem; color: #facc15;" id="radarTuv">-</span><br>TÜV/Mängel</div>
-                    <div><span style="font-size: 2rem; color: #60a5fa;" id="radarFuhren">-</span><br>Gefahrene Fuhren</div>
-                </div>
-            </div>
-
-            <!-- Panel 2: Digitale Pinnwand -->
-            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left;">
-                <h3 style="margin-top: 0; font-size: 1.2rem; color: #ffffff;">📝 Hof-Pinnwand</h3>
-                <textarea id="hofPinnwand" placeholder="Notizen für heute (z.B. Zaun reparieren...)" style="width: 100%; min-height: 120px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 15px; font-family: inherit; resize: vertical; box-sizing: border-box; margin-top: 15px;"></textarea>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Top Navigation -->
 <div id="mainNavbar">
     <div style="display: flex; align-items: center; gap: 15px;">
-        <div class="nav-title" onclick="switchTab('cockpit')" title="Zurück zur Übersicht"><img src="icon3.png" alt="HofBuch Logo" class="header-logo">Hof Glandorf HofBuch</div>
+        <div class="nav-title" onclick="switchTab('map')" title="Kartierung"><img src="icon3.png" alt="HofBuch" style="max-height: 40px; margin-right: 15px; vertical-align: middle;">Hof Glandorf HofBuch</div>
     </div>
     <div class="nav-tabs">
-        <button id="btn-tab-cockpit" class="tab-btn active" onclick="switchTab('cockpit')">🏠 Übersicht</button>
+        <button id="btn-tab-map" class="tab-btn active" onclick="switchTab('map')">🗺️ Kartierung</button>
         <button id="btn-tab-cattle" class="tab-btn" onclick="switchTab('cattle')">🐄 Rinder</button>
         <button id="btn-tab-fuhrpark" class="tab-btn" onclick="switchTab('fuhrpark')">🚜 Fuhrpark</button>
         <button id="btn-tab-futter" class="tab-btn" onclick="switchTab('futter')">🌾 Fütterung</button>
         <button id="btn-tab-stats" class="tab-btn" onclick="switchTab('stats')">📊 Statistik</button>
-        <button id="btn-tab-map" class="tab-btn" onclick="switchTab('map')">🗺️ Kartierung</button>
         <button id="btn-tab-settings" class="tab-btn" onclick="switchTab('settings')">⚙️ Einstellungen</button>
     </div>
 </div>
 
 <!-- TAB 1: KARTIERUNG & SCHLAGKARTEI -->
-<div id="view-map" class="view-container">
+<div id="view-map" class="view-container active">
     <div id="sidebar">
         <h2>🗺️ Hof Glandorf</h2>
 
@@ -1369,15 +1271,6 @@
         k: parseFloat(localStorage.getItem('naehrstoff_K')) || 3.5
     };
 
-    // Start Screen / Tab Logik
-    function openTab(tabName) {
-        switchTab(tabName);
-    }
-
-    function showStartScreen() {
-        switchTab('cockpit');
-    }
-
     // Tab-Wechsel
     function switchTab(tabName) {
         let mainNav = document.getElementById('mainNavbar');
@@ -1386,15 +1279,10 @@
         }
         document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
 
-        if (tabName === 'cockpit' || tabName === 'uebersicht') {
-            if (document.getElementById('btn-tab-cockpit')) document.getElementById('btn-tab-cockpit').classList.add('active');
-            let vCockpit = document.getElementById('view-cockpit');
-            if (vCockpit) vCockpit.classList.add('active');
-            let cTab = document.getElementById('cockpitTab');
-            if (cTab) cTab.classList.add('active');
-        } else if (tabName === 'map') {
+        if (tabName === 'map') {
             if (document.getElementById('btn-tab-map')) document.getElementById('btn-tab-map').classList.add('active');
-            document.getElementById('view-map').classList.add('active');
+            let vMap = document.getElementById('view-map');
+            if (vMap) vMap.classList.add('active');
             setTimeout(() => { if (map) map.invalidateSize(); }, 200);
         } else if (tabName === 'stats') {
             if (document.getElementById('btn-tab-stats')) document.getElementById('btn-tab-stats').classList.add('active');
@@ -1426,6 +1314,11 @@
             if (document.getElementById('btn-tab-settings')) document.getElementById('btn-tab-settings').classList.add('active');
             document.getElementById('view-settings').classList.add('active');
             loadNutrientSettingsFromSupabase();
+        } else {
+            if (document.getElementById('btn-tab-map')) document.getElementById('btn-tab-map').classList.add('active');
+            let vMap = document.getElementById('view-map');
+            if (vMap) vMap.classList.add('active');
+            setTimeout(() => { if (map) map.invalidateSize(); }, 200);
         }
     }
 
@@ -2857,6 +2750,12 @@
                 method: "DELETE",
                 headers: headers
             });
+            if (!res.ok) {
+                res = await fetch(SUPABASE_URL + `/rest/v1/ausbringprotokoll?id=eq.${id}`, {
+                    method: "DELETE",
+                    headers: headers
+                });
+            }
             if (res.ok) {
                 await loadStatisticsData();
             } else {
@@ -2868,6 +2767,7 @@
             alert("Fehler beim Löschen der Fuhre: " + e.message);
         }
     }
+    window.deleteFuhre = deleteFuhre;
 
     // --- BLOCK REORDERING FUNCTIONS ---
     function moveBlockUp(btn) {
@@ -5035,26 +4935,12 @@
         renderFeedingCalculator();
     }
 
-    async function loadRadarFuhren() {
-        try {
-            let res = await fetch(SUPABASE_URL + "/rest/v1/fuhren?select=id", { headers });
-            if (res.ok) {
-                let data = await res.json();
-                let radarFuhren = document.getElementById("radarFuhren");
-                if (radarFuhren) radarFuhren.innerText = data.length;
-            }
-        } catch(e) {
-            console.warn("Fehler beim Laden von radarFuhren:", e);
-        }
-    }
-
     window.onload = function() {
         loadFields();
         loadNutrientSettingsFromSupabase();
         loadBetriebe();
         loadCattleFromSupabase();
         loadFuhrparkData();
-        loadRadarFuhren();
     };
 </script>
 </body>
