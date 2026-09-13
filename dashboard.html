@@ -178,27 +178,25 @@
 <div id="view-cockpit" class="view-container active">
     <div id="cockpitTab" class="full-view-content tab-content active" style="text-align: center;">
         <div style="margin-top: 20px;">
-            <img src="icon3.png" alt="HofBuch Logo" class="start-logo" style="max-height: 35vh; margin-bottom: 10px;">
-            <h1 class="cockpit-title">HofBuch</h1>
+            <img src="icon3.png" alt="HofBuch Logo" style="max-height: 250px; margin-bottom: 0; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));">
+            <h1 class="cockpit-title" style="font-size: 3.5rem; color: #ffffff; text-shadow: 0px 4px 15px rgba(0,0,0,0.6); margin: 10px 0 0 0; font-weight: bold; letter-spacing: 1px;">HofBuch</h1>
         </div>
-        <div class="cockpit-grid">
-            <div class="cockpit-card" onclick="openTab('cattle')">
-                <h3>🐄 Rinder-Bestand</h3>
-                <div style="font-size: 2.5rem; font-weight: bold; color: #4ade80; margin: 15px 0;" id="cockpitRinderCount">-</div>
-                <span>Aktive Tiere in der Datenbank</span>
+
+        <div style="display: flex; flex-direction: column; gap: 30px; max-width: 900px; margin: 40px auto; width: 95%;">
+            <!-- Panel 1: Hof-Radar -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left;">
+                <h3 style="margin-top: 0; font-size: 1.2rem; color: #ffffff;">📊 Aktueller Status</h3>
+                <div style="display: flex; justify-content: space-around; align-items: center; text-align: center; margin-top: 20px;">
+                    <div><span style="font-size: 2rem; color: #4ade80;" id="radarRinder">-</span><br>Aktive Rinder</div>
+                    <div><span style="font-size: 2rem; color: #facc15;" id="radarTuv">-</span><br>TÜV/Mängel</div>
+                    <div><span style="font-size: 2rem; color: #60a5fa;" id="radarFuhren">-</span><br>Gefahrene Fuhren</div>
+                </div>
             </div>
-            <div class="cockpit-card" onclick="openTab('fuhrpark')">
-                <h3>🚜 Fuhrpark & Wartung</h3>
-                <div style="font-size: 2.5rem; font-weight: bold; color: #facc15; margin: 15px 0;" id="cockpitTuvCount">-</div>
-                <span>Maschinen mit TÜV/Mängeln</span>
-            </div>
-            <div class="cockpit-card" onclick="openTab('futter')">
-                <h3>🌾 Fütterung</h3>
-                <div style="font-size: 1.2rem; margin: 15px 0;">Mischwagen-Rechner &<br>Futtermitteldatenbank</div>
-            </div>
-            <div class="cockpit-card" onclick="openTab('stats')">
-                <h3>📊 Statistik & Betriebe</h3>
-                <div style="font-size: 1.2rem; margin: 15px 0;">Ausbringungsprotokolle &<br>Lieferanten-Zeugnis</div>
+
+            <!-- Panel 2: Digitale Pinnwand -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: left;">
+                <h3 style="margin-top: 0; font-size: 1.2rem; color: #ffffff;">📝 Hof-Pinnwand</h3>
+                <textarea id="hofPinnwand" placeholder="Notizen für heute (z.B. Zaun reparieren...)" style="width: 100%; min-height: 120px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 15px; font-family: inherit; resize: vertical; box-sizing: border-box; margin-top: 15px;"></textarea>
             </div>
         </div>
     </div>
@@ -1771,10 +1769,10 @@
             });
         }
 
-        let cockpitTuvEl = document.getElementById("cockpitTuvCount");
-        if (cockpitTuvEl) {
+        let radarTuvEl = document.getElementById("radarTuv") || document.getElementById("cockpitTuvCount");
+        if (radarTuvEl) {
             let totalIssues = dueTuevCount + openMaengelCount;
-            cockpitTuvEl.innerText = totalIssues > 0 ? `${totalIssues}` : "0";
+            radarTuvEl.innerText = totalIssues > 0 ? `${totalIssues}` : "0";
         }
 
         let tbody = document.getElementById("tuevMaengelTableBody");
@@ -2547,6 +2545,9 @@
 
             let resFuhren = await fetch(SUPABASE_URL + "/rest/v1/fuhren?select=*&order=zeitpunkt.desc", { headers });
             globalTripsData = await resFuhren.json();
+
+            let radarFuhren = document.getElementById("radarFuhren");
+            if (radarFuhren) radarFuhren.innerText = globalTripsData.length;
 
             populateStatsFilterDropdowns();
             renderStatistics();
@@ -3632,8 +3633,8 @@
     function renderCattleCategoryKPIs() {
         let cntTotal = document.getElementById("cnt-total");
         if (cntTotal) cntTotal.innerText = `${supabaseCattleList.length} Rinder`;
-        let cockpitRinder = document.getElementById("cockpitRinderCount");
-        if (cockpitRinder) cockpitRinder.innerText = `${supabaseCattleList.length}`;
+        let radarRinder = document.getElementById("radarRinder") || document.getElementById("cockpitRinderCount");
+        if (radarRinder) radarRinder.innerText = `${supabaseCattleList.length}`;
         let cntKaelber = document.getElementById("cnt-kaelber");
         if (cntKaelber) cntKaelber.innerText = `${cattleCategoryCounts['cat_kaelber']} Stk`;
         let cntJungvieh = document.getElementById("cnt-jungvieh");
@@ -5034,12 +5035,26 @@
         renderFeedingCalculator();
     }
 
+    async function loadRadarFuhren() {
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/fuhren?select=id", { headers });
+            if (res.ok) {
+                let data = await res.json();
+                let radarFuhren = document.getElementById("radarFuhren");
+                if (radarFuhren) radarFuhren.innerText = data.length;
+            }
+        } catch(e) {
+            console.warn("Fehler beim Laden von radarFuhren:", e);
+        }
+    }
+
     window.onload = function() {
         loadFields();
         loadNutrientSettingsFromSupabase();
         loadBetriebe();
         loadCattleFromSupabase();
         loadFuhrparkData();
+        loadRadarFuhren();
     };
 </script>
 </body>
