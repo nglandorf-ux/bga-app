@@ -126,7 +126,7 @@
         }
 
         .start-logo {
-            max-height: 250px;
+            max-height: 375px;
             max-width: 85vw;
             object-fit: contain;
             margin-bottom: 0;
@@ -406,9 +406,12 @@
             <div class="table-container reorder-block" id="block-ausbringungsprotokoll" style="margin-bottom:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
                     <h3 style="margin:0; font-size:18px; color:#4caf50;">🚛 Detailliertes Ausbringungsprotokoll</h3>
-                    <div style="display:flex; gap:4px;">
-                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
-                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button onclick="openFuhreModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#4caf50;">➕ Neue Fuhre eintragen</button>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                        </div>
                     </div>
                 </div>
                 <table class="data-table">
@@ -417,15 +420,17 @@
                             <th>Datum & Uhrzeit</th>
                             <th>Schlag / Fläche</th>
                             <th>Aufgabe</th>
+                            <th>Fahrer</th>
                             <th>Volumen (m³)</th>
                             <th>Gewicht (kg)</th>
                             <th>N (kg)</th>
                             <th>P₂O₅ (kg)</th>
                             <th>K₂O (kg)</th>
+                            <th style="text-align:center;">Aktionen</th>
                         </tr>
                     </thead>
                     <tbody id="statsTripTableBody">
-                        <tr><td colspan="8" style="text-align:center; color:#888;">Lade Daten...</td></tr>
+                        <tr><td colspan="10" style="text-align:center; color:#888;">Lade Daten...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1276,6 +1281,43 @@
             <textarea id="mangel-beschreibung" rows="3" placeholder="z.B. Hydraulikschlauch leckt..." required style="resize:vertical;"></textarea>
         </div>
         <button onclick="saveMangelFromModal()" style="margin-top:20px; background:#ff9800;">💾 Mangel speichern</button>
+    </div>
+</div>
+
+<!-- MODAL 9: NEUE FUHRE EINTRAGEN -->
+<div id="fuhreModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>🚛 Neue Fuhre eintragen</h2>
+            <button class="close-btn" onclick="closeFuhreModal()">×</button>
+        </div>
+        <div class="form-group">
+            <label>Datum & Uhrzeit</label>
+            <input type="datetime-local" id="fuhre-zeitpunkt">
+        </div>
+        <div class="form-group">
+            <label>Schlag / Fläche</label>
+            <select id="fuhre-field" required></select>
+        </div>
+        <div class="form-group">
+            <label>Aufgabe</label>
+            <input type="text" id="fuhre-aufgabe" placeholder="z.B. Gärreste, Gülle, Festmist" value="Gärreste">
+        </div>
+        <div class="form-group">
+            <label>Fahrer</label>
+            <input type="text" id="fuhre-fahrer" placeholder="z.B. Max Mustermann" required>
+        </div>
+        <div class="grid-2" style="gap:15px;">
+            <div class="form-group">
+                <label>Volumen (m³)</label>
+                <input type="number" step="0.1" id="fuhre-volumen" placeholder="z.B. 18.5" required>
+            </div>
+            <div class="form-group">
+                <label>Gewicht (kg) (optional)</label>
+                <input type="number" step="1" id="fuhre-gewicht" placeholder="z.B. 18500">
+            </div>
+        </div>
+        <button onclick="saveFuhreFromModal()" style="margin-top:20px; background:#4caf50;">💾 Fuhre speichern</button>
     </div>
 </div>
 
@@ -2640,15 +2682,21 @@
                 dStr = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
             } catch(e) {}
 
+            let fahrerDisplay = t.fahrer || t.driver_id || '-';
+
             tripRowsHtml += `<tr>
                 <td>${dStr}</td>
                 <td><strong>${fieldName}</strong></td>
                 <td><span style="color:#ffb74d;">${t.aufgabe || 'Gärreste'}</span></td>
+                <td>${fahrerDisplay}</td>
                 <td>${vol.toFixed(1)} m³</td>
                 <td>${weight ? weight.toFixed(0) + ' kg' : '-'}</td>
                 <td style="color:#a5d6a7; font-weight:bold;">${nKg.toFixed(1)} kg</td>
                 <td style="color:#ffe0b2; font-weight:bold;">${pKg.toFixed(1)} kg</td>
                 <td style="color:#90caf9; font-weight:bold;">${kKg.toFixed(1)} kg</td>
+                <td style="text-align:center;">
+                    <button onclick="deleteFuhre('${t.id}')" title="Fuhre löschen" style="background:#e53935; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">🗑️</button>
+                </td>
             </tr>`;
         });
 
@@ -2697,10 +2745,11 @@
         document.getElementById("statsFieldTableBody").innerHTML = fieldTableBodyHtml;
 
         if (filteredTrips.length === 0) {
-            tripRowsHtml = `<tr><td colspan="8" style="text-align:center; color:#888;">Keine Einträge im gewählten Zeitraum.</td></tr>`;
+            tripRowsHtml = `<tr><td colspan="10" style="text-align:center; color:#888;">Keine Einträge im gewählten Zeitraum.</td></tr>`;
         } else {
             tripRowsHtml += `<tr class="sum-row">
                 <td>GESAMTSUMME</td>
+                <td>-</td>
                 <td>-</td>
                 <td>-</td>
                 <td>${totalVol.toFixed(1)} m³</td>
@@ -2708,10 +2757,125 @@
                 <td style="color:#a5d6a7;">${totalN.toFixed(1)} kg</td>
                 <td style="color:#ffe0b2;">${totalP.toFixed(1)} kg</td>
                 <td style="color:#90caf9;">${totalK.toFixed(1)} kg</td>
+                <td></td>
             </tr>`;
         }
 
         document.getElementById("statsTripTableBody").innerHTML = tripRowsHtml;
+    }
+
+    function openFuhreModal() {
+        let now = new Date();
+        let localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        document.getElementById("fuhre-zeitpunkt").value = localIso;
+        document.getElementById("fuhre-aufgabe").value = "Gärreste";
+        document.getElementById("fuhre-fahrer").value = "";
+        document.getElementById("fuhre-volumen").value = "";
+        document.getElementById("fuhre-gewicht").value = "";
+
+        let fieldSelect = document.getElementById("fuhre-field");
+        fieldSelect.innerHTML = '<option value="">-- Schlag wählen --</option>';
+        globalFieldsData.forEach(f => {
+            fieldSelect.innerHTML += `<option value="${f.id}">${f.name} ${f.area_hectares ? '(' + f.area_hectares + ' ha)' : ''}</option>`;
+        });
+
+        document.getElementById("fuhreModal").style.display = "flex";
+    }
+
+    function closeFuhreModal() {
+        document.getElementById("fuhreModal").style.display = "none";
+    }
+
+    async function saveFuhreFromModal() {
+        let zeitVal = document.getElementById("fuhre-zeitpunkt").value;
+        let fieldId = document.getElementById("fuhre-field").value;
+        let aufgabe = document.getElementById("fuhre-aufgabe").value.trim() || "Gärreste";
+        let fahrerName = document.getElementById("fuhre-fahrer").value.trim();
+        let volumenVal = document.getElementById("fuhre-volumen").value;
+        let gewichtVal = document.getElementById("fuhre-gewicht").value;
+
+        if (!fieldId) {
+            alert("Bitte wählen Sie einen Schlag aus.");
+            return;
+        }
+        if (!fahrerName) {
+            alert("Bitte geben Sie einen Fahrer an.");
+            return;
+        }
+        let volumen = parseFloat(volumenVal);
+        if (isNaN(volumen) || volumen <= 0) {
+            alert("Bitte geben Sie ein gültiges Volumen an.");
+            return;
+        }
+
+        let payload = {
+            field_id: fieldId,
+            aufgabe: aufgabe,
+            fahrer: fahrerName,
+            driver_id: fahrerName,
+            volumen_m3: volumen,
+            erfassungs_modus: "manuell"
+        };
+
+        if (gewichtVal !== "" && !isNaN(parseFloat(gewichtVal))) {
+            payload.gewicht_kg = parseFloat(gewichtVal);
+        }
+
+        if (zeitVal) {
+            payload.zeitpunkt = new Date(zeitVal).toISOString();
+        } else {
+            payload.zeitpunkt = new Date().toISOString();
+        }
+
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/fuhren", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                delete payload.driver_id;
+                res = await fetch(SUPABASE_URL + "/rest/v1/fuhren", {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            if (res.ok) {
+                closeFuhreModal();
+                await loadStatisticsData();
+            } else {
+                let errText = await res.text();
+                alert("Fehler beim Speichern der Fuhre: " + errText);
+            }
+        } catch (e) {
+            console.error("Fehler beim Speichern der Fuhre:", e);
+            alert("Fehler beim Speichern: " + e.message);
+        }
+    }
+
+    async function deleteFuhre(id) {
+        if (!id) return;
+        if (!confirm('Diese Fuhre wirklich löschen?')) {
+            return;
+        }
+        try {
+            let res = await fetch(SUPABASE_URL + `/rest/v1/fuhren?id=eq.${id}`, {
+                method: "DELETE",
+                headers: headers
+            });
+            if (res.ok) {
+                await loadStatisticsData();
+            } else {
+                let errText = await res.text();
+                alert("Fehler beim Löschen der Fuhre: " + errText);
+            }
+        } catch (e) {
+            console.error("Fehler beim Löschen:", e);
+            alert("Fehler beim Löschen der Fuhre: " + e.message);
+        }
     }
 
     // --- BLOCK REORDERING FUNCTIONS ---
