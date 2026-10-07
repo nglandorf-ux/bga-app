@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hof Glandorf - Farm Management Terminal</title>
+    <link rel="icon" type="image/png" href="icon3.png">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
@@ -14,15 +15,16 @@
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; background-color: #121212; color: #e0e0e0; overflow: hidden; }
 
         /* Top Navigation Bar */
-        #top-nav { background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; height: 60px; box-sizing: border-box; flex-shrink: 0; }
+        #mainNavbar { background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 5px 25px; height: 60px; box-sizing: border-box; flex-shrink: 0; }
         .nav-title { font-size: 20px; font-weight: bold; color: #4caf50; display: flex; align-items: center; gap: 10px; }
+        .header-logo { max-height: 40px; margin-right: 15px; vertical-align: middle; border-radius: 5px; }
         .nav-tabs { display: flex; gap: 10px; }
         .tab-btn { background: #2a2a2a; border: 1px solid #444; color: #ccc; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; margin-top: 0; width: auto; }
-        .tab-btn:hover { background: #383838; color: #fff; }
+        .tab-btn:hover { background: #388e3c; color: #fff; }
         .tab-btn.active { background: #388e3c; color: #fff; border-color: #4caf50; }
 
         /* Main View Container */
-        .view-container { flex-grow: 1; height: calc(100vh - 60px); display: none; overflow: hidden; }
+        .view-container { flex-grow: 1; height: 100%; display: none; overflow: hidden; }
         .view-container.active { display: flex; }
 
         /* Sidebar & Map */
@@ -92,18 +94,29 @@
         .action-btn:hover { background: #666; }
         .action-btn.danger { background: #b71c1c; color: white; }
         .action-btn.danger:hover { background: #d32f2f; }
+
+        /* Stats Grid for Individual Machines */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+
+        .header-logo, .nav-title {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
 <!-- Top Navigation -->
-<div id="top-nav">
-    <div class="nav-title">🚜 Hof Glandorf Management</div>
+<div id="mainNavbar">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div class="nav-title" onclick="switchTab('map')" title="Kartierung"><img src="icon3.png" alt="HofBuch" style="max-height: 40px; margin-right: 15px; vertical-align: middle;">Hof Glandorf HofBuch</div>
+    </div>
     <div class="nav-tabs">
-        <button id="btn-tab-map" class="tab-btn active" onclick="switchTab('map')">🗺️ Kartierung & Schlagkartei</button>
-        <button id="btn-tab-stats" class="tab-btn" onclick="switchTab('stats')">📊 Statistik & Auswertung</button>
-        <button id="btn-tab-cattle" class="tab-btn" onclick="switchTab('cattle')">🐄 Rinder & Futter</button>
-        <button id="btn-tab-settings" class="tab-btn" onclick="switchTab('settings')">⚙️ Nährstoff-Einstellungen</button>
+        <button id="btn-tab-map" class="tab-btn active" onclick="switchTab('map')">🗺️ Kartierung</button>
+        <button id="btn-tab-cattle" class="tab-btn" onclick="switchTab('cattle')">🐄 Rinder</button>
+        <button id="btn-tab-fuhrpark" class="tab-btn" onclick="switchTab('fuhrpark')">🚜 Fuhrpark</button>
+        <button id="btn-tab-futter" class="tab-btn" onclick="switchTab('futter')">🌾 Fütterung</button>
+        <button id="btn-tab-stats" class="tab-btn" onclick="switchTab('stats')">📊 Statistik</button>
+        <button id="btn-tab-settings" class="tab-btn" onclick="switchTab('settings')">⚙️ Einstellungen</button>
     </div>
 </div>
 
@@ -225,56 +238,80 @@
             </div>
         </div>
 
-        <div class="table-container">
-            <h3>🌾 Nährstoffbilanz pro Schlag / Fläche</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Schlag / Fläche</th>
-                        <th>Größe</th>
-                        <th>Fuhren</th>
-                        <th>Gesamt-Volumen</th>
-                        <th>Ausbringung / ha</th>
-                        <th>N (Stickstoff)</th>
-                        <th>P₂O₅ (Phosphat)</th>
-                        <th>K₂O (Kalium)</th>
-                        <th>N-Fracht / ha</th>
-                    </tr>
-                </thead>
-                <tbody id="statsFieldTableBody">
-                    <tr><td colspan="9" style="text-align:center; color:#888;">Lade Daten...</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- REORDERABLE BLOCKS CONTAINER (STATISTIK) -->
+        <div id="stats-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
-        <div class="table-container">
-            <h3>🚛 Detailliertes Ausbringungsprotokoll</h3>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Datum & Uhrzeit</th>
-                        <th>Schlag / Fläche</th>
-                        <th>Aufgabe</th>
-                        <th>Volumen (m³)</th>
-                        <th>Gewicht (kg)</th>
-                        <th>N (kg)</th>
-                        <th>P₂O₅ (kg)</th>
-                        <th>K₂O (kg)</th>
-                    </tr>
-                </thead>
-                <tbody id="statsTripTableBody">
-                    <tr><td colspan="8" style="text-align:center; color:#888;">Lade Daten...</td></tr>
-                </tbody>
-            </table>
+            <!-- BLOCK 1: Nährstoffbilanz pro Schlag / Fläche -->
+            <div class="table-container reorder-block" id="block-naehrstoffbilanz" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0; font-size:18px; color:#4caf50;">🌾 Nährstoffbilanz pro Schlag / Fläche</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Schlag / Fläche</th>
+                            <th>Größe</th>
+                            <th>Fuhren</th>
+                            <th>Gesamt-Volumen</th>
+                            <th>Ausbringung / ha</th>
+                            <th>N (Stickstoff)</th>
+                            <th>P₂O₅ (Phosphat)</th>
+                            <th>K₂O (Kalium)</th>
+                            <th>N-Fracht / ha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsFieldTableBody">
+                        <tr><td colspan="9" style="text-align:center; color:#888;">Lade Daten...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- BLOCK 2: Detailliertes Ausbringungsprotokoll -->
+            <div class="table-container reorder-block" id="block-ausbringungsprotokoll" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0; font-size:18px; color:#4caf50;">🚛 Detailliertes Ausbringungsprotokoll</h3>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button onclick="openFuhreModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#4caf50;">➕ Neue Fuhre eintragen</button>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                        </div>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Datum & Uhrzeit</th>
+                            <th>Schlag / Fläche</th>
+                            <th>Aufgabe</th>
+                            <th>Fahrer</th>
+                            <th>Volumen (m³)</th>
+                            <th>Gewicht (kg)</th>
+                            <th>N (kg)</th>
+                            <th>P₂O₅ (kg)</th>
+                            <th>K₂O (kg)</th>
+                            <th style="text-align:center;">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTripTableBody">
+                        <tr><td colspan="10" style="text-align:center; color:#888;">Lade Daten...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 </div>
 
-<!-- TAB 3: RINDER & FUTTER -->
+<!-- TAB 3: RINDER -->
 <div id="view-cattle" class="view-container">
-    <div class="full-view-content">
+    <div id="rinderTab" class="full-view-content tab-content" style="width:100%;">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
-            <h2 style="border:none; padding:0; margin:0;">🐄 Rinder-Herdenmanagement & Fütterungsrechner</h2>
+            <h2 style="border:none; padding:0; margin:0;">🐄 Rinder-Herdenmanagement</h2>
             <div style="font-size:13px; color:#4caf50; background:#1e1e1e; border:1px solid #333; padding:8px 15px; border-radius:6px;" id="supabase-status-badge">
                 ⏳ Lade Rinder aus Supabase...
             </div>
@@ -291,30 +328,26 @@
                 <div class="val" id="cnt-kaelber" style="color:#ffb74d;">0 Stk</div>
             </div>
             <div class="kpi-card">
-                <div class="lbl">Jungvieh (6–12 Mo.)</div>
+                <div class="lbl">Jungrinder / Vormast (6–12 Mo.)</div>
                 <div class="val" id="cnt-jungvieh" style="color:#a5d6a7;">0 Stk</div>
             </div>
             <div class="kpi-card">
-                <div class="lbl">Färsen (12–24 Mo.)</div>
+                <div class="lbl">Mittelmast / Endmast (> 12 Mo.)</div>
                 <div class="val" id="cnt-faersen" style="color:#90caf9;">0 Stk</div>
-            </div>
-            <div class="kpi-card">
-                <div class="lbl">Kühe / Altrinder (> 24 Mo.)</div>
-                <div class="val" id="cnt-kuehe" style="color:#ffe0b2;">0 Stk</div>
             </div>
         </div>
 
-        <!-- REORDERABLE BLOCKS CONTAINER -->
+        <!-- REORDERABLE BLOCKS CONTAINER (RINDER) -->
         <div id="cattle-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
             <!-- BLOCK 1: Altersgruppen & Stückzahlen -->
             <div class="table-container reorder-block" id="block-altersgruppen" style="margin-bottom: 0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🐮 1. Altersgruppen & Stückzahlen (Supabase)</h3>
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🐮 Altersgruppen & Stückzahlen (Supabase)</h3>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                     <button onclick="loadCattleFromSupabase()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#444;">🔄 Supabase Aktualisieren</button>
@@ -339,10 +372,10 @@
             <div class="table-container reorder-block" id="block-mastertabelle" style="margin-bottom: 0;">
                 <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 15px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 2. Gesamtbestand – Master-Rinderliste (Supabase)</h3>
+                        <h3 style="margin:0; font-size: 18px; color: #4caf50;">🐮 Gesamtbestand – Master-Rinderliste (Supabase)</h3>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; flex-grow:1; max-width: 750px; justify-content:flex-end; align-items:center;">
@@ -358,10 +391,18 @@
                         </select>
                     </div>
                 </div>
-                <div style="max-height: 380px; overflow-y: auto;">
+
+                <!-- Rinder-Archiv Umschalter / Filter Tabs -->
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                    <button type="button" id="btn-cattle-active" class="tab-btn active" onclick="setCattleStatusFilter('aktiv')">🟢 Aktiver Bestand</button>
+                    <button type="button" id="btn-cattle-archive" class="tab-btn" onclick="setCattleStatusFilter('archiv')">📦 Archiv / Abgänge</button>
+                    <button type="button" id="btn-cattle-betriebe" class="tab-btn" onclick="setCattleStatusFilter('betriebe')">🏢 Betriebe</button>
+                </div>
+
+                <div id="cattleTableContainer" style="max-height: 380px; overflow-y: auto;">
                     <table class="data-table">
                         <thead>
-                            <tr>
+                            <tr id="mainCattleTableHeaderRow">
                                 <th>Ohrmarke</th>
                                 <th>Geburtsdatum</th>
                                 <th>Alter / Kategorie</th>
@@ -375,16 +416,47 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div id="betriebeAnsicht" style="display:none; max-height: 380px; overflow-y: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Herkunftsbetrieb</th>
+                                <th>Gelieferte Tiere</th>
+                                <th>Behandelte Tiere</th>
+                                <th>Verluste (Gestorben/Eingeschläfert)</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="betriebeStatistikTableBody">
+                            <tr><td colspan="5" style="text-align:center; color:#888;">Lade Betriebs-Statistik...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- TAB 4: FÜTTERUNG -->
+<div id="view-futter" class="view-container">
+    <div id="futterTab" class="full-view-content tab-content" style="width:100%; display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+            <h2 style="border:none; padding:0; margin:0;">🌾 Fütterung & Futtermitteldatenbank</h2>
+        </div>
+
+        <!-- REORDERABLE BLOCKS CONTAINER (FÜTTERUNG) -->
+        <div id="futter-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
             <!-- BLOCK 3: Futtermitteldatenbank -->
             <div class="table-container reorder-block" id="block-futtermittel" style="margin-bottom: 0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🌾 3. Futtermitteldatenbank</h3>
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🌾 Futtermitteldatenbank</h3>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                     <button onclick="openFeedModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#ff9800;">➕ Futtermittel anlegen</button>
@@ -396,6 +468,7 @@
                             <th>TM %</th>
                             <th>MJ ME / kg TM</th>
                             <th>Rohprotein (g XP / kg TM)</th>
+                            <th>Rohfaser (g XF / kg TM)</th>
                             <th>Preis (€ / t FM)</th>
                             <th>Aktion</th>
                         </tr>
@@ -404,35 +477,109 @@
                 </table>
             </div>
 
-            <!-- BLOCK 4: Fütterungsrechner & Bedarfsanalyse -->
+            <!-- BLOCK 4: Fütterungsrechner & Bedarfsanalyse (Totale Mischration / TMR) -->
             <div class="table-container reorder-block" id="block-fuetterungsrechner" style="margin-bottom: 0;">
                 <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                         <div>
-                            <h3 style="margin:0; font-size: 20px; color: #4caf50;">🧮 4. Fütterungsrechner & Bedarfsanalyse (Rationsgestaltung nach Alter)</h3>
-                            <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Stelle Rationen gezielt für jede Altersgruppe ein. Die Bedarfsdeckung (Soll vs. Ist) und Futterkosten werden live berechnet.</p>
+                            <h3 style="margin:0; font-size: 20px; color: #4caf50;">🚜 Fütterungsrechner & Bedarfsanalyse (Mischwagen / TMR)</h3>
+                            <p style="color:#aaa; font-size:12px; margin: 4px 0 0 0;">Gib die geladene Frischmasse (FM) pro Futtermittel für den Mischwagen ein. Berechne die Nährstoffdichte (Energie, Rohprotein, Rohfaser) der TMR und vergleiche sie live mit den Anforderungen der Altersgruppen.</p>
                         </div>
                         <div style="display:flex; gap:4px;">
-                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▲ Hoch</button>
-                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">▼ Runter</button>
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Age Group Ration Containers -->
-                <div id="calculatorAgeGroupsContainer" style="display:flex; flex-direction:column; gap:20px; margin-bottom:25px;"></div>
+                <!-- Input: Mischwagen-Befüllung -->
+                <div style="background:#1e1e1e; border:1px solid #333; border-radius:10px; padding:20px; margin-bottom:25px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <h4 style="color:#4caf50; margin:0; font-size:17px;">🌾 Mischwagen-Befüllung (Mengen in kg Frischmasse)</h4>
+                            <p style="color:#aaa; font-size:12px; margin:4px 0 0 0;">Trage die pro Füllung geladene Menge in kg Frischmasse (FM) für jedes Futtermittel ein.</p>
+                        </div>
+                        <button type="button" onclick="resetMixerLoad()" style="width:auto; padding:6px 12px; font-size:12px; background:#444;">🔄 Befüllung zurücksetzen</button>
+                    </div>
 
-                <!-- Gesamtherden-Zusammenfassung -->
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" style="font-size:13px;">
+                            <thead>
+                                <tr>
+                                    <th>Futtermittel</th>
+                                    <th style="width:160px;">Geladen (kg FM)</th>
+                                    <th>Trockenmasse (kg TM)</th>
+                                    <th>Energie (MJ ME)</th>
+                                    <th>Rohprotein (kg XP)</th>
+                                    <th>Rohfaser (kg XF)</th>
+                                    <th>Mischkosten (€)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mixerTableBody"></tbody>
+                            <tfoot id="mixerTableFoot" style="font-weight:bold; background:#262626;"></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Berechnung der Nährstoffdichte (TMR) -->
+                <div style="background:linear-gradient(135deg, #1e2a22 0%, #152018 100%); border:1px solid #2e4d36; border-radius:10px; padding:20px; margin-bottom:25px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                    <h4 style="color:#81c784; margin:0 0 15px 0; font-size:17px; display:flex; align-items:center; gap:8px;">
+                        <span>📊 Berechnete Nährstoffdichte der Mischung (TMR)</span>
+                    </h4>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:15px;">
+                        <div style="background:#18221a; border:1px solid #283d2e; border-radius:8px; padding:14px;">
+                            <div style="font-size:11px; color:#81c784; text-transform:uppercase; font-weight:700; margin-bottom:6px;">⚖️ Gesamtmasse & TM</div>
+                            <div id="tmr-card-mass" style="font-size:22px; font-weight:800; color:#fff;">0 kg TM</div>
+                            <div id="tmr-card-fm-sub" style="font-size:12px; color:#aaa; margin-top:4px;">0 kg FM (0% TM)</div>
+                        </div>
+
+                        <div style="background:#18221a; border:1px solid #283d2e; border-radius:8px; padding:14px;">
+                            <div style="font-size:11px; color:#81c784; text-transform:uppercase; font-weight:700; margin-bottom:6px;">⚡ Energiedichte</div>
+                            <div id="tmr-card-me" style="font-size:22px; font-weight:800; color:#fff;">0.0 MJ / kg TM</div>
+                            <div id="tmr-card-me-fm" style="font-size:12px; color:#aaa; margin-top:4px;">0.0 MJ / kg FM</div>
+                        </div>
+
+                        <div style="background:#18221a; border:1px solid #283d2e; border-radius:8px; padding:14px;">
+                            <div style="font-size:11px; color:#81c784; text-transform:uppercase; font-weight:700; margin-bottom:6px;">🥩 Rohproteindichte</div>
+                            <div id="tmr-card-xp" style="font-size:22px; font-weight:800; color:#fff;">0 g XP / kg TM</div>
+                            <div id="tmr-card-xp-fm" style="font-size:12px; color:#aaa; margin-top:4px;">0 g XP / kg FM</div>
+                        </div>
+
+                        <div style="background:#18221a; border:1px solid #283d2e; border-radius:8px; padding:14px;">
+                            <div style="font-size:11px; color:#81c784; text-transform:uppercase; font-weight:700; margin-bottom:6px;">🌾 Rohfaser-Struktur</div>
+                            <div id="tmr-card-xf" style="font-size:22px; font-weight:800; color:#fff;">0 g XF / kg TM</div>
+                            <div id="tmr-card-xf-pct" style="font-size:12px; color:#aaa; margin-top:4px;">0% in TM</div>
+                        </div>
+
+                        <div style="background:#18221a; border:1px solid #283d2e; border-radius:8px; padding:14px;">
+                            <div style="font-size:11px; color:#ffb74d; text-transform:uppercase; font-weight:700; margin-bottom:6px;">💰 Mischkosten</div>
+                            <div id="tmr-card-cost" style="font-size:22px; font-weight:800; color:#ffb74d;">0.00 €</div>
+                            <div id="tmr-card-cost-sub" style="font-size:12px; color:#aaa; margin-top:4px;">0.00 € / t FM</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ampel-Vergleich für die Altersgruppen -->
+                <div style="margin-bottom:25px;">
+                    <h4 style="color:#4caf50; margin:0 0 8px 0; font-size:18px; display:flex; align-items:center; gap:8px;">
+                        <span>🎯 Ampel-Vergleich: Eignung der TMR für verschiedene Altersgruppen</span>
+                    </h4>
+                    <p style="color:#aaa; font-size:12px; margin:0 0 16px 0;">Vergleich der Nährstoffdichte des Mischwagens mit den Soll-Empfehlungen der jeweiligen Tiergruppe (Grün = Optimal, Orange = Leichte Abweichung, Rot = Starke Fehlversorgung).</p>
+
+                    <div id="targetGroupsComparisonGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:18px;"></div>
+                </div>
+
+                <!-- Herden-Gesamtsumme Futterbedarf & Kosten -->
                 <div style="background:#1e1e1e; border:1px solid #333; border-radius:10px; padding:20px;">
-                    <h4 style="color:#4caf50; margin:0 0 12px 0; font-size:16px;">📊 Herden-Gesamtsumme Futterbedarf & Kosten (Alle Altersgruppen)</h4>
+                    <h4 style="color:#4caf50; margin:0 0 12px 0; font-size:16px;">📊 Gesamter Futterbedarf & Kosten der TMR-Mischung</h4>
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>Futtermittel</th>
+                                <th>Mischwagen (kg FM)</th>
+                                <th>Mischwagen (kg TM)</th>
                                 <th>Monatsbedarf (t FM)</th>
-                                <th>Monatsbedarf (t TM)</th>
                                 <th>Jahresbedarf (t FM)</th>
-                                <th>Jahresbedarf (t TM)</th>
                                 <th>Jahreskosten (€)</th>
                             </tr>
                         </thead>
@@ -445,7 +592,167 @@
     </div>
 </div>
 
-<!-- TAB 4: EINSTELLUNGEN -->
+<!-- TAB 4: FUHRPARK -->
+<div id="view-fuhrpark" class="view-container">
+    <div id="fuhrparkTab" class="full-view-content tab-content" style="width:100%;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+            <h2 style="border:none; padding:0; margin:0;">🚜 Fuhrpark Management & Tank-Erfassung</h2>
+            <button onclick="loadFuhrparkData()" style="width:auto; margin:0; padding:8px 16px; font-size:13px; background:#444;">🔄 Daten aktualisieren</button>
+        </div>
+
+        <!-- REORDERABLE BLOCKS CONTAINER (FUHRPARK) -->
+        <div id="fuhrpark-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
+
+            <!-- BLOCK 1: Fuhrpark-Statistiken -->
+            <div class="table-container reorder-block" id="block-fuhrpark-stats" style="margin-bottom: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0; font-size:18px; color:#4caf50;">📊 Fuhrpark-Statistiken (<span id="fuhrpark-stats-year">2026</span>)</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
+
+                <!-- 1. Kennzahlen-Karten (Dashboard Cards) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 20px;">
+                    <div style="background: linear-gradient(135deg, #1e2922 0%, #171f1a 100%); border: 1px solid #2e4d36; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #81c784; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⏱️ Gesamte Betriebsstunden</div>
+                        <div id="stat-card-stunden" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 h</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Differenz der Zählerstände im Jahr</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #1c2636 0%, #151c28 100%); border: 1px solid #244163; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #64b5f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">⛽ Gesamtverbrauch Diesel</div>
+                        <div id="stat-card-diesel" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe aller Tankungen</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #182c33 0%, #122026 100%); border: 1px solid #204b57; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #4dd0e1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">💧 Gesamtverbrauch AdBlue</div>
+                        <div id="stat-card-adblue" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Summe AdBlue getankt</div>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, #332717 0%, #261d11 100%); border: 1px solid #574020; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <div style="font-size: 11px; color: #ffb74d; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">📈 Ø Verbrauch</div>
+                        <div id="stat-card-avg" style="font-size: 28px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">0.0 l/h</div>
+                        <div style="font-size: 11px; color: #888; margin-top: 6px;">Gesamte Liter / Gefahrene Std</div>
+                    </div>
+                </div>
+
+                <!-- Einzel-Maschinen Tacho-Karten (Schlepper & Teleskoplader) -->
+                <div style="margin-top: 25px; margin-bottom: 25px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 15px; color: #ddd; display: flex; align-items: center; gap: 8px;">
+                        <span>🚜 Einzelne Maschinen-Statistiken (Schlepper & Teleskoplader)</span>
+                    </h4>
+                    <div id="maschinenStatsGrid" class="stats-grid">
+                        <div style="grid-column: 1/-1; text-align: center; color: #888; padding: 15px;">Berechne Einzel-Maschinen...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BLOCK 2: TÜV- & Mängel-Radar -->
+            <div class="table-container reorder-block" id="block-tuev-maengel" style="margin-bottom: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <h3 style="margin:0; font-size:18px; color:#4caf50;">🛡️ TÜV- & Mängel-Radar</h3>
+                        <div style="display:flex; gap:4px;">
+                            <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                            <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="openNewTuevModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#2196f3;">📅 TÜV eintragen</button>
+                        <button onclick="openNewMangelModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#ff9800;">🔧 Mangel melden</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fahrzeug</th>
+                            <th>Nächster TÜV (Monat/Jahr)</th>
+                            <th>Offene Mängel (Dringlichkeit)</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tuevMaengelTableBody">
+                        <tr><td colspan="4" style="text-align:center; color:#888;">Lade Fuhrpark-Daten aus Supabase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- BLOCK 3: Tank-Erfassung -->
+            <div class="box reorder-block" id="block-tankerfassung" style="margin-bottom:0; height:fit-content;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
+                    <h3 style="color:#4caf50; margin:0;">⛽ Tanken eintragen</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
+                <form id="formTankung" onsubmit="event.preventDefault(); saveTankung();">
+                    <div class="form-group">
+                        <label>Maschine</label>
+                        <select id="tank-equipment" required>
+                            <option value="">-- Fahrzeug wählen --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Getankte Liter Diesel</label>
+                        <input type="number" step="0.1" id="tank-liter" placeholder="z.B. 150.0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Getankte Liter AdBlue (optional)</label>
+                        <input type="number" step="0.1" id="tank-adblue" placeholder="z.B. 12.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Aktuelle Betriebsstunden</label>
+                        <input type="number" step="0.1" id="tank-stunden" placeholder="z.B. 4520.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Arbeit / Tätigkeit</label>
+                        <input type="text" id="tank-arbeit" placeholder="z.B. Silofahren, Pflügen, Transport">
+                    </div>
+                    <button type="submit" id="btnSaveTankung" style="margin-top:15px; background:#388e3c;">💾 Tankung speichern</button>
+                    <div id="tank-status-msg" style="margin-top:10px; font-weight:bold; text-align:center; min-height:20px;"></div>
+                </form>
+            </div>
+
+            <!-- BLOCK 4: Verbrauchs-Statistik -->
+            <div class="table-container reorder-block" id="block-verbrauchs-stats" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="color:#4caf50; margin:0;">📊 Verbrauchs-Statistik (Letzte Tankungen)</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
+                <div style="max-height:480px; overflow-y:auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Maschine</th>
+                                <th>Datum</th>
+                                <th>Tätigkeit</th>
+                                <th>Diesel (l)</th>
+                                <th>AdBlue (l)</th>
+                                <th>Betriebsstunden</th>
+                                <th>Verbrauch (l/h)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tanklogTableBody">
+                            <tr><td colspan="7" style="text-align:center; color:#888;">Lade Tank-Protokoll...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- TAB 5: EINSTELLUNGEN -->
 <div id="view-settings" class="view-container">
     <div class="full-view-content" style="max-width: 800px; margin: 0 auto;">
         <h2>⚙️ Nährstoff-Einstellungen (Gärsubstrat / Gülle)</h2>
@@ -623,12 +930,11 @@
             </div>
         </div>
 
-        <!-- UNTEN: HISTORIE / NOTIZEN (AUS DER APP) -->
+        <!-- UNTEN: BEHANDLUNGEN (AUS SUPABASE) -->
         <div style="background:#222; padding:15px; border-radius:8px; border:1px solid #333; margin-bottom:20px;">
-            <h3 style="margin:0 0 10px 0; color:#ff9800; font-size:15px;">📝 Historie / Notizen (aus der App)</h3>
+            <h3 style="margin:0 0 10px 0; color:#ff9800; font-size:15px;">💉 Behandlungen</h3>
             <div id="comb-historie-placeholder" style="color:#aaa; font-size:13px; min-height:80px; background:#1a1a1a; padding:12px; border-radius:6px; border:1px dashed #444; line-height:1.5;">
-                📌 <em>Keine Behandlungen oder Notizen vorhanden.</em><br>
-                <span style="font-size:11px; color:#777;">(Platzhalter für zukünftige Tierarzt-Behandlungen, Impfungen, Kalbungen & Notizen aus der mobilen App)</span>
+                Keine Behandlungen erfasst
             </div>
         </div>
 
@@ -662,6 +968,10 @@
         <div class="form-group">
             <label>Rohprotein (g XP / kg TM)</label>
             <input type="number" step="1" id="fd-xp" placeholder="z.B. 75">
+        </div>
+        <div class="form-group">
+            <label>Rohfaser (g XF / kg TM)</label>
+            <input type="number" step="1" id="fd-xf" placeholder="z.B. 180">
         </div>
         <div class="form-group">
             <label>Preis (€ / t Frischmasse)</label>
@@ -790,6 +1100,95 @@
     </div>
 </div>
 
+<!-- MODAL 7: TÜV TERMIN EINTRAGEN -->
+<div id="tuevModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h2>📅 TÜV-Termin eintragen</h2>
+            <button class="close-btn" onclick="closeTuevModal()">×</button>
+        </div>
+        <div class="form-group">
+            <label>Fahrzeug</label>
+            <select id="tuev-equipment" required></select>
+        </div>
+        <div class="grid-2" style="gap:15px;">
+            <div class="form-group">
+                <label>Monat</label>
+                <select id="tuev-monat" required></select>
+            </div>
+            <div class="form-group">
+                <label>Jahr</label>
+                <select id="tuev-jahr" required></select>
+            </div>
+        </div>
+        <button onclick="saveTuevFromModal()" style="margin-top:20px; background:#2196f3;">💾 TÜV speichern</button>
+    </div>
+</div>
+
+<!-- MODAL 8: MANGEL MELDEN -->
+<div id="mangelModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>🔧 Mangel / Defekt melden</h2>
+            <button class="close-btn" onclick="closeMangelModal()">×</button>
+        </div>
+        <div class="form-group">
+            <label>Fahrzeug</label>
+            <select id="mangel-equipment" required></select>
+        </div>
+        <div class="form-group">
+            <label>Dringlichkeit</label>
+            <select id="mangel-dringlichkeit">
+                <option value="Hoch">🚨 Hoch (Sofort reparieren)</option>
+                <option value="Mittel" selected>⚠️ Mittel (Demnächst)</option>
+                <option value="Niedrig">ℹ️ Niedrig (Schönheitsfehler)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Beschreibung des Mangels</label>
+            <textarea id="mangel-beschreibung" rows="3" placeholder="z.B. Hydraulikschlauch leckt..." required style="resize:vertical;"></textarea>
+        </div>
+        <button onclick="saveMangelFromModal()" style="margin-top:20px; background:#ff9800;">💾 Mangel speichern</button>
+    </div>
+</div>
+
+<!-- MODAL 9: NEUE FUHRE EINTRAGEN -->
+<div id="fuhreModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>🚛 Neue Fuhre eintragen</h2>
+            <button class="close-btn" onclick="closeFuhreModal()">×</button>
+        </div>
+        <div class="form-group">
+            <label>Datum & Uhrzeit</label>
+            <input type="datetime-local" id="fuhre-zeitpunkt">
+        </div>
+        <div class="form-group">
+            <label>Schlag / Fläche</label>
+            <select id="fuhre-field" required></select>
+        </div>
+        <div class="form-group">
+            <label>Aufgabe</label>
+            <input type="text" id="fuhre-aufgabe" placeholder="z.B. Gärreste, Gülle, Festmist" value="Gärreste">
+        </div>
+        <div class="form-group">
+            <label>Fahrer</label>
+            <input type="text" id="fuhre-fahrer" placeholder="z.B. Max Mustermann" required>
+        </div>
+        <div class="grid-2" style="gap:15px;">
+            <div class="form-group">
+                <label>Volumen (m³)</label>
+                <input type="number" step="0.1" id="fuhre-volumen" placeholder="z.B. 18.5" required>
+            </div>
+            <div class="form-group">
+                <label>Gewicht (kg) (optional)</label>
+                <input type="number" step="1" id="fuhre-gewicht" placeholder="z.B. 18500">
+            </div>
+        </div>
+        <button onclick="saveFuhreFromModal()" style="margin-top:20px; background:#4caf50;">💾 Fuhre speichern</button>
+    </div>
+</div>
+
 <script>
     const SUPABASE_URL = "https://muyienufbglqglojpidi.supabase.co";
     const SUPABASE_KEY = "sb_publishable_EsT5ljdQrfSbMuh8vYJM9w_vUl3X8wd";
@@ -874,27 +1273,808 @@
 
     // Tab-Wechsel
     function switchTab(tabName) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        let mainNav = document.getElementById('mainNavbar');
+        if (mainNav) {
+            mainNav.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        }
         document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
 
         if (tabName === 'map') {
-            document.getElementById('btn-tab-map').classList.add('active');
-            document.getElementById('view-map').classList.add('active');
+            if (document.getElementById('btn-tab-map')) document.getElementById('btn-tab-map').classList.add('active');
+            let vMap = document.getElementById('view-map');
+            if (vMap) vMap.classList.add('active');
             setTimeout(() => { if (map) map.invalidateSize(); }, 200);
         } else if (tabName === 'stats') {
-            document.getElementById('btn-tab-stats').classList.add('active');
+            if (document.getElementById('btn-tab-stats')) document.getElementById('btn-tab-stats').classList.add('active');
             document.getElementById('view-stats').classList.add('active');
             loadStatisticsData();
-        } else if (tabName === 'cattle') {
-            document.getElementById('btn-tab-cattle').classList.add('active');
-            document.getElementById('view-cattle').classList.add('active');
+        } else if (tabName === 'cattle' || tabName === 'rinder') {
+            if (document.getElementById('btn-tab-cattle')) document.getElementById('btn-tab-cattle').classList.add('active');
+            let vCattle = document.getElementById('view-cattle');
+            if (vCattle) vCattle.classList.add('active');
+            let rTab = document.getElementById('rinderTab');
+            if (rTab) rTab.style.display = 'block';
+            let fTab = document.getElementById('futterTab');
+            if (fTab) fTab.style.display = 'none';
             initCattleModule();
+        } else if (tabName === 'futter') {
+            if (document.getElementById('btn-tab-futter')) document.getElementById('btn-tab-futter').classList.add('active');
+            let vFutter = document.getElementById('view-futter');
+            if (vFutter) vFutter.classList.add('active');
+            let fTab = document.getElementById('futterTab');
+            if (fTab) fTab.style.display = 'block';
+            let rTab = document.getElementById('rinderTab');
+            if (rTab) rTab.style.display = 'none';
+            initFutterModule();
+        } else if (tabName === 'fuhrpark') {
+            if (document.getElementById('btn-tab-fuhrpark')) document.getElementById('btn-tab-fuhrpark').classList.add('active');
+            document.getElementById('view-fuhrpark').classList.add('active');
+            loadFuhrparkData();
         } else if (tabName === 'settings') {
-            document.getElementById('btn-tab-settings').classList.add('active');
+            if (document.getElementById('btn-tab-settings')) document.getElementById('btn-tab-settings').classList.add('active');
             document.getElementById('view-settings').classList.add('active');
             loadNutrientSettingsFromSupabase();
+        } else {
+            if (document.getElementById('btn-tab-map')) document.getElementById('btn-tab-map').classList.add('active');
+            let vMap = document.getElementById('view-map');
+            if (vMap) vMap.classList.add('active');
+            setTimeout(() => { if (map) map.invalidateSize(); }, 200);
         }
     }
+
+    // --- MODUL: FUHRPARK ---
+    let globalEquipmentList = [];
+    let globalTuevList = [];
+    let globalMaengelList = [];
+    let globalTanklogList = [];
+
+    async function loadFuhrparkData() {
+        try {
+            let [resEq, resTuev, resMaengel, resTank] = await Promise.all([
+                fetch(SUPABASE_URL + "/rest/v1/equipment?select=*&is_own_machine=eq.true", { headers }),
+                fetch(SUPABASE_URL + "/rest/v1/tuev?select=*&order=created_at.desc", { headers }).catch(() => ({ ok: false })),
+                fetchMaengelFromSupabase(),
+                fetch(SUPABASE_URL + "/rest/v1/tanklog?select=*&order=created_at.desc", { headers }).catch(() => ({ ok: false }))
+            ]);
+
+            if (resEq.ok) {
+                globalEquipmentList = await resEq.json();
+            } else {
+                globalEquipmentList = [];
+            }
+
+            if (resTuev && resTuev.ok) {
+                globalTuevList = await resTuev.json();
+            } else {
+                let resTuevFb = await fetch(SUPABASE_URL + "/rest/v1/tuev?select=*", { headers });
+                if (resTuevFb.ok) globalTuevList = await resTuevFb.json();
+                else globalTuevList = [];
+            }
+
+            globalMaengelList = resMaengel;
+
+            if (resTank && resTank.ok) {
+                globalTanklogList = await resTank.json();
+            } else {
+                let resTankFb = await fetch(SUPABASE_URL + "/rest/v1/tanklog?select=*", { headers });
+                if (resTankFb.ok) globalTanklogList = await resTankFb.json();
+                else globalTanklogList = [];
+            }
+
+            populateEquipmentDropdowns();
+            renderTuevMaengelTable();
+            renderTanklogTable();
+            await loadFuhrparkStats();
+
+        } catch (error) {
+            console.error("Fehler beim Laden der Fuhrpark-Daten:", error);
+            let tuevBody = document.getElementById("tuevMaengelTableBody");
+            if (tuevBody) tuevBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
+            let tankBody = document.getElementById("tanklogTableBody");
+            if (tankBody) tankBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Fehler beim Laden: ${error.message}</td></tr>`;
+        }
+    }
+
+    async function loadFuhrparkStats() {
+        let currentYear = new Date().getFullYear();
+
+        let yearEl = document.getElementById("fuhrpark-stats-year");
+        if (yearEl) yearEl.innerText = currentYear;
+
+        let tanklogs = globalTanklogList;
+        if (!tanklogs || tanklogs.length === 0) {
+            try {
+                let res = await fetch(SUPABASE_URL + "/rest/v1/tanklog?select=*&order=created_at.desc", { headers });
+                if (res.ok) {
+                    tanklogs = await res.json();
+                    globalTanklogList = tanklogs;
+                } else {
+                    tanklogs = [];
+                }
+            } catch (e) {
+                console.error("Fehler beim Abrufen der Tanklogs für Fuhrpark-Statistiken:", e);
+                tanklogs = [];
+            }
+        }
+
+        // Filter tanklog entries for current calendar year based on created_at (or datum fallback)
+        let currentYearLogs = tanklogs.filter(log => {
+            let dateObj = null;
+            if (log.created_at) {
+                dateObj = new Date(log.created_at);
+            } else if (log.datum) {
+                dateObj = new Date(log.datum);
+            }
+            return dateObj && !isNaN(dateObj.getTime()) && dateObj.getFullYear() === currentYear;
+        });
+
+        // Group data by equipment_id
+        let equipmentStatsMap = {};
+
+        currentYearLogs.forEach(log => {
+            let eqId = String(log.equipment_id);
+            if (!equipmentStatsMap[eqId]) {
+                equipmentStatsMap[eqId] = {
+                    dieselSum: 0,
+                    adblueSum: 0,
+                    stundenList: []
+                };
+            }
+
+            let diesel = parseFloat(log.liter) || 0;
+            let adblue = parseFloat(log.liter_adblue) || 0;
+            let stunden = parseFloat(log.betriebsstunden);
+
+            equipmentStatsMap[eqId].dieselSum += diesel;
+            equipmentStatsMap[eqId].adblueSum += adblue;
+
+            if (!isNaN(stunden) && stunden > 0) {
+                equipmentStatsMap[eqId].stundenList.push(stunden);
+            }
+        });
+
+        let totalGefahreneStunden = 0;
+        let totalDieselSum = 0;
+        let totalAdBlueSum = 0;
+
+        Object.keys(equipmentStatsMap).forEach(eqId => {
+            let stats = equipmentStatsMap[eqId];
+            let gefahreneStunden = 0;
+            if (stats.stundenList && stats.stundenList.length >= 2) {
+                let maxStunden = Math.max(...stats.stundenList);
+                let minStunden = Math.min(...stats.stundenList);
+                gefahreneStunden = Math.max(0, maxStunden - minStunden);
+            }
+
+            totalGefahreneStunden += gefahreneStunden;
+            totalDieselSum += (stats.dieselSum || 0);
+            totalAdBlueSum += (stats.adblueSum || 0);
+        });
+
+        // Update Cards
+        let cardStundenEl = document.getElementById("stat-card-stunden");
+        if (cardStundenEl) cardStundenEl.innerText = totalGefahreneStunden.toFixed(1) + " h";
+
+        let cardDieselEl = document.getElementById("stat-card-diesel");
+        if (cardDieselEl) cardDieselEl.innerText = totalDieselSum.toFixed(1) + " l";
+
+        let cardAdblueEl = document.getElementById("stat-card-adblue");
+        if (cardAdblueEl) cardAdblueEl.innerText = totalAdBlueSum.toFixed(1) + " l";
+
+        let totalAvgVerbrauch = totalGefahreneStunden > 0 ? (totalDieselSum / totalGefahreneStunden) : 0;
+        let cardAvgEl = document.getElementById("stat-card-avg");
+        if (cardAvgEl) cardAvgEl.innerText = totalAvgVerbrauch > 0 ? (totalAvgVerbrauch.toFixed(1) + " l/h") : "0.0 l/h";
+
+        loadEinzelMaschinenStats(equipmentStatsMap, currentYearLogs);
+    }
+
+    function loadEinzelMaschinenStats(equipmentStatsMap, currentYearLogs) {
+        let container = document.getElementById("maschinenStatsGrid");
+        if (!container) return;
+
+        // Filter function to identify non-motorized equipment (trailers, implements)
+        function isTrailerOrImplement(eq) {
+            if (!eq) return false;
+            if (eq.is_trailer === true || eq.trailer === true || eq.is_motorized === false || eq.motorisiert === false) {
+                return true;
+            }
+            let typeStr = (eq.type || eq.typ || eq.category || eq.kategorie || eq.art || eq.fahrzeugtyp || "").toLowerCase();
+            let nameStr = (eq.name || eq.bezeichnung || eq.fahrzeug || "").toLowerCase();
+
+            if (typeStr.includes('anhänger') || typeStr.includes('anhaenger') || typeStr.includes('trailer') ||
+                typeStr.includes('kipper') || typeStr.includes('anbau') || typeStr.includes('gerät') || typeStr.includes('geraet')) {
+                return true;
+            }
+
+            const trailerKeywords = [
+                'anhänger', 'anhaenger', 'kipper', 'fass', 'güllefass', 'guellefass',
+                'ladewagen', 'pflug', 'sämaschine', 'saemaschine', 'mähwerk', 'maehwerk',
+                'spritze', 'feldspritze', 'streuer', 'düngerstreuer', 'duengerstreuer', 'miststreuer',
+                'walze', 'mulcher', 'kreiselegge', 'egge', 'schwader', 'wender', 'heuwender',
+                'presse', 'ballenpresse', 'roder', 'tipper', 'trailer', 'wagen', 'mulde',
+                'schiebeschild', 'gewicht'
+            ];
+
+            for (let kw of trailerKeywords) {
+                if (nameStr.includes(kw) || typeStr.includes(kw)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        let motorizedEquipment = [];
+        let eqMap = {};
+
+        if (globalEquipmentList && globalEquipmentList.length > 0) {
+            globalEquipmentList.forEach(eq => {
+                eqMap[String(eq.id)] = eq;
+            });
+            motorizedEquipment = globalEquipmentList.filter(eq => !isTrailerOrImplement(eq));
+        }
+
+        if (equipmentStatsMap) {
+            Object.keys(equipmentStatsMap).forEach(eqId => {
+                if (!eqMap[eqId]) {
+                    let fallbackEq = { id: eqId, name: "Fahrzeug #" + eqId };
+                    if (!isTrailerOrImplement(fallbackEq) && !motorizedEquipment.some(e => String(e.id) === eqId)) {
+                        motorizedEquipment.push(fallbackEq);
+                    }
+                }
+            });
+        }
+
+        if (motorizedEquipment.length === 0) {
+            container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#888; padding: 20px; background: #1e1e1e; border-radius: 8px;">Keine motorisierten Fahrzeuge (Schlepper & Teleskoplader) vorhanden.</div>`;
+            return;
+        }
+
+        let cardsHtml = "";
+
+        motorizedEquipment.forEach(eq => {
+            let eqId = String(eq.id);
+            let eqName = eq.name || eq.bezeichnung || eq.fahrzeug || ("Fahrzeug #" + eqId);
+
+            let stats = (equipmentStatsMap && equipmentStatsMap[eqId]) ? equipmentStatsMap[eqId] : null;
+
+            let gefahreneStunden = 0;
+            let getankteLiter = 0;
+
+            if (stats) {
+                getankteLiter = stats.dieselSum || 0;
+                if (stats.stundenList && stats.stundenList.length >= 2) {
+                    let maxStunden = Math.max(...stats.stundenList);
+                    let minStunden = Math.min(...stats.stundenList);
+                    gefahreneStunden = Math.max(0, maxStunden - minStunden);
+                }
+            } else if (currentYearLogs) {
+                let eqLogs = currentYearLogs.filter(log => String(log.equipment_id) === eqId);
+                getankteLiter = eqLogs.reduce((sum, log) => sum + (parseFloat(log.liter) || 0), 0);
+                let stList = eqLogs.map(log => parseFloat(log.betriebsstunden)).filter(s => !isNaN(s) && s > 0);
+                if (stList.length >= 2) {
+                    gefahreneStunden = Math.max(0, Math.max(...stList) - Math.min(...stList));
+                }
+            }
+
+            let avgVerbrauch = gefahreneStunden > 0 ? (getankteLiter / gefahreneStunden) : 0;
+
+            let stdFormatted = gefahreneStunden > 0 ? gefahreneStunden.toFixed(1).replace('.', ',') : '0,0';
+            let literFormatted = getankteLiter > 0 ? getankteLiter.toFixed(1).replace('.', ',') : '0,0';
+            let avgFormatted = avgVerbrauch > 0 ? avgVerbrauch.toFixed(1).replace('.', ',') : '0,0';
+
+            cardsHtml += `
+            <div class="machine-stat-card" style="background: linear-gradient(135deg, #1e2922 0%, #171f1a 100%); border: 1px solid #2e4d36; border-radius: 10px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s, border-color 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='#4caf50';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#2e4d36';">
+                <div style="font-size: 16px; font-weight: 700; color: #4caf50; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2e4d36; padding-bottom: 8px;">
+                    <span style="display:flex; align-items:center; gap:8px;">🚜 ${eqName}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 12px; color: #aaa; font-weight: 600;">⏱️ BETRIEBSSTUNDEN</span>
+                        <span style="font-size: 15px; font-weight: 800; color: #ffffff;">${stdFormatted} Std. gefahren</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 12px; color: #aaa; font-weight: 600;">⛽ GETANKT DIESEL</span>
+                        <span style="font-size: 15px; font-weight: 800; color: #64b5f6;">${literFormatted} Liter getankt</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 12px; color: #aaa; font-weight: 600;">📈 DURCHSCHNITT</span>
+                        <span style="font-size: 15px; font-weight: 800; color: #ffb74d;">Ø ${avgFormatted} l/h</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+
+        container.innerHTML = cardsHtml;
+    }
+
+    async function fetchMaengelFromSupabase() {
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/maengel?select=*", { headers });
+            if (res.ok) return await res.json();
+            let resUmlaut = await fetch(SUPABASE_URL + "/rest/v1/" + encodeURIComponent("mängel") + "?select=*", { headers });
+            if (resUmlaut.ok) return await resUmlaut.json();
+            return [];
+        } catch (e) {
+            console.warn("Mängel loading error:", e);
+            return [];
+        }
+    }
+
+    function isOwnMachine(eq) {
+        if (!eq) return false;
+        return eq.is_own_machine === true || eq.is_own_machine === 'true' || eq.is_own_machine === 1;
+    }
+
+    function populateEquipmentDropdowns() {
+        let optsAll = '<option value="">-- Fahrzeug wählen --</option>';
+        let optsOwn = '<option value="">-- Fahrzeug wählen --</option>';
+
+        (globalEquipmentList || []).forEach(eq => {
+            let name = eq.name || eq.bezeichnung || eq.fahrzeug || ("Fahrzeug #" + eq.id);
+            let opt = `<option value="${eq.id}">${name}</option>`;
+            optsAll += opt;
+            if (isOwnMachine(eq)) {
+                optsOwn += opt;
+            }
+        });
+
+        let tankEl = document.getElementById('tank-equipment');
+        if (tankEl) tankEl.innerHTML = optsAll;
+
+        ['tuev-equipment', 'mangel-equipment'].forEach(id => {
+            let el = document.getElementById(id);
+            if (el) el.innerHTML = optsOwn;
+        });
+    }
+
+    function renderTuevMaengelTable() {
+        let ownEquipment = (globalEquipmentList || []).filter(isOwnMachine);
+
+        let now = new Date();
+        let curMonth = now.getMonth() + 1;
+        let curYear = now.getFullYear();
+        let curTotalMonths = curYear * 12 + curMonth;
+
+        let dueTuevCount = 0;
+        let openMaengelCount = 0;
+        if (ownEquipment && ownEquipment.length > 0) {
+            ownEquipment.forEach(eq => {
+                let eqTuevList = globalTuevList.filter(t => String(t.equipment_id) === String(eq.id));
+                eqTuevList.sort((a, b) => {
+                    let tA = (parseInt(a.jahr) || 0) * 12 + (parseInt(a.monat) || 0);
+                    let tB = (parseInt(b.jahr) || 0) * 12 + (parseInt(b.monat) || 0);
+                    return tB - tA;
+                });
+
+                let latestTuev = eqTuevList.length > 0 ? eqTuevList[0] : null;
+                if (latestTuev && latestTuev.monat && latestTuev.jahr) {
+                    let m = parseInt(latestTuev.monat);
+                    let y = parseInt(latestTuev.jahr);
+                    let tuevTotal = y * 12 + m;
+                    if (tuevTotal <= curTotalMonths) {
+                        dueTuevCount++;
+                    }
+                }
+
+                let eqMaengel = globalMaengelList.filter(m => String(m.equipment_id) === String(eq.id) && !m.erledigt);
+                openMaengelCount += eqMaengel.length;
+            });
+        }
+
+        let radarTuvEl = document.getElementById("radarTuv") || document.getElementById("cockpitTuvCount");
+        if (radarTuvEl) {
+            let totalIssues = dueTuevCount + openMaengelCount;
+            radarTuvEl.innerText = totalIssues > 0 ? `${totalIssues}` : "0";
+        }
+
+        let tbody = document.getElementById("tuevMaengelTableBody");
+        if (!tbody) return;
+
+        if (!ownEquipment || ownEquipment.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888;">Keine eigenen Fahrzeuge in equipment gefunden.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+
+        ownEquipment.forEach(eq => {
+            let name = eq.name || eq.bezeichnung || eq.fahrzeug || ("Fahrzeug #" + eq.id);
+
+            let eqTuevList = globalTuevList.filter(t => String(t.equipment_id) === String(eq.id));
+            eqTuevList.sort((a, b) => {
+                let tA = (parseInt(a.jahr) || 0) * 12 + (parseInt(a.monat) || 0);
+                let tB = (parseInt(b.jahr) || 0) * 12 + (parseInt(b.monat) || 0);
+                return tB - tA;
+            });
+
+            let latestTuev = eqTuevList.length > 0 ? eqTuevList[0] : null;
+            let tuevStr = "-";
+            let isDue = false;
+
+            if (latestTuev && latestTuev.monat && latestTuev.jahr) {
+                let m = parseInt(latestTuev.monat);
+                let y = parseInt(latestTuev.jahr);
+                let mStr = String(m).padStart(2, '0');
+                tuevStr = `${mStr}/${y}`;
+
+                let tuevTotal = y * 12 + m;
+                if (tuevTotal <= curTotalMonths) {
+                    isDue = true;
+                }
+            }
+
+            let eqMaengel = globalMaengelList.filter(m => String(m.equipment_id) === String(eq.id) && !m.erledigt);
+
+            let maengelHtml = "";
+            if (eqMaengel.length > 0) {
+                maengelHtml = eqMaengel.map(m => {
+                    let dring = m.dringlichkeit || "Mittel";
+                    let badgeClass = dring.toLowerCase().includes("hoch") ? "background:#b71c1c; color:#ffcdd2;" :
+                                     (dring.toLowerCase().includes("niedrig") ? "background:#0d47a1; color:#90caf9;" : "background:#e65100; color:#ffe0b2;");
+                    let beschr = m.beschreibung || m.mangel || "Mangel";
+                    return `<div style="margin: 3px 0; display:flex; align-items:center; gap:8px;">
+                        <span style="${badgeClass} padding:2px 6px; border-radius:4px; font-weight:bold; font-size:11px;">${dring}</span>
+                        <span>${beschr}</span>
+                        ${m.id ? `<button class="action-btn" style="background:#2e7d32; font-size:10px; padding:2px 6px;" onclick="resolveMangel('${m.id}')" title="Als erledigt markieren">✅</button>` : ''}
+                    </div>`;
+                }).join("");
+            } else {
+                maengelHtml = `<span style="color:#81c784; font-size:13px;">🟢 Keine offenen Mängel</span>`;
+            }
+
+            let trStyle = isDue ? 'style="background-color: #3e1a1a;"' : '';
+            let tuevBadge = isDue ? `<span style="background:#b71c1c; color:#fff; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px; margin-left:8px;">🚨 ${tuevStr} (Fällig!)</span>` : `<strong>${tuevStr}</strong>`;
+
+            html += `<tr ${trStyle}>
+                <td><strong style="color:#4caf50; font-size:15px;">🚜 ${name}</strong></td>
+                <td>${tuevBadge}</td>
+                <td>${maengelHtml}</td>
+                <td>
+                    <button class="action-btn" style="background:#0288d1;" onclick="openNewTuevModal('${eq.id}')">📅 TÜV</button>
+                    <button class="action-btn" style="background:#ff9800;" onclick="openNewMangelModal('${eq.id}')">🔧 Mangel</button>
+                </td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    async function saveTankung() {
+        let eqSelect = document.getElementById("tank-equipment");
+        let literInput = document.getElementById("tank-liter");
+        let adblueInput = document.getElementById("tank-adblue");
+        let stundenInput = document.getElementById("tank-stunden");
+        let arbeitInput = document.getElementById("tank-arbeit");
+        let statusEl = document.getElementById("tank-status-msg");
+
+        let eqId = eqSelect.value;
+        let literDiesel = parseFloat(literInput.value);
+        let literAdBlue = parseFloat(adblueInput.value) || 0;
+        let stunden = parseFloat(stundenInput.value);
+        let arbeit = arbeitInput.value.trim();
+
+        if (!eqId || isNaN(literDiesel) || isNaN(stunden)) {
+            statusEl.innerText = "❌ Bitte Maschine, Liter Diesel und Betriebsstunden eingeben.";
+            statusEl.style.color = "red";
+            return;
+        }
+
+        statusEl.innerText = "⏳ Suche letzten Tankeintrag...";
+        statusEl.style.color = "orange";
+
+        let lastStunden = null;
+        let gefahreneStunden = null;
+        let verbrauchLh = null;
+
+        try {
+            let eqLogs = globalTanklogList.filter(l => String(l.equipment_id) === String(eqId));
+            eqLogs.sort((a, b) => {
+                let stA = parseFloat(a.betriebsstunden) || 0;
+                let stB = parseFloat(b.betriebsstunden) || 0;
+                return stB - stA;
+            });
+
+            if (eqLogs.length > 0) {
+                lastStunden = parseFloat(eqLogs[0].betriebsstunden) || 0;
+                if (stunden > lastStunden) {
+                    gefahreneStunden = stunden - lastStunden;
+                    if (gefahreneStunden > 0) {
+                        verbrauchLh = literDiesel / gefahreneStunden;
+                    }
+                }
+            }
+
+            statusEl.innerText = "⏳ Speichere Tankung in Supabase...";
+
+            let payload = {
+                equipment_id: eqId,
+                liter: literDiesel,
+                liter_adblue: literAdBlue,
+                betriebsstunden: stunden,
+                arbeit: arbeit
+            };
+
+            let res = await fetch(SUPABASE_URL + "/rest/v1/tanklog", {
+                method: "POST",
+                headers: { ...headers, "Prefer": "return=representation" },
+                body: JSON.stringify([payload])
+            });
+
+            if (!res.ok) {
+                let fallbackPayload = {
+                    equipment_id: eqId,
+                    liter: literDiesel,
+                    betriebsstunden: stunden
+                };
+                res = await fetch(SUPABASE_URL + "/rest/v1/tanklog", {
+                    method: "POST",
+                    headers: { ...headers, "Prefer": "return=representation" },
+                    body: JSON.stringify([fallbackPayload])
+                });
+            }
+
+            if (res.ok) {
+                literInput.value = "";
+                adblueInput.value = "";
+                stundenInput.value = "";
+                arbeitInput.value = "";
+
+                if (verbrauchLh !== null) {
+                    statusEl.innerText = `✅ Gespeichert! Gefahrene Std: ${gefahreneStunden.toFixed(1)} h | Verbrauch: ${verbrauchLh.toFixed(1)} l/h`;
+                } else {
+                    statusEl.innerText = "✅ Tankung gespeichert! (Erster Eintrag für dieses Fahrzeug)";
+                }
+                statusEl.style.color = "#4caf50";
+
+                await loadFuhrparkData();
+            } else {
+                let errText = await res.text();
+                statusEl.innerText = "❌ Fehler beim Speichern: " + errText;
+                statusEl.style.color = "red";
+            }
+        } catch (e) {
+            console.error("Fehler in saveTankung:", e);
+            statusEl.innerText = "❌ Verbindungsfehler: " + e.message;
+            statusEl.style.color = "red";
+        }
+    }
+
+    function renderTanklogTable() {
+        let tbody = document.getElementById("tanklogTableBody");
+        if (!tbody) return;
+
+        if (!globalTanklogList || globalTanklogList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#888;">Keine Tankungen in tanklog vorhanden.</td></tr>`;
+            return;
+        }
+
+        let logsByEq = {};
+        globalTanklogList.forEach(log => {
+            let eqId = String(log.equipment_id);
+            if (!logsByEq[eqId]) logsByEq[eqId] = [];
+            logsByEq[eqId].push(log);
+        });
+
+        let processedLogs = [];
+
+        Object.keys(logsByEq).forEach(eqId => {
+            let eqLogs = logsByEq[eqId];
+            eqLogs.sort((a, b) => {
+                let stA = parseFloat(a.betriebsstunden) || 0;
+                let stB = parseFloat(b.betriebsstunden) || 0;
+                if (stA !== stB) return stA - stB;
+                let dA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                let dB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                return dA - dB;
+            });
+
+            for (let i = 0; i < eqLogs.length; i++) {
+                let current = eqLogs[i];
+                let prev = i > 0 ? eqLogs[i-1] : null;
+
+                let curStunden = parseFloat(current.betriebsstunden) || 0;
+                let prevStunden = prev ? (parseFloat(prev.betriebsstunden) || 0) : null;
+
+                let diffHours = (prevStunden !== null && curStunden > prevStunden) ? (curStunden - prevStunden) : null;
+                let liter = parseFloat(current.liter) || 0;
+                let lh = (diffHours !== null && diffHours > 0) ? (liter / diffHours) : null;
+
+                processedLogs.push({
+                    ...current,
+                    diffHours: diffHours,
+                    lh: lh
+                });
+            }
+        });
+
+        processedLogs.sort((a, b) => {
+            let dA = a.created_at ? new Date(a.created_at).getTime() : (parseInt(a.id) || 0);
+            let dB = b.created_at ? new Date(b.created_at).getTime() : (parseInt(b.id) || 0);
+            if (dA !== dB) return dB - dA;
+            return (parseFloat(b.betriebsstunden) || 0) - (parseFloat(a.betriebsstunden) || 0);
+        });
+
+        let recent20 = processedLogs.slice(0, 20);
+
+        let html = "";
+        recent20.forEach(log => {
+            let eqObj = globalEquipmentList.find(e => String(e.id) === String(log.equipment_id));
+            let eqName = eqObj ? (eqObj.name || eqObj.bezeichnung || eqObj.fahrzeug) : ("Fahrzeug #" + log.equipment_id);
+
+            let dateStr = "-";
+            if (log.created_at) {
+                try {
+                    let d = new Date(log.created_at);
+                    dateStr = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                } catch(e) {}
+            } else if (log.datum) {
+                dateStr = formatGermanDate(log.datum);
+            }
+
+            let diesel = parseFloat(log.liter) || 0;
+            let adblue = parseFloat(log.liter_adblue) || 0;
+            let stunden = parseFloat(log.betriebsstunden) || 0;
+            let arbeit = log.arbeit || log.taetigkeit || "-";
+
+            let lhHtml = "-";
+            if (log.lh !== null && !isNaN(log.lh)) {
+                lhHtml = `<strong style="color:#4caf50;">${log.lh.toFixed(1)} l/h</strong> <span style="font-size:11px; color:#aaa;">(${log.diffHours.toFixed(1)} h)</span>`;
+            }
+
+            html += `<tr>
+                <td><strong>🚜 ${eqName}</strong></td>
+                <td>${dateStr}</td>
+                <td><span style="color:#ffb74d;">${arbeit}</span></td>
+                <td><strong>${diesel.toFixed(1)} l</strong></td>
+                <td>${adblue > 0 ? adblue.toFixed(1) + ' l' : '-'}</td>
+                <td>${stunden.toFixed(1)} h</td>
+                <td>${lhHtml}</td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    function openNewTuevModal(eqId = null) {
+        let modal = document.getElementById("tuevModal");
+        let eqSel = document.getElementById("tuev-equipment");
+        let mSel = document.getElementById("tuev-monat");
+        let ySel = document.getElementById("tuev-jahr");
+
+        if (eqId) eqSel.value = eqId;
+
+        let now = new Date();
+        let curM = now.getMonth() + 1;
+        let curY = now.getFullYear();
+
+        let mOpts = "";
+        for (let m = 1; m <= 12; m++) {
+            let selected = m === curM ? "selected" : "";
+            mOpts += `<option value="${m}" ${selected}>${String(m).padStart(2, '0')}</option>`;
+        }
+        mSel.innerHTML = mOpts;
+
+        let yOpts = "";
+        for (let y = curY - 1; y <= curY + 5; y++) {
+            let selected = y === curY ? "selected" : "";
+            yOpts += `<option value="${y}" ${selected}>${y}</option>`;
+        }
+        ySel.innerHTML = yOpts;
+
+        modal.style.display = "flex";
+    }
+
+    function closeTuevModal() {
+        document.getElementById("tuevModal").style.display = "none";
+    }
+
+    async function saveTuevFromModal() {
+        let eqId = document.getElementById("tuev-equipment").value;
+        let monat = parseInt(document.getElementById("tuev-monat").value);
+        let jahr = parseInt(document.getElementById("tuev-jahr").value);
+
+        if (!eqId || !monat || !jahr) return alert("Bitte alle Felder ausfüllen.");
+
+        try {
+            let payload = { equipment_id: eqId, monat: monat, jahr: jahr };
+            let res = await fetch(SUPABASE_URL + "/rest/v1/tuev", {
+                method: "POST",
+                headers: { ...headers, "Prefer": "return=representation" },
+                body: JSON.stringify([payload])
+            });
+
+            if (res.ok) {
+                closeTuevModal();
+                await loadFuhrparkData();
+            } else {
+                alert("Fehler beim Speichern des TÜV-Termins: " + (await res.text()));
+            }
+        } catch (e) {
+            alert("Verbindungsfehler: " + e.message);
+        }
+    }
+
+    function openNewMangelModal(eqId = null) {
+        let modal = document.getElementById("mangelModal");
+        let eqSel = document.getElementById("mangel-equipment");
+        let desc = document.getElementById("mangel-beschreibung");
+
+        if (eqId) eqSel.value = eqId;
+        desc.value = "";
+
+        modal.style.display = "flex";
+    }
+
+    function closeMangelModal() {
+        document.getElementById("mangelModal").style.display = "none";
+    }
+
+    async function saveMangelFromModal() {
+        let eqId = document.getElementById("mangel-equipment").value;
+        let dringlichkeit = document.getElementById("mangel-dringlichkeit").value;
+        let beschreibung = document.getElementById("mangel-beschreibung").value.trim();
+
+        if (!eqId || !beschreibung) return alert("Bitte Fahrzeug und Beschreibung eingeben.");
+
+        try {
+            let payload = { equipment_id: eqId, dringlichkeit: dringlichkeit, beschreibung: beschreibung };
+            let res = await fetch(SUPABASE_URL + "/rest/v1/maengel", {
+                method: "POST",
+                headers: { ...headers, "Prefer": "return=representation" },
+                body: JSON.stringify([payload])
+            });
+
+            if (!res.ok) {
+                res = await fetch(SUPABASE_URL + "/rest/v1/" + encodeURIComponent("mängel"), {
+                    method: "POST",
+                    headers: { ...headers, "Prefer": "return=representation" },
+                    body: JSON.stringify([payload])
+                });
+            }
+
+            if (res.ok) {
+                closeMangelModal();
+                await loadFuhrparkData();
+            } else {
+                alert("Fehler beim Speichern des Mangels: " + (await res.text()));
+            }
+        } catch (e) {
+            alert("Verbindungsfehler: " + e.message);
+        }
+    }
+
+    async function resolveMangel(mangelId) {
+        if (!confirm("Möchtest du diesen Mangel als erledigt markieren?")) return;
+        try {
+            let res = await fetch(SUPABASE_URL + `/rest/v1/maengel?id=eq.${mangelId}`, {
+                method: "PATCH",
+                headers: headers,
+                body: JSON.stringify({ erledigt: true })
+            });
+            if (!res.ok) {
+                res = await fetch(SUPABASE_URL + `/rest/v1/maengel?id=eq.${mangelId}`, {
+                    method: "DELETE",
+                    headers: headers
+                });
+            }
+            await loadFuhrparkData();
+        } catch (e) {
+            console.error("Fehler beim Erledigen des Mangels:", e);
+        }
+    }
+
+    window.loadFuhrparkData = loadFuhrparkData;
+    window.loadFuhrparkStats = loadFuhrparkStats;
+    window.loadEinzelMaschinenStats = loadEinzelMaschinenStats;
+    window.saveTankung = saveTankung;
+    window.openNewTuevModal = openNewTuevModal;
+    window.closeTuevModal = closeTuevModal;
+    window.saveTuevFromModal = saveTuevFromModal;
+    window.openNewMangelModal = openNewMangelModal;
+    window.closeMangelModal = closeMangelModal;
+    window.saveMangelFromModal = saveMangelFromModal;
+    window.resolveMangel = resolveMangel;
 
     // Nährstoff-Einstellungen aus Supabase laden & synchronisieren
     async function loadNutrientSettingsFromSupabase() {
@@ -1052,18 +2232,6 @@
             let resAnbau = await fetch(SUPABASE_URL + "/rest/v1/anbauplanung?select=field_id,fruchtart&order=wirtschaftsjahr.desc", { headers });
             let anbauData = await resAnbau.json();
 
-            // Active temporary silos from Supabase
-            let nowIso = new Date().toISOString();
-            let tempSilos = [];
-            try {
-                let resTempSilos = await fetch(SUPABASE_URL + "/rest/v1/temporaere_silos?expires_at=gt." + nowIso, { headers });
-                if (resTempSilos.ok) {
-                    tempSilos = await resTempSilos.json();
-                }
-            } catch (e) {
-                console.warn("Konnte temporäre Silos nicht laden:", e);
-            }
-
             let fieldCrops = {};
             anbauData.forEach(a => { if(!fieldCrops[a.field_id]) fieldCrops[a.field_id] = a.fruchtart; });
 
@@ -1100,23 +2268,6 @@
                     fieldMapLayers[f.id] = poly;
                 }
             });
-
-            // Zeichne temporäre Silos als halbtransparente Kreise (25m Radius)
-            if (Array.isArray(tempSilos)) {
-                tempSilos.forEach(ts => {
-                    let rad = ts.radius_meter || 25;
-                    let circle = L.circle([ts.latitude, ts.longitude], {
-                        color: '#e91e63',
-                        fillColor: '#e91e63',
-                        fillOpacity: 0.45,
-                        weight: 2,
-                        radius: rad
-                    });
-                    let expDate = ts.expires_at ? new Date(ts.expires_at).toLocaleString('de-DE') : 'unbekannt';
-                    circle.bindTooltip(`<b>📍 Temporäres Silo (Feldmiete)</b><br>Aktiv bis: ${expDate}`);
-                    savedFieldsGroup.addLayer(circle);
-                });
-            }
 
             sortAndRenderList();
         } catch (error) { console.error(error); }
@@ -1288,6 +2439,9 @@
             let resFuhren = await fetch(SUPABASE_URL + "/rest/v1/fuhren?select=*&order=zeitpunkt.desc", { headers });
             globalTripsData = await resFuhren.json();
 
+            let radarFuhren = document.getElementById("radarFuhren");
+            if (radarFuhren) radarFuhren.innerText = globalTripsData.length;
+
             populateStatsFilterDropdowns();
             renderStatistics();
         } catch (error) {
@@ -1412,15 +2566,21 @@
                 dStr = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
             } catch(e) {}
 
+            let fahrerDisplay = t.fahrer || t.driver_id || '-';
+
             tripRowsHtml += `<tr>
                 <td>${dStr}</td>
                 <td><strong>${fieldName}</strong></td>
                 <td><span style="color:#ffb74d;">${t.aufgabe || 'Gärreste'}</span></td>
+                <td>${fahrerDisplay}</td>
                 <td>${vol.toFixed(1)} m³</td>
                 <td>${weight ? weight.toFixed(0) + ' kg' : '-'}</td>
                 <td style="color:#a5d6a7; font-weight:bold;">${nKg.toFixed(1)} kg</td>
                 <td style="color:#ffe0b2; font-weight:bold;">${pKg.toFixed(1)} kg</td>
                 <td style="color:#90caf9; font-weight:bold;">${kKg.toFixed(1)} kg</td>
+                <td style="text-align:center;">
+                    <button onclick="deleteFuhre('${t.id}')" title="Fuhre löschen" style="background:#e53935; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">🗑️</button>
+                </td>
             </tr>`;
         });
 
@@ -1469,10 +2629,11 @@
         document.getElementById("statsFieldTableBody").innerHTML = fieldTableBodyHtml;
 
         if (filteredTrips.length === 0) {
-            tripRowsHtml = `<tr><td colspan="8" style="text-align:center; color:#888;">Keine Einträge im gewählten Zeitraum.</td></tr>`;
+            tripRowsHtml = `<tr><td colspan="10" style="text-align:center; color:#888;">Keine Einträge im gewählten Zeitraum.</td></tr>`;
         } else {
             tripRowsHtml += `<tr class="sum-row">
                 <td>GESAMTSUMME</td>
+                <td>-</td>
                 <td>-</td>
                 <td>-</td>
                 <td>${totalVol.toFixed(1)} m³</td>
@@ -1480,11 +2641,133 @@
                 <td style="color:#a5d6a7;">${totalN.toFixed(1)} kg</td>
                 <td style="color:#ffe0b2;">${totalP.toFixed(1)} kg</td>
                 <td style="color:#90caf9;">${totalK.toFixed(1)} kg</td>
+                <td></td>
             </tr>`;
         }
 
         document.getElementById("statsTripTableBody").innerHTML = tripRowsHtml;
     }
+
+    function openFuhreModal() {
+        let now = new Date();
+        let localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        document.getElementById("fuhre-zeitpunkt").value = localIso;
+        document.getElementById("fuhre-aufgabe").value = "Gärreste";
+        document.getElementById("fuhre-fahrer").value = "";
+        document.getElementById("fuhre-volumen").value = "";
+        document.getElementById("fuhre-gewicht").value = "";
+
+        let fieldSelect = document.getElementById("fuhre-field");
+        fieldSelect.innerHTML = '<option value="">-- Schlag wählen --</option>';
+        globalFieldsData.forEach(f => {
+            fieldSelect.innerHTML += `<option value="${f.id}">${f.name} ${f.area_hectares ? '(' + f.area_hectares + ' ha)' : ''}</option>`;
+        });
+
+        document.getElementById("fuhreModal").style.display = "flex";
+    }
+
+    function closeFuhreModal() {
+        document.getElementById("fuhreModal").style.display = "none";
+    }
+
+    async function saveFuhreFromModal() {
+        let zeitVal = document.getElementById("fuhre-zeitpunkt").value;
+        let fieldId = document.getElementById("fuhre-field").value;
+        let aufgabe = document.getElementById("fuhre-aufgabe").value.trim() || "Gärreste";
+        let fahrerName = document.getElementById("fuhre-fahrer").value.trim();
+        let volumenVal = document.getElementById("fuhre-volumen").value;
+        let gewichtVal = document.getElementById("fuhre-gewicht").value;
+
+        if (!fieldId) {
+            alert("Bitte wählen Sie einen Schlag aus.");
+            return;
+        }
+        if (!fahrerName) {
+            alert("Bitte geben Sie einen Fahrer an.");
+            return;
+        }
+        let volumen = parseFloat(volumenVal);
+        if (isNaN(volumen) || volumen <= 0) {
+            alert("Bitte geben Sie ein gültiges Volumen an.");
+            return;
+        }
+
+        let payload = {
+            field_id: fieldId,
+            aufgabe: aufgabe,
+            fahrer: fahrerName,
+            driver_id: fahrerName,
+            volumen_m3: volumen,
+            erfassungs_modus: "manuell"
+        };
+
+        if (gewichtVal !== "" && !isNaN(parseFloat(gewichtVal))) {
+            payload.gewicht_kg = parseFloat(gewichtVal);
+        }
+
+        if (zeitVal) {
+            payload.zeitpunkt = new Date(zeitVal).toISOString();
+        } else {
+            payload.zeitpunkt = new Date().toISOString();
+        }
+
+        try {
+            let res = await fetch(SUPABASE_URL + "/rest/v1/fuhren", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                delete payload.driver_id;
+                res = await fetch(SUPABASE_URL + "/rest/v1/fuhren", {
+                    method: "POST",
+                    headers: headers,
+                    body: JSON.stringify(payload)
+                });
+            }
+
+            if (res.ok) {
+                closeFuhreModal();
+                await loadStatisticsData();
+            } else {
+                let errText = await res.text();
+                alert("Fehler beim Speichern der Fuhre: " + errText);
+            }
+        } catch (e) {
+            console.error("Fehler beim Speichern der Fuhre:", e);
+            alert("Fehler beim Speichern: " + e.message);
+        }
+    }
+
+    async function deleteFuhre(id) {
+        if (!id) return;
+        if (!confirm('Diese Fuhre wirklich löschen?')) {
+            return;
+        }
+        try {
+            let res = await fetch(SUPABASE_URL + `/rest/v1/fuhren?id=eq.${id}`, {
+                method: "DELETE",
+                headers: headers
+            });
+            if (!res.ok) {
+                res = await fetch(SUPABASE_URL + `/rest/v1/ausbringprotokoll?id=eq.${id}`, {
+                    method: "DELETE",
+                    headers: headers
+                });
+            }
+            if (res.ok) {
+                await loadStatisticsData();
+            } else {
+                let errText = await res.text();
+                alert("Fehler beim Löschen der Fuhre: " + errText);
+            }
+        } catch (e) {
+            console.error("Fehler beim Löschen:", e);
+            alert("Fehler beim Löschen der Fuhre: " + e.message);
+        }
+    }
+    window.deleteFuhre = deleteFuhre;
 
     // --- BLOCK REORDERING FUNCTIONS ---
     function moveBlockUp(btn) {
@@ -1505,44 +2788,83 @@
 
     const KEY_FEEDS = 'hofbuch_feed_items_v2';
     const KEY_RATIONS = 'hofbuch_category_rations_v2';
+    const KEY_MIXER_LOAD = 'hofbuch_mixer_load_v1';
 
     const defaultFeeds = [
-        { id: 'f1', name: 'Silomais (33% TM)', tm: 33, me: 11.0, xp: 75, preis: 45 },
-        { id: 'f2', name: 'Grassilage (38% TM)', tm: 38, me: 10.5, xp: 145, preis: 52 },
-        { id: 'f3', name: 'Gärsubstrat-Trockenrückstand', tm: 88, me: 9.8, xp: 180, preis: 65 },
-        { id: 'f4', name: 'Kraftfutter / Rapsschrot', tm: 88, me: 12.2, xp: 340, preis: 320 },
-        { id: 'f5', name: 'Getreideschrot (Weizen/Gerste)', tm: 87, me: 13.0, xp: 120, preis: 220 },
-        { id: 'f6', name: 'Futterstroh', tm: 86, me: 6.5, xp: 40, preis: 80 }
+        { id: 'f1', name: 'Silomais (33% TM)', tm: 33, me: 11.0, xp: 75, xf: 180, preis: 45 },
+        { id: 'f2', name: 'Grassilage (38% TM)', tm: 38, me: 10.5, xp: 145, xf: 240, preis: 52 },
+        { id: 'f3', name: 'Gärsubstrat-Trockenrückstand', tm: 88, me: 9.8, xp: 180, xf: 200, preis: 65 },
+        { id: 'f4', name: 'Kraftfutter / Rapsschrot', tm: 88, me: 12.2, xp: 340, xf: 110, preis: 320 },
+        { id: 'f5', name: 'Getreideschrot (Weizen/Gerste)', tm: 87, me: 13.0, xp: 120, xf: 25, preis: 220 },
+        { id: 'f6', name: 'Futterstroh', tm: 86, me: 6.5, xp: 40, xf: 380, preis: 80 }
     ];
+
+    const defaultMixerLoad = {
+        'f1': 3000,
+        'f2': 1000,
+        'f4': 150,
+        'f6': 100
+    };
 
     const CATTLE_CATEGORIES = {
         'cat_kaelber': { id: 'cat_kaelber', name: 'Kälber (0–6 Mo.)', range: '0 - 6 Monate', defaultWeight: 120 },
-        'cat_jungvieh': { id: 'cat_jungvieh', name: 'Jungvieh (6–12 Mo.)', range: '6 - 12 Monate', defaultWeight: 280 },
-        'cat_faersen': { id: 'cat_faersen', name: 'Färsen (12–24 Mo.)', range: '12 - 24 Monate', defaultWeight: 480 },
-        'cat_kuehe': { id: 'cat_kuehe', name: 'Kühe / Altrinder (> 24 Mo.)', range: '> 24 Monate', defaultWeight: 650 }
+        'cat_jungvieh': { id: 'cat_jungvieh', name: 'Jungrinder / Vormast (6–12 Mo.)', range: '6 - 12 Monate', defaultWeight: 280 },
+        'cat_faersen': { id: 'cat_faersen', name: 'Mittelmast / Endmast (> 12 Mo.)', range: '> 12 Monate', defaultWeight: 480 }
     };
 
+    const TARGET_AGE_GROUPS = [
+        {
+            id: 'cat_kaelber',
+            name: 'Kälber (0–6 Mo.)',
+            icon: '🐮',
+            targetME: 11.0,  // MJ ME / kg TM
+            targetXP: 160,   // g XP / kg TM
+            targetXF: 160,   // g XF / kg TM
+            targetTM: 'ca. 3,5 kg TM / Tag',
+            note: 'Bleibt hoch für maximale Rahmenbildung, Rohfaser 160 g XF / kg TM'
+        },
+        {
+            id: 'cat_jungvieh',
+            name: 'Jungrinder / Vormast (6–12 Mo.)',
+            icon: '🐂',
+            targetME: 10.8,  // MJ ME / kg TM
+            targetXP: 155,   // g XP / kg TM
+            targetXF: 160,   // g XF / kg TM
+            targetTM: 'ca. 6,5 kg TM / Tag',
+            note: 'Mehr Protein für Muskelaufbau, Rohfaser 160 g XF / kg TM'
+        },
+        {
+            id: 'cat_faersen',
+            name: 'Mittelmast / Endmast (> 12 Mo.)',
+            icon: '🐄',
+            targetME: 11.2,  // MJ ME / kg TM
+            targetXP: 140,   // g XP / kg TM
+            targetXF: 160,   // g XF / kg TM
+            targetTM: 'ca. 9,5 kg TM / Tag',
+            note: 'Volle Energie für >1000g Zunahme, Rohfaser 160 g XF / kg TM'
+        }
+    ];
+
     const AGE_GROUP_REQUIREMENTS = {
-        'cat_kaelber': { id: 'cat_kaelber', name: '0–6 Monate (Kälber)', range: '0 - 6 Monate', defaultWeight: 120, targetTM: 3.0, targetME: 33.0, targetXP: 480 },
-        'cat_jungvieh': { id: 'cat_jungvieh', name: '6–12 Monate (Jungvieh)', range: '6 - 12 Monate', defaultWeight: 280, targetTM: 6.2, targetME: 66.0, targetXP: 850 },
-        'cat_faersen': { id: 'cat_faersen', name: '12–24 Monate (Färsen)', range: '12 - 24 Monate', defaultWeight: 480, targetTM: 10.0, targetME: 95.0, targetXP: 1250 },
-        'cat_kuehe': { id: 'cat_kuehe', name: '> 24 Monate (Kühe / Altrinder)', range: '> 24 Monate', defaultWeight: 650, targetTM: 15.5, targetME: 145.0, targetXP: 2200 }
+        'cat_kaelber': { id: 'cat_kaelber', name: '0–6 Monate (Kälber)', range: '0 - 6 Monate', defaultWeight: 120, targetTM: 3.5, targetME: 33.0, targetXP: 480 },
+        'cat_jungvieh': { id: 'cat_jungvieh', name: '6–12 Monate (Jungrinder / Vormast)', range: '6 - 12 Monate', defaultWeight: 280, targetTM: 6.5, targetME: 67.0, targetXP: 961 },
+        'cat_faersen': { id: 'cat_faersen', name: '> 12 Monate (Mittelmast / Endmast)', range: '> 12 Monate', defaultWeight: 480, targetTM: 9.5, targetME: 112.0, targetXP: 1400 }
     };
 
     const defaultCategoryRations = {
         'cat_kaelber': { 'f2': 3.0, 'f1': 2.0, 'f4': 1.2 },
         'cat_jungvieh': { 'f1': 8.0, 'f2': 6.0, 'f6': 1.0, 'f4': 1.5 },
-        'cat_faersen': { 'f1': 12.0, 'f2': 8.0, 'f6': 1.2, 'f4': 2.0 },
-        'cat_kuehe': { 'f1': 18.0, 'f2': 12.0, 'f6': 1.5, 'f4': 3.5 }
+        'cat_faersen': { 'f1': 12.0, 'f2': 8.0, 'f6': 1.2, 'f4': 2.0 }
     };
 
     let feedItems = [];
+    let mixerLoad = {};
     let categoryRations = {};
     let supabaseCattleList = [];
     let supabaseBetriebeList = [];
     let editingBetriebId = null;
-    let cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0, 'cat_kuehe': 0 };
-    let cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [], 'cat_kuehe': [] };
+    let cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0 };
+    let cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [] };
     let editingFeedId = null;
     let editingCattleId = null;
     let currentDetailCatKey = null;
@@ -1588,7 +2910,11 @@
     }
 
     function getKaelberForBetrieb(rawBnr) {
-        if (!supabaseCattleList || !Array.isArray(supabaseCattleList) || supabaseCattleList.length === 0) {
+        let listToSearch = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0)
+            ? supabaseAllCattleList
+            : supabaseCattleList;
+
+        if (!listToSearch || !Array.isArray(listToSearch) || listToSearch.length === 0) {
             return [];
         }
         if (!rawBnr) return [];
@@ -1597,7 +2923,7 @@
         let targetDigits = targetBnrStr.replace(/\D/g, '');
         let betriebObj = typeof findBetriebByNummer === "function" ? findBetriebByNummer(rawBnr) : null;
 
-        return supabaseCattleList.filter(c => {
+        return listToSearch.filter(c => {
             let cVorbesitzer = String(c.vorbesitzer || c.geburtsbetrieb || "").trim();
             if (!cVorbesitzer || cVorbesitzer === "0" || cVorbesitzer === "null" || cVorbesitzer === "-" || cVorbesitzer === "undefined") return false;
 
@@ -1717,6 +3043,9 @@
             if (res.ok) {
                 resetBetriebForm();
                 await loadBetriebe();
+                if (typeof renderBetriebeStatistikTable === "function") {
+                    renderBetriebeStatistikTable();
+                }
                 alert("Betrieb erfolgreich gespeichert!");
             } else {
                 let errText = await res.text();
@@ -1729,8 +3058,32 @@
     }
 
     function editBetrieb(id) {
-        let b = supabaseBetriebeList.find(x => String(x.id) === String(id));
-        if (!b) return;
+        let modal = document.getElementById("betriebeModal");
+        if (modal) modal.style.display = "flex";
+
+        if (!supabaseBetriebeList || supabaseBetriebeList.length === 0) {
+            if (typeof loadBetriebe === "function") {
+                loadBetriebe().then(() => doEditBetrieb(id));
+                return;
+            }
+        }
+        doEditBetrieb(id);
+    }
+
+    function doEditBetrieb(id) {
+        let b = (supabaseBetriebeList || []).find(x => String(x.id) === String(id));
+        if (!b && typeof findBetriebByNummer === "function") {
+            b = findBetriebByNummer(id);
+        }
+
+        if (!b) {
+            resetBetriebForm();
+            if (id && id !== "__unknown__") {
+                let bnrInput = document.getElementById("betr-betriebsnummer");
+                if (bnrInput) bnrInput.value = id;
+            }
+            return;
+        }
 
         editingBetriebId = b.id;
         let bnrInput = document.getElementById("betr-betriebsnummer");
@@ -1741,6 +3094,7 @@
         if (hofInput) hofInput.value = b.hofname || b.name || b.besitzer || "";
         if (adrInput) adrInput.value = b.adresse || b.notiz || b.adresse_notiz || "";
     }
+    window.doEditBetrieb = doEditBetrieb;
 
     async function deleteBetrieb(id, bnr) {
         if (!confirm(`Möchtest du den Betrieb (${bnr}) wirklich löschen?`)) return;
@@ -1937,6 +3291,21 @@
 
             let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : (c.zugangsdatum ? formatGermanDate(c.zugangsdatum) : "Eigenbestand");
 
+            let isDeparted = (c.status === 'abgegangen' || c.status === 'inaktiv') || (c.verkaufsdatum && c.verkaufsdatum !== '0' && c.verkaufsdatum !== 'null' && c.verkaufsdatum !== '') || (c.abgangs_grund || c.abgangsgrund);
+            let grund = String(c.abgangs_grund || c.abgangsgrund || '').toLowerCase();
+            if (!grund && isDeparted) grund = 'verkauft';
+
+            let statusBadge = '';
+            if (!isDeparted) {
+                statusBadge = `<span style="background:#1b5e20; color:#81c784; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Aktiv</span>`;
+            } else if (grund === 'gestorben') {
+                statusBadge = `<span style="background:#b71c1c; color:#ffcdd2; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Gestorben ✝</span>`;
+            } else if (grund === 'eingeschläfert' || grund === 'eingeschlaefert') {
+                statusBadge = `<span style="background:#e65100; color:#ffe0b2; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Eingeschläfert ⚠️</span>`;
+            } else {
+                statusBadge = `<span style="background:#33691e; color:#c5e1a5; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">Verkauft 🏷️</span>`;
+            }
+
             let bDate = parseBirthDate(c.geburtsdatum);
             let displayAlter = "-";
             if (bDate && !isNaN(bDate.getTime())) {
@@ -1984,7 +3353,7 @@
 
             html += `<tr>
                 <td><strong style="color:#4caf50; font-size:14px;">${earTag}</strong></td>
-                <td>${displayZukauf}</td>
+                <td>${statusBadge}<br/><span style="font-size:11px; color:#aaa;">Zukauf: ${displayZukauf}</span></td>
                 <td><strong>${displayAlter}</strong></td>
                 <td style="max-width:320px; word-wrap:break-word;">${historyHtml}</td>
             </tr>`;
@@ -2043,9 +3412,50 @@
         return age < 0 ? 0 : age;
     }
 
+    async function initFutterModule() {
+        let savedFeeds = localStorage.getItem(KEY_FEEDS);
+        feedItems = savedFeeds ? JSON.parse(savedFeeds) : defaultFeeds;
+        feedItems.forEach(f => {
+            if (f.xf === undefined) {
+                if (f.id === 'f1') f.xf = 180;
+                else if (f.id === 'f2') f.xf = 240;
+                else if (f.id === 'f3') f.xf = 200;
+                else if (f.id === 'f4') f.xf = 110;
+                else if (f.id === 'f5') f.xf = 25;
+                else if (f.id === 'f6') f.xf = 380;
+                else f.xf = 180;
+            }
+        });
+
+        let savedMixerLoad = localStorage.getItem(KEY_MIXER_LOAD);
+        mixerLoad = savedMixerLoad ? JSON.parse(savedMixerLoad) : defaultMixerLoad;
+
+        let savedRations = localStorage.getItem(KEY_RATIONS);
+        categoryRations = savedRations ? JSON.parse(savedRations) : defaultCategoryRations;
+
+        if (typeof renderFeedItemsTable === "function") renderFeedItemsTable();
+        if (typeof calculateMixerTMR === "function") calculateMixerTMR();
+        if (typeof renderFeedingCalculator === "function") renderFeedingCalculator();
+    }
+    window.initFutterModule = initFutterModule;
+
     async function initCattleModule() {
         let savedFeeds = localStorage.getItem(KEY_FEEDS);
         feedItems = savedFeeds ? JSON.parse(savedFeeds) : defaultFeeds;
+        feedItems.forEach(f => {
+            if (f.xf === undefined) {
+                if (f.id === 'f1') f.xf = 180;
+                else if (f.id === 'f2') f.xf = 240;
+                else if (f.id === 'f3') f.xf = 200;
+                else if (f.id === 'f4') f.xf = 110;
+                else if (f.id === 'f5') f.xf = 25;
+                else if (f.id === 'f6') f.xf = 380;
+                else f.xf = 180;
+            }
+        });
+
+        let savedMixerLoad = localStorage.getItem(KEY_MIXER_LOAD);
+        mixerLoad = savedMixerLoad ? JSON.parse(savedMixerLoad) : defaultMixerLoad;
 
         let savedRations = localStorage.getItem(KEY_RATIONS);
         categoryRations = savedRations ? JSON.parse(savedRations) : defaultCategoryRations;
@@ -2070,6 +3480,7 @@
 
     function saveCattleModuleData() {
         localStorage.setItem(KEY_FEEDS, JSON.stringify(feedItems));
+        localStorage.setItem(KEY_MIXER_LOAD, JSON.stringify(mixerLoad));
         localStorage.setItem(KEY_RATIONS, JSON.stringify(categoryRations));
     }
 
@@ -2081,19 +3492,19 @@
             let res = await fetch(SUPABASE_URL + "/rest/v1/rinder?select=*&order=geburtsdatum.desc", { headers });
             let rawList = await res.json();
 
-            supabaseCattleList = rawList.filter(c => !c.verkaufsdatum || c.verkaufsdatum === '' || c.verkaufsdatum === 'null' || c.verkaufsdatum === '0');
+            supabaseAllCattleList = rawList;
+            supabaseCattleList = rawList.filter(c => (!c.status || c.status === 'aktiv') && (!c.verkaufsdatum || c.verkaufsdatum === '' || c.verkaufsdatum === 'null' || c.verkaufsdatum === '0') && (!c.abgangs_grund && !c.abgangsgrund));
 
-            cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0, 'cat_kuehe': 0 };
-            cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [], 'cat_kuehe': [] };
+            cattleCategoryCounts = { 'cat_kaelber': 0, 'cat_jungvieh': 0, 'cat_faersen': 0 };
+            cattleCategoryAnimals = { 'cat_kaelber': [], 'cat_jungvieh': [], 'cat_faersen': [] };
 
             supabaseCattleList.forEach(c => {
                 let bDate = parseBirthDate(c.geburtsdatum);
                 let ageMonths = calculateAgeInMonths(bDate);
 
-                let catKey = 'cat_kuehe';
+                let catKey = 'cat_faersen';
                 if (ageMonths < 6) catKey = 'cat_kaelber';
                 else if (ageMonths < 12) catKey = 'cat_jungvieh';
-                else if (ageMonths < 24) catKey = 'cat_faersen';
 
                 cattleCategoryCounts[catKey]++;
                 cattleCategoryAnimals[catKey].push({ ...c, ageMonths: ageMonths });
@@ -2120,11 +3531,16 @@
     }
 
     function renderCattleCategoryKPIs() {
-        document.getElementById("cnt-total").innerText = `${supabaseCattleList.length} Rinder`;
-        document.getElementById("cnt-kaelber").innerText = `${cattleCategoryCounts['cat_kaelber']} Stk`;
-        document.getElementById("cnt-jungvieh").innerText = `${cattleCategoryCounts['cat_jungvieh']} Stk`;
-        document.getElementById("cnt-faersen").innerText = `${cattleCategoryCounts['cat_faersen']} Stk`;
-        document.getElementById("cnt-kuehe").innerText = `${cattleCategoryCounts['cat_kuehe']} Stk`;
+        let cntTotal = document.getElementById("cnt-total");
+        if (cntTotal) cntTotal.innerText = `${supabaseCattleList.length} Rinder`;
+        let radarRinder = document.getElementById("radarRinder") || document.getElementById("cockpitRinderCount");
+        if (radarRinder) radarRinder.innerText = `${supabaseCattleList.length}`;
+        let cntKaelber = document.getElementById("cnt-kaelber");
+        if (cntKaelber) cntKaelber.innerText = `${cattleCategoryCounts['cat_kaelber']} Stk`;
+        let cntJungvieh = document.getElementById("cnt-jungvieh");
+        if (cntJungvieh) cntJungvieh.innerText = `${cattleCategoryCounts['cat_jungvieh']} Stk`;
+        let cntFaersen = document.getElementById("cnt-faersen");
+        if (cntFaersen) cntFaersen.innerText = `${cattleCategoryCounts['cat_faersen']} Stk`;
     }
 
     function renderCattleCategoryTable() {
@@ -2145,14 +3561,271 @@
         document.getElementById("cattleCategoryTableBody").innerHTML = html;
     }
 
+    let cattleStatusFilter = 'aktiv';
+
+    function setCattleStatusFilter(status) {
+        cattleStatusFilter = status;
+        let btnActive = document.getElementById("btn-cattle-active");
+        let btnArchive = document.getElementById("btn-cattle-archive");
+        let btnBetriebe = document.getElementById("btn-cattle-betriebe");
+        if (btnActive && btnArchive) {
+            btnActive.classList.remove('active');
+            btnArchive.classList.remove('active');
+            if (btnBetriebe) btnBetriebe.classList.remove('active');
+
+            if (status === 'aktiv') {
+                btnActive.classList.add('active');
+            } else if (status === 'archiv') {
+                btnArchive.classList.add('active');
+            } else if (status === 'betriebe') {
+                if (btnBetriebe) btnBetriebe.classList.add('active');
+            }
+        }
+        renderAllCattleTable();
+    }
+    window.setCattleStatusFilter = setCattleStatusFilter;
+
+    async function renderBetriebeStatistikTable() {
+        let tbody = document.getElementById("betriebeStatistikTableBody");
+        if (!tbody) return;
+
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888; padding:20px;">⌛ Berechne Betriebs-Statistiken...</td></tr>`;
+
+        // 1. Alle Rinder laden (aktiv + archiviert)
+        let allCattle = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0)
+            ? supabaseAllCattleList
+            : (typeof supabaseCattleList !== "undefined" ? supabaseCattleList : []);
+
+        if (!supabaseAllCattleList || supabaseAllCattleList.length === 0) {
+            try {
+                let res = await fetch(SUPABASE_URL + "/rest/v1/rinder?select=*&order=geburtsdatum.desc", { headers });
+                if (res.ok) {
+                    let data = await res.json();
+                    if (Array.isArray(data)) {
+                        supabaseAllCattleList = data;
+                        allCattle = data;
+                    }
+                }
+            } catch (e) {
+                console.error("Fehler beim Laden aller Rinder für Betriebs-Statistik:", e);
+            }
+        }
+
+        // 2. Behandlungen-Tabelle laden & Ohrmarken erfassen
+        let treatedOhrmarkenSet = new Set();
+        try {
+            let resB = await fetch(SUPABASE_URL + "/rest/v1/behandlungen?select=*", { headers });
+            if (resB.ok) {
+                let bList = await resB.json();
+                if (Array.isArray(bList)) {
+                    bList.forEach(b => {
+                        let tag = String(b.rind_ohrmarke || b.ohrmarke || "").replace(/\s/g, "").toLowerCase();
+                        if (tag) treatedOhrmarkenSet.add(tag);
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn("Fehler beim Laden der Behandlungen für Betriebs-Statistik:", e);
+        }
+
+        // Stelle sicher, dass Partnerbetriebe geladen sind für schöne Namen
+        if ((!supabaseBetriebeList || supabaseBetriebeList.length === 0) && typeof loadBetriebe === "function") {
+            try { await loadBetriebe(); } catch(e) {}
+        }
+
+        // 3. Rinder nach Herkunftsbetrieb gruppieren
+        let groupsMap = {};
+
+        allCattle.forEach(c => {
+            let rawOwner = String(c.vorbesitzer || c.geburtsbetrieb || "").trim();
+            let isUnknown = !rawOwner || ["0", "null", "-", "undefined"].includes(rawOwner.toLowerCase());
+
+            let groupKey = "";
+            let displayName = "";
+
+            let matchedB = isUnknown ? null : ((typeof findBetriebByNummer === "function") ? findBetriebByNummer(rawOwner) : null);
+
+            if (isUnknown) {
+                groupKey = "__unknown__";
+                displayName = "Kein Betrieb / Eigenbestand";
+            } else {
+                if (matchedB) {
+                    groupKey = "betrieb_" + (matchedB.id || matchedB.betriebsnummer || matchedB.bnr || rawOwner);
+                    let hofname = String(matchedB.hofname || matchedB.name || matchedB.besitzer || "").trim();
+                    let bnr = String(matchedB.betriebsnummer || matchedB.bnr || rawOwner).trim();
+
+                    if (hofname && bnr) {
+                        if (rawOwner.includes(hofname)) {
+                            displayName = rawOwner;
+                        } else if (hofname.includes(bnr)) {
+                            displayName = hofname;
+                        } else {
+                            displayName = `${hofname} (${bnr})`;
+                        }
+                    } else if (hofname) {
+                        displayName = hofname;
+                    } else if (bnr) {
+                        displayName = bnr;
+                    } else {
+                        displayName = rawOwner;
+                    }
+                } else {
+                    groupKey = "owner_" + rawOwner.toLowerCase();
+                    displayName = rawOwner;
+                }
+            }
+
+            if (!groupsMap[groupKey]) {
+                groupsMap[groupKey] = {
+                    key: groupKey,
+                    displayName: displayName,
+                    totalCount: 0,
+                    treatedCount: 0,
+                    lossCount: 0,
+                    betriebId: matchedB ? matchedB.id : null,
+                    rawOwner: rawOwner
+                };
+            }
+
+            let grp = groupsMap[groupKey];
+            grp.totalCount++;
+
+            // Mindestens einmal behandelt?
+            let cleanEar = String(c.ohrmarke || "").replace(/\s/g, "").toLowerCase();
+            if (cleanEar && treatedOhrmarkenSet.has(cleanEar)) {
+                grp.treatedCount++;
+            }
+
+            // Verluste (gestorben / eingeschläfert)?
+            let abgangsGrund = String(c.abgangs_grund || c.abgangsgrund || c.status || "").toLowerCase();
+            if (abgangsGrund.includes("gestorben") || abgangsGrund.includes("eingeschläfert") || abgangsGrund.includes("eingeschlaefert") || abgangsGrund.includes("tot") || abgangsGrund.includes("verendet")) {
+                grp.lossCount++;
+            }
+        });
+
+        let groups = Object.values(groupsMap);
+
+        // Suchfilter anwenden falls im Hauptsuchfeld etwas getippt wurde
+        let searchEl = document.getElementById("mainCattleSearch");
+        let query = searchEl && searchEl.value ? searchEl.value.trim().toLowerCase() : "";
+        if (query) {
+            groups = groups.filter(g => g.displayName.toLowerCase().includes(query));
+        }
+
+        // Nach gelieferten Tieren absteigend sortieren
+        groups.sort((a, b) => b.totalCount - a.totalCount);
+
+        if (groups.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888; padding:20px;">Keine Betriebe in der Statistik gefunden.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        groups.forEach(g => {
+            let treatedPct = g.totalCount > 0 ? Math.round((g.treatedCount / g.totalCount) * 100) : 0;
+            let lossPct = g.totalCount > 0 ? Math.round((g.lossCount / g.totalCount) * 100) : 0;
+
+            let treatedColor = g.treatedCount === 0 ? "#81c784" : (treatedPct > 20 ? "#ffb74d" : "#e0e0e0");
+            let lossColor = g.lossCount === 0 ? "#81c784" : (lossPct > 5 ? "#e57373" : "#ffb74d");
+
+            let editTargetId = g.betriebId;
+            if (!editTargetId && g.rawOwner && g.key !== "__unknown__") {
+                let foundLater = (typeof findBetriebByNummer === "function") ? findBetriebByNummer(g.rawOwner) : null;
+                if (foundLater) editTargetId = foundLater.id;
+            }
+
+            let actionBtnHtml = "";
+            if (editTargetId) {
+                actionBtnHtml = `<button class="action-btn" onclick="editBetrieb('${editTargetId}')">✏️ Bearbeiten</button>`;
+            } else if (g.rawOwner && g.key !== "__unknown__") {
+                let safeOwner = String(g.rawOwner).replace(/'/g, "\\'");
+                actionBtnHtml = `<button class="action-btn" onclick="editBetrieb('${safeOwner}')">✏️ Bearbeiten</button>`;
+            } else {
+                actionBtnHtml = `<span style="color:#666; font-size:12px;">-</span>`;
+            }
+
+            html += `<tr>
+                <td><strong style="color:#e0e0e0; font-size:14px;">🏢 ${g.displayName}</strong></td>
+                <td><strong style="color:#4fc3f7; font-size:15px;">${g.totalCount} Stk</strong></td>
+                <td><strong style="color:${treatedColor}; font-size:14px;">${g.treatedCount}</strong> <span style="font-size:12px; color:#aaa;">(${treatedPct}%)</span></td>
+                <td><strong style="color:${lossColor}; font-size:14px;">${g.lossCount}</strong> <span style="font-size:12px; color:#aaa;">(${lossPct}%)</span></td>
+                <td>${actionBtnHtml}</td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+    }
+    window.renderBetriebeStatistikTable = renderBetriebeStatistikTable;
+
+    function isCattleArchived(c) {
+        if (!c) return false;
+        let st = String(c.status || '').toLowerCase().trim();
+        if (['abgegangen', 'inaktiv', 'verkauft', 'gestorben', 'eingeschläfert', 'eingeschlaefert', 'verendet', 'archiv'].includes(st)) {
+            return true;
+        }
+        if (c.verkaufsdatum && c.verkaufsdatum !== '' && c.verkaufsdatum !== 'null' && c.verkaufsdatum !== '0') return true;
+        if (c.abgangs_datum && c.abgangs_datum !== '' && c.abgangs_datum !== 'null' && c.abgangs_datum !== '0') return true;
+        if (c.abgangsdatum && c.abgangsdatum !== '' && c.abgangsdatum !== 'null' && c.abgangsdatum !== '0') return true;
+        if (c.abgang_datum && c.abgang_datum !== '' && c.abgang_datum !== 'null' && c.abgang_datum !== '0') return true;
+        if (c.abgangs_grund && c.abgangs_grund !== '' && c.abgangs_grund !== 'null' && c.abgangs_grund !== '0') return true;
+        if (c.abgangsgrund && c.abgangsgrund !== '' && c.abgangsgrund !== 'null' && c.abgangsgrund !== '0') return true;
+        return false;
+    }
+
     function renderAllCattleTable() {
+        let cattleContainer = document.getElementById("cattleTableContainer");
+        let betriebeContainer = document.getElementById("betriebeAnsicht");
+
+        if (cattleStatusFilter === 'betriebe') {
+            if (cattleContainer) cattleContainer.style.display = 'none';
+            if (betriebeContainer) betriebeContainer.style.display = 'block';
+            renderBetriebeStatistikTable();
+            return;
+        }
+
+        if (cattleContainer) cattleContainer.style.display = 'block';
+        if (betriebeContainer) betriebeContainer.style.display = 'none';
+
         let searchEl = document.getElementById("mainCattleSearch");
         let sortEl = document.getElementById("mainCattleSort");
 
         let query = searchEl && searchEl.value ? searchEl.value.trim().toLowerCase() : "";
         let sortVal = sortEl ? sortEl.value : "geb_desc";
 
-        let filtered = supabaseCattleList.filter(c => {
+        let isArchivedMode = (cattleStatusFilter === 'archiv');
+
+        let headerRow = document.getElementById("mainCattleTableHeaderRow");
+        if (headerRow) {
+            if (isArchivedMode) {
+                headerRow.innerHTML = `
+                    <th>Ohrmarke</th>
+                    <th>Geburtsdatum</th>
+                    <th>Alter / Kategorie</th>
+                    <th>Rasse</th>
+                    <th>Abgangsgrund</th>
+                    <th>Abgangsdatum</th>
+                    <th>Aktionen</th>
+                `;
+            } else {
+                headerRow.innerHTML = `
+                    <th>Ohrmarke</th>
+                    <th>Geburtsdatum</th>
+                    <th>Alter / Kategorie</th>
+                    <th>Rasse</th>
+                    <th>Zukaufsdatum</th>
+                    <th>Aktionen</th>
+                `;
+            }
+        }
+
+        let sourceList = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0) ? supabaseAllCattleList : supabaseCattleList;
+
+        let statusFiltered = sourceList.filter(c => {
+            let archived = isCattleArchived(c);
+            return isArchivedMode ? archived : !archived;
+        });
+
+        let filtered = statusFiltered.filter(c => {
             if (!query) return true;
 
             let earTag = String(c.ohrmarke || '').toLowerCase();
@@ -2161,13 +3834,15 @@
             let rawDate = String(c.geburtsdatum || '').toLowerCase();
             let euroDate = formatGermanDate(c.geburtsdatum).toLowerCase();
             let gender = String(c.geschlecht || '').toLowerCase();
+            let abgangsgrund = String(c.abgangs_grund || c.abgangsgrund || c.status || '').toLowerCase();
 
             return earTag.includes(query) ||
                    rawDate.includes(query) ||
                    euroDate.includes(query) ||
                    breed.includes(query) ||
                    owner.includes(query) ||
-                   gender.includes(query);
+                   gender.includes(query) ||
+                   abgangsgrund.includes(query);
         });
 
         filtered.sort((a, b) => {
@@ -2195,28 +3870,64 @@
             let ageM = calculateAgeInMonths(bDate);
             let displayBirthDate = formatGermanDate(c.geburtsdatum) || '-';
 
-            let catName = 'Kühe / Altrinder (> 24 Mo.)';
+            let catName = 'Mittelmast / Endmast (> 12 Mo.)';
             if (ageM < 6) catName = 'Kälber (0–6 Mo.)';
-            else if (ageM < 12) catName = 'Jungvieh (6–12 Mo.)';
-            else if (ageM < 24) catName = 'Färsen (12–24 Mo.)';
+            else if (ageM < 12) catName = 'Jungrinder / Vormast (6–12 Mo.)';
 
-            let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : 'Eigenbestand';
+            if (isArchivedMode) {
+                let rawReason = c.abgangs_grund || c.abgangsgrund || '';
+                if (!rawReason && c.status && c.status !== 'aktiv') rawReason = c.status;
+                if (!rawReason && c.verkaufsdatum && c.verkaufsdatum !== '0' && c.verkaufsdatum !== 'null' && c.verkaufsdatum !== '') rawReason = 'verkauft';
+                if (!rawReason) rawReason = 'Abgegangen';
 
-            html += `<tr>
-                <td><strong style="color:#4caf50; font-size:15px;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
-                <td>${displayBirthDate}</td>
-                <td><strong>${ageM} Mo.</strong> <span style="font-size:12px; color:#ffb74d;">(${catName})</span></td>
-                <td>${c.rasse || '-'}</td>
-                <td>${displayZukauf}</td>
-                <td>
-                    <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
-                    <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
-                </td>
-            </tr>`;
+                let reasonLower = rawReason.toLowerCase();
+                let reasonBadge = '';
+                if (reasonLower.includes('gestorben') || reasonLower.includes('tot')) {
+                    reasonBadge = `<span style="background:#b71c1c; color:#ffcdd2; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">Gestorben ✝</span>`;
+                } else if (reasonLower.includes('eingeschläfert') || reasonLower.includes('eingeschlaefert')) {
+                    reasonBadge = `<span style="background:#e65100; color:#ffe0b2; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">Eingeschläfert ⚠️</span>`;
+                } else if (reasonLower.includes('verkauft')) {
+                    reasonBadge = `<span style="background:#33691e; color:#c5e1a5; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">Verkauft 🏷️</span>`;
+                } else {
+                    reasonBadge = `<span style="background:#444; color:#fff; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px;">${rawReason}</span>`;
+                }
+
+                let rawAbgangsdatum = c.abgangs_datum || c.abgangsdatum || c.verkaufsdatum || c.abgang_datum || '';
+                let displayAbgangsdatum = formatGermanDate(rawAbgangsdatum) || '-';
+
+                html += `<tr>
+                    <td><strong style="color:#4caf50; font-size:15px;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
+                    <td>${displayBirthDate}</td>
+                    <td><strong>${ageM} Mo.</strong> <span style="font-size:12px; color:#ffb74d;">(${catName})</span></td>
+                    <td>${c.rasse || '-'}</td>
+                    <td>${reasonBadge}</td>
+                    <td>${displayAbgangsdatum}</td>
+                    <td>
+                        <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
+                        <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
+                    </td>
+                </tr>`;
+            } else {
+                let displayZukauf = c.zukaufsdatum ? formatGermanDate(c.zukaufsdatum) : 'Eigenbestand';
+
+                html += `<tr>
+                    <td><strong style="color:#4caf50; font-size:15px;">${c.ohrmarke || 'Keine Ohrmarke'}</strong></td>
+                    <td>${displayBirthDate}</td>
+                    <td><strong>${ageM} Mo.</strong> <span style="font-size:12px; color:#ffb74d;">(${catName})</span></td>
+                    <td>${c.rasse || '-'}</td>
+                    <td>${displayZukauf}</td>
+                    <td>
+                        <button class="action-btn" onclick="openCattleAkte('${c.id}')">📂 Akte öffnen</button>
+                        <button class="action-btn danger" onclick="deleteCattleRecord('${c.id}', '${(c.ohrmarke || '').replace(/'/g, "\\'")}')">🗑️ Löschen</button>
+                    </td>
+                </tr>`;
+            }
         });
 
         if (filtered.length === 0) {
-            html = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Rinder ${query ? "für '" + query + "'" : ""} in Supabase gefunden.</td></tr>`;
+            let colSpan = isArchivedMode ? 7 : 6;
+            let emptyMsg = isArchivedMode ? `Keine archivierten Rinder ${query ? "für '" + query + "'" : ""} vorhanden.` : `Keine aktiven Rinder ${query ? "für '" + query + "'" : ""} in Supabase gefunden.`;
+            html = `<tr><td colspan="${colSpan}" style="text-align:center; color:#888;">${emptyMsg}</td></tr>`;
         }
 
         let tbody = document.getElementById("mainCattleTableBody");
@@ -2230,11 +3941,13 @@
     function renderFeedItemsTable() {
         let html = "";
         feedItems.forEach(f => {
+            let xfVal = f.xf !== undefined ? f.xf : 180;
             html += `<tr>
                 <td><strong>🌾 ${f.name}</strong></td>
                 <td>${f.tm}%</td>
                 <td>${f.me} MJ</td>
                 <td>${f.xp} g/kg TM</td>
+                <td>${xfVal} g/kg TM</td>
                 <td>${f.preis} €/t</td>
                 <td>
                     <button class="action-btn" onclick="openFeedModal('${f.id}')">✏️ Edit</button>
@@ -2242,256 +3955,355 @@
                 </td>
             </tr>`;
         });
-        document.getElementById("feedTableBody").innerHTML = html || '<tr><td colspan="6" style="text-align:center; color:#888;">Keine Futtermittel angelegt</td></tr>';
+        document.getElementById("feedTableBody").innerHTML = html || '<tr><td colspan="7" style="text-align:center; color:#888;">Keine Futtermittel angelegt</td></tr>';
     }
 
-    function updateRationValue(catKey, feedId, valStr) {
+    function updateMixerLoadValue(feedId, valStr) {
         let val = parseFloat(valStr);
         if (isNaN(val) || val < 0) val = 0;
 
-        if (!categoryRations[catKey]) categoryRations[catKey] = {};
         if (val > 0) {
-            categoryRations[catKey][feedId] = val;
+            mixerLoad[feedId] = val;
         } else {
-            delete categoryRations[catKey][feedId];
+            delete mixerLoad[feedId];
         }
         saveCattleModuleData();
-        recalculateFeedingCalculatorData();
+        recalculateMixerData();
     }
 
-    function getCoverageBadgeHtml(valStr, pct) {
-        let bg = '#1b5e20'; // Green
-        let text = '#a5d6a7';
-        let statusLabel = 'Optimal';
+    function resetMixerLoad() {
+        if (confirm("Mischwagen-Befüllung auf Standardwerte zurücksetzen?")) {
+            mixerLoad = { ...defaultMixerLoad };
+            saveCattleModuleData();
+            renderFeedingCalculator();
+        }
+    }
 
-        if (pct < 90) {
+    function evaluateDensityMatch(actual, target, unit, paramName) {
+        let pct = target > 0 ? (actual / target) * 100 : 100;
+        let bg = '#1b5e20'; // Green
+        let border = '#2e7d32';
+        let textColor = '#a5d6a7';
+        let label = 'Optimal';
+        let status = 'green';
+
+        if (pct < 85) {
             bg = '#b71c1c'; // Red
-            text = '#ffcdd2';
-            statusLabel = 'Unterdeckt';
-        } else if (pct > 110) {
+            border = '#d32f2f';
+            textColor = '#ffcdd2';
+            label = 'Stark unterversorgt';
+            status = 'red';
+        } else if (pct < 95) {
             bg = '#e65100'; // Orange
-            text = '#ffe0b2';
-            statusLabel = 'Überversorgt';
+            border = '#f57c00';
+            textColor = '#ffe0b2';
+            label = 'Gering unterversorgt';
+            status = 'orange';
+        } else if (pct > 115) {
+            bg = '#b71c1c'; // Red
+            border = '#d32f2f';
+            textColor = '#ffcdd2';
+            label = 'Stark überversorgt';
+            status = 'red';
+        } else if (pct > 105) {
+            bg = '#e65100'; // Orange
+            border = '#f57c00';
+            textColor = '#ffe0b2';
+            label = 'Gering überversorgt';
+            status = 'orange';
         }
 
-        return `<span style="background:${bg}; color:${text}; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:12px; display:inline-block;">
-            ${valStr} (${pct.toFixed(0)}% ${statusLabel})
-        </span>`;
+        return {
+            pct,
+            bg,
+            border,
+            textColor,
+            label,
+            status,
+            actualFormatted: actual.toFixed(paramName === 'ME' ? 2 : 0),
+            targetFormatted: target
+        };
     }
 
     function renderFeedingCalculator() {
-        let container = document.getElementById("calculatorAgeGroupsContainer");
-        if (!container) return;
+        let mixerTableBody = document.getElementById("mixerTableBody");
+        if (!mixerTableBody) return;
 
-        let ageGroupsHtml = "";
-
-        Object.keys(AGE_GROUP_REQUIREMENTS).forEach(catKey => {
-            let req = AGE_GROUP_REQUIREMENTS[catKey];
-            let cnt = cattleCategoryCounts[catKey] || 0;
-            let ration = categoryRations[catKey] || {};
-
-            let feedRowsHtml = "";
-            let groupTM = 0;
-            let groupME = 0;
-            let groupXP = 0;
-            let groupCostDayTier = 0;
-
-            if (feedItems.length === 0) {
-                feedRowsHtml = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Futtermittel in der Futtermitteldatenbank vorhanden.</td></tr>`;
-            } else {
-                feedItems.forEach(f => {
-                    let val = ration[f.id] !== undefined ? ration[f.id] : 0;
-                    let tmFactor = f.tm / 100.0;
-                    let tmKg = val * tmFactor;
-                    let meMJ = tmKg * f.me;
-                    let xpG = tmKg * f.xp;
-                    let costEur = (val / 1000.0) * f.preis;
-
-                    groupTM += tmKg;
-                    groupME += meMJ;
-                    groupXP += xpG;
-                    groupCostDayTier += costEur;
-
-                    feedRowsHtml += `<tr>
-                        <td><strong>🌾 ${f.name}</strong> <span style="font-size:11px; color:#aaa;">(${f.tm}% TM | ${f.me} MJ | ${f.xp}g XP | ${f.preis}€/t)</span></td>
-                        <td>
-                            <input type="number" id="in_${catKey}_${f.id}" step="0.1" min="0" value="${val || ''}" placeholder="0"
-                                   oninput="updateRationValue('${catKey}', '${f.id}', this.value)"
-                                   style="margin:0; padding:6px; font-weight:bold; color:#4caf50; background:#333; text-align:right; width:110px;">
-                        </td>
-                        <td id="cell_tm_${catKey}_${f.id}">${tmKg.toFixed(2)} kg</td>
-                        <td id="cell_me_${catKey}_${f.id}">${meMJ.toFixed(1)} MJ</td>
-                        <td id="cell_xp_${catKey}_${f.id}">${xpG.toFixed(0)} g</td>
-                        <td id="cell_cost_${catKey}_${f.id}">${costEur.toFixed(2)} €</td>
-                    </tr>`;
-                });
-            }
-
-            let groupCostMonth = groupCostDayTier * cnt * 30;
-            let groupCostYear = groupCostDayTier * cnt * 365;
-
-            let tmCoverage = req.targetTM > 0 ? (groupTM / req.targetTM) * 100 : 100;
-            let meCoverage = req.targetME > 0 ? (groupME / req.targetME) * 100 : 100;
-            let xpCoverage = req.targetXP > 0 ? (groupXP / req.targetXP) * 100 : 100;
-
-            ageGroupsHtml += `<div class="box" style="background:#1e1e1e; border:1px solid #333; margin-bottom:0; padding:18px; border-radius:8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #333; padding-bottom:10px; flex-wrap:wrap; gap:10px;">
-                    <div>
-                        <h4 style="margin:0; font-size:17px; color:#4caf50;">🐮 ${req.name}</h4>
-                        <div style="font-size:12px; color:#aaa; margin-top:2px;">
-                            Bestand: <strong style="color:#fff;">${cnt} Stk</strong> | Richt-Bedarf/Tier: TM: ${req.targetTM} kg | ME: ${req.targetME} MJ | XP: ${req.targetXP} g
-                        </div>
-                    </div>
-                    <div style="text-align:right;" id="cost_header_${catKey}">
-                        <div style="font-size:14px; font-weight:bold; color:#ffb74d;">Kosten: ${groupCostDayTier.toFixed(2)} € / Tier / Tag</div>
-                        <div style="font-size:11px; color:#aaa;">Gruppe (${cnt} Stk): ${groupCostMonth.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Monat | ${groupCostYear.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Jahr</div>
-                    </div>
-                </div>
-
-                <!-- Live Coverage Indicators -->
-                <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; background:#262626; padding:10px; border-radius:6px; align-items:center;">
-                    <span style="font-size:12px; font-weight:bold; color:#ccc;">Bedarfsdeckung / Tier / Tag:</span>
-                    <div id="badge_tm_${catKey}">TM: ${getCoverageBadgeHtml(groupTM.toFixed(2) + ' / ' + req.targetTM + ' kg', tmCoverage)}</div>
-                    <div id="badge_me_${catKey}">Energie (ME): ${getCoverageBadgeHtml(groupME.toFixed(1) + ' / ' + req.targetME + ' MJ', meCoverage)}</div>
-                    <div id="badge_xp_${catKey}">Rohprotein (XP): ${getCoverageBadgeHtml(groupXP.toFixed(0) + ' / ' + req.targetXP + ' g', xpCoverage)}</div>
-                </div>
-
-                <!-- Input Table -->
-                <div style="overflow-x:auto;">
-                    <table class="data-table" style="font-size:13px;">
-                        <thead>
-                            <tr>
-                                <th>Futtermittel</th>
-                                <th style="width:130px;">kg FM / Tier / Tag</th>
-                                <th>kg TM / Tag</th>
-                                <th>MJ ME / Tag</th>
-                                <th>g XP / Tag</th>
-                                <th>Kosten (€ / Tier / Tag)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${feedRowsHtml}
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
-        });
-
-        container.innerHTML = ageGroupsHtml;
-        recalculateFeedingCalculatorData();
-    }
-
-    function recalculateFeedingCalculatorData() {
-        let masterFeedMap = {};
-
-        Object.keys(AGE_GROUP_REQUIREMENTS).forEach(catKey => {
-            let req = AGE_GROUP_REQUIREMENTS[catKey];
-            let cnt = cattleCategoryCounts[catKey] || 0;
-            let ration = categoryRations[catKey] || {};
-
-            let groupTM = 0;
-            let groupME = 0;
-            let groupXP = 0;
-            let groupCostDayTier = 0;
-
+        let mixerRowsHtml = "";
+        if (feedItems.length === 0) {
+            mixerRowsHtml = `<tr><td colspan="7" style="text-align:center; color:#888;">Keine Futtermittel in der Futtermitteldatenbank vorhanden.</td></tr>`;
+        } else {
             feedItems.forEach(f => {
-                let inputEl = document.getElementById(`in_${catKey}_${f.id}`);
-                let val = inputEl ? (parseFloat(inputEl.value) || 0) : (ration[f.id] || 0);
-
+                let val = mixerLoad[f.id] !== undefined ? mixerLoad[f.id] : 0;
                 let tmFactor = f.tm / 100.0;
                 let tmKg = val * tmFactor;
                 let meMJ = tmKg * f.me;
-                let xpG = tmKg * f.xp;
+                let xpKg = (tmKg * f.xp) / 1000.0;
+                let xfKg = (tmKg * (f.xf || 0)) / 1000.0;
                 let costEur = (val / 1000.0) * f.preis;
 
-                groupTM += tmKg;
-                groupME += meMJ;
-                groupXP += xpG;
-                groupCostDayTier += costEur;
-
-                let cellTm = document.getElementById(`cell_tm_${catKey}_${f.id}`);
-                let cellMe = document.getElementById(`cell_me_${catKey}_${f.id}`);
-                let cellXp = document.getElementById(`cell_xp_${catKey}_${f.id}`);
-                let cellCost = document.getElementById(`cell_cost_${catKey}_${f.id}`);
-
-                if (cellTm) cellTm.innerText = `${tmKg.toFixed(2)} kg`;
-                if (cellMe) cellMe.innerText = `${meMJ.toFixed(1)} MJ`;
-                if (cellXp) cellXp.innerText = `${xpG.toFixed(0)} g`;
-                if (cellCost) cellCost.innerText = `${costEur.toFixed(2)} €`;
-
-                if (!masterFeedMap[f.id]) {
-                    masterFeedMap[f.id] = { feed: f, tFmMonth: 0, tTmMonth: 0, tFmYear: 0, tTmYear: 0, costYear: 0 };
-                }
-                let tFmMonth = (val * cnt * 30) / 1000.0;
-                let tTmMonth = (tmKg * cnt * 30) / 1000.0;
-                let tFmYear = (val * cnt * 365) / 1000.0;
-                let tTmYear = (tmKg * cnt * 365) / 1000.0;
-                let cYear = tFmYear * f.preis;
-
-                masterFeedMap[f.id].tFmMonth += tFmMonth;
-                masterFeedMap[f.id].tTmMonth += tTmMonth;
-                masterFeedMap[f.id].tFmYear += tFmYear;
-                masterFeedMap[f.id].tTmYear += tTmYear;
-                masterFeedMap[f.id].costYear += cYear;
+                mixerRowsHtml += `<tr>
+                    <td>
+                        <strong>🌾 ${f.name}</strong>
+                        <div style="font-size:11px; color:#aaa;">${f.tm}% TM | ${f.me} MJ ME | ${f.xp}g XP | ${f.xf || 0}g XF | ${f.preis}€/t</div>
+                    </td>
+                    <td>
+                        <input type="number" id="in_mixer_${f.id}" step="10" min="0" value="${val || ''}" placeholder="0"
+                               oninput="updateMixerLoadValue('${f.id}', this.value)"
+                               style="margin:0; padding:6px; font-weight:bold; color:#81c784; background:#333; text-align:right; width:120px;">
+                    </td>
+                    <td id="cell_mixer_tm_${f.id}">${tmKg.toFixed(1)} kg</td>
+                    <td id="cell_mixer_me_${f.id}">${meMJ.toFixed(1)} MJ</td>
+                    <td id="cell_mixer_xp_${f.id}">${xpKg.toFixed(2)} kg</td>
+                    <td id="cell_mixer_xf_${f.id}">${xfKg.toFixed(2)} kg</td>
+                    <td id="cell_mixer_cost_${f.id}">${costEur.toFixed(2)} €</td>
+                </tr>`;
             });
+        }
+        mixerTableBody.innerHTML = mixerRowsHtml;
 
-            let tmCoverage = req.targetTM > 0 ? (groupTM / req.targetTM) * 100 : 100;
-            let meCoverage = req.targetME > 0 ? (groupME / req.targetME) * 100 : 100;
-            let xpCoverage = req.targetXP > 0 ? (groupXP / req.targetXP) * 100 : 100;
+        recalculateMixerData();
+    }
 
-            let badgeTmEl = document.getElementById(`badge_tm_${catKey}`);
-            let badgeMeEl = document.getElementById(`badge_me_${catKey}`);
-            let badgeXpEl = document.getElementById(`badge_xp_${catKey}`);
+    function recalculateMixerData() {
+        let totalFM = 0;
+        let totalTM = 0;
+        let totalME = 0;
+        let totalXP_g = 0;
+        let totalXF_g = 0;
+        let totalCost = 0;
 
-            if (badgeTmEl) badgeTmEl.innerHTML = `TM: ${getCoverageBadgeHtml(groupTM.toFixed(2) + ' / ' + req.targetTM + ' kg', tmCoverage)}`;
-            if (badgeMeEl) badgeMeEl.innerHTML = `Energie (ME): ${getCoverageBadgeHtml(groupME.toFixed(1) + ' / ' + req.targetME + ' MJ', meCoverage)}`;
-            if (badgeXpEl) badgeXpEl.innerHTML = `Rohprotein (XP): ${getCoverageBadgeHtml(groupXP.toFixed(0) + ' / ' + req.targetXP + ' g', xpCoverage)}`;
+        let summaryItems = [];
 
-            let costHeaderEl = document.getElementById(`cost_header_${catKey}`);
-            if (costHeaderEl) {
-                let groupCostMonth = groupCostDayTier * cnt * 30;
-                let groupCostYear = groupCostDayTier * cnt * 365;
-                costHeaderEl.innerHTML = `<div style="font-size:14px; font-weight:bold; color:#ffb74d;">Kosten: ${groupCostDayTier.toFixed(2)} € / Tier / Tag</div>
-                <div style="font-size:11px; color:#aaa;">Gruppe (${cnt} Stk): ${groupCostMonth.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Monat | ${groupCostYear.toLocaleString('de-DE', {maximumFractionDigits:0})} €/Jahr</div>`;
-            }
+        feedItems.forEach(f => {
+            let inputEl = document.getElementById(`in_mixer_${f.id}`);
+            let val = inputEl ? (parseFloat(inputEl.value) || 0) : (mixerLoad[f.id] || 0);
+
+            let tmFactor = f.tm / 100.0;
+            let tmKg = val * tmFactor;
+            let meMJ = tmKg * f.me;
+            let xpG = tmKg * f.xp;
+            let xfG = tmKg * (f.xf || 0);
+            let costEur = (val / 1000.0) * f.preis;
+
+            totalFM += val;
+            totalTM += tmKg;
+            totalME += meMJ;
+            totalXP_g += xpG;
+            totalXF_g += xfG;
+            totalCost += costEur;
+
+            let cellTm = document.getElementById(`cell_mixer_tm_${f.id}`);
+            let cellMe = document.getElementById(`cell_mixer_me_${f.id}`);
+            let cellXp = document.getElementById(`cell_mixer_xp_${f.id}`);
+            let cellXf = document.getElementById(`cell_mixer_xf_${f.id}`);
+            let cellCost = document.getElementById(`cell_mixer_cost_${f.id}`);
+
+            if (cellTm) cellTm.innerText = `${tmKg.toFixed(1)} kg`;
+            if (cellMe) cellMe.innerText = `${meMJ.toFixed(1)} MJ`;
+            if (cellXp) cellXp.innerText = `${(xpG / 1000.0).toFixed(2)} kg`;
+            if (cellXf) cellXf.innerText = `${(xfG / 1000.0).toFixed(2)} kg`;
+            if (cellCost) cellCost.innerText = `${costEur.toFixed(2)} €`;
+
+            summaryItems.push({
+                feed: f,
+                valFM: val,
+                tmKg: tmKg,
+                costEur: costEur
+            });
         });
 
+        // Mixer table footer
+        let mixerFoot = document.getElementById("mixerTableFoot");
+        if (mixerFoot) {
+            mixerFoot.innerHTML = `<tr>
+                <td>GESAMTE MISCHUNG</td>
+                <td style="color:#81c784;">${totalFM.toLocaleString('de-DE')} kg FM</td>
+                <td style="color:#fff;">${totalTM.toFixed(1)} kg TM</td>
+                <td style="color:#fff;">${totalME.toFixed(0)} MJ ME</td>
+                <td style="color:#fff;">${(totalXP_g / 1000.0).toFixed(1)} kg XP</td>
+                <td style="color:#fff;">${(totalXF_g / 1000.0).toFixed(1)} kg XF</td>
+                <td style="color:#ffb74d;">${totalCost.toFixed(2)} €</td>
+            </tr>`;
+        }
+
+        // Nutrient densities per kg TM
+        let densityME_TM = totalTM > 0 ? (totalME / totalTM) : 0;
+        let densityXP_TM = totalTM > 0 ? (totalXP_g / totalTM) : 0;
+        let densityXF_TM = totalTM > 0 ? (totalXF_g / totalTM) : 0;
+
+        // Nutrient densities per kg FM
+        let densityME_FM = totalFM > 0 ? (totalME / totalFM) : 0;
+        let densityXP_FM = totalFM > 0 ? (totalXP_g / totalFM) : 0;
+        let densityXF_FM = totalFM > 0 ? (totalXF_g / totalFM) : 0;
+
+        let tmPct = totalFM > 0 ? (totalTM / totalFM * 100.0) : 0;
+        let costPerTonFM = totalFM > 0 ? (totalCost / totalFM * 1000.0) : 0;
+        let xfPctInTM = totalTM > 0 ? (densityXF_TM / 10.0) : 0;
+
+        // Update KPI Cards
+        let elMass = document.getElementById("tmr-card-mass");
+        let elFmSub = document.getElementById("tmr-card-fm-sub");
+        let elMe = document.getElementById("tmr-card-me");
+        let elMeFm = document.getElementById("tmr-card-me-fm");
+        let elXp = document.getElementById("tmr-card-xp");
+        let elXpFm = document.getElementById("tmr-card-xp-fm");
+        let elXf = document.getElementById("tmr-card-xf");
+        let elXfPct = document.getElementById("tmr-card-xf-pct");
+        let elCost = document.getElementById("tmr-card-cost");
+        let elCostSub = document.getElementById("tmr-card-cost-sub");
+
+        if (elMass) elMass.innerText = `${totalTM.toLocaleString('de-DE', {maximumFractionDigits:1})} kg TM`;
+        if (elFmSub) elFmSub.innerText = `${totalFM.toLocaleString('de-DE', {maximumFractionDigits:0})} kg FM (${tmPct.toFixed(1)}% TM)`;
+        if (elMe) elMe.innerText = `${densityME_TM.toFixed(2)} MJ / kg TM`;
+        if (elMeFm) elMeFm.innerText = `${densityME_FM.toFixed(2)} MJ / kg FM`;
+        if (elXp) elXp.innerText = `${densityXP_TM.toFixed(0)} g XP / kg TM`;
+        if (elXpFm) elXpFm.innerText = `${densityXP_FM.toFixed(1)} g XP / kg FM`;
+        if (elXf) elXf.innerText = `${densityXF_TM.toFixed(0)} g XF / kg TM`;
+        if (elXfPct) elXfPct.innerText = `${xfPctInTM.toFixed(1)}% XF in TM`;
+        if (elCost) elCost.innerText = `${totalCost.toFixed(2)} €`;
+        if (elCostSub) elCostSub.innerText = `${costPerTonFM.toFixed(1)} € / t FM`;
+
+        // Target Groups Traffic Light Comparison Cards
+        let groupContainer = document.getElementById("targetGroupsComparisonGrid");
+        if (groupContainer) {
+            let cardsHtml = "";
+
+            TARGET_AGE_GROUPS.forEach(grp => {
+                let cnt = cattleCategoryCounts[grp.id] || 0;
+
+                let evalME = evaluateDensityMatch(densityME_TM, grp.targetME, 'MJ', 'ME');
+                let evalXP = evaluateDensityMatch(densityXP_TM, grp.targetXP, 'g', 'XP');
+                let evalXF = evaluateDensityMatch(densityXF_TM, grp.targetXF, 'g', 'XF');
+
+                let redCount = (evalME.status === 'red' ? 1 : 0) + (evalXP.status === 'red' ? 1 : 0) + (evalXF.status === 'red' ? 1 : 0);
+                let orangeCount = (evalME.status === 'orange' ? 1 : 0) + (evalXP.status === 'orange' ? 1 : 0) + (evalXF.status === 'orange' ? 1 : 0);
+
+                let overallText = "🟢 Mischung passt optimal";
+                let overallColor = "#81c784";
+                let cardBg = "linear-gradient(135deg, #1e261f 0%, #171d18 100%)";
+                let cardBorder = "#2e4d36";
+
+                if (redCount > 0) {
+                    overallText = "🔴 Starke Fehlversorgung";
+                    overallColor = "#e57373";
+                    cardBg = "linear-gradient(135deg, #2c1a1a 0%, #201313 100%)";
+                    cardBorder = "#5c2424";
+                } else if (orangeCount > 0) {
+                    overallText = "🟠 Leichte Abweichung";
+                    overallColor = "#ffb74d";
+                    cardBg = "linear-gradient(135deg, #2a2216 0%, #1f1910 100%)";
+                    cardBorder = "#574020";
+                }
+
+                cardsHtml += `<div style="background:${cardBg}; border:1px solid ${cardBorder}; border-radius:10px; padding:18px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;">
+                            <h4 style="margin:0; font-size:16px; color:#fff;">${grp.icon} ${grp.name}</h4>
+                            <span style="font-size:11px; color:#aaa; background:#222; padding:2px 8px; border-radius:10px; border:1px solid #444;">Bestand: <strong style="color:#fff;">${cnt} Stk</strong></span>
+                        </div>
+                        <div style="font-size:11px; color:#aaa; margin-bottom:12px; min-height:28px;">${grp.note}</div>
+
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <!-- Energie -->
+                            <div style="background:#1e1e1e; padding:10px; border-radius:6px; border-left:4px solid ${evalME.border};">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-bottom:3px;">
+                                    <span style="color:#ccc; font-weight:bold;">⚡ Energie (ME)</span>
+                                    <span style="color:${evalME.textColor}; font-weight:bold; font-size:11px;">${evalME.label}</span>
+                                </div>
+                                <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Ist: <strong style="color:#fff;">${evalME.actualFormatted} MJ/kg TM</strong></span>
+                                    <span>Ziel: <strong style="color:#ddd;">${evalME.targetFormatted} MJ</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- Rohprotein -->
+                            <div style="background:#1e1e1e; padding:10px; border-radius:6px; border-left:4px solid ${evalXP.border};">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-bottom:3px;">
+                                    <span style="color:#ccc; font-weight:bold;">🥩 Rohprotein (XP)</span>
+                                    <span style="color:${evalXP.textColor}; font-weight:bold; font-size:11px;">${evalXP.label}</span>
+                                </div>
+                                <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Ist: <strong style="color:#fff;">${evalXP.actualFormatted} g/kg TM</strong></span>
+                                    <span>Ziel: <strong style="color:#ddd;">${evalXP.targetFormatted} g</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- Rohfaser -->
+                            <div style="background:#1e1e1e; padding:10px; border-radius:6px; border-left:4px solid ${evalXF.border};">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-bottom:3px;">
+                                    <span style="color:#ccc; font-weight:bold;">🌾 Rohfaser (XF)</span>
+                                    <span style="color:${evalXF.textColor}; font-weight:bold; font-size:11px;">${evalXF.label}</span>
+                                </div>
+                                <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Ist: <strong style="color:#fff;">${evalXF.actualFormatted} g/kg TM</strong></span>
+                                    <span>Ziel: <strong style="color:#ddd;">${evalXF.targetFormatted} g XF / kg TM</strong></span>
+                                </div>
+                            </div>
+
+                            <!-- Ziel-TM-Aufnahme -->
+                            <div style="background:#1e1e1e; padding:10px; border-radius:6px; border-left:4px solid #81c784;">
+                                <div style="font-size:11px; color:#aaa; display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#ccc; font-weight:bold;">⚖️ Ziel-TM-Aufnahme:</span>
+                                    <strong style="color:#81c784; font-size:12px;">${grp.targetTM}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1); font-size:12px; font-weight:bold; color:${overallColor}; display:flex; align-items:center; justify-content:center;">
+                        <span>${overallText}</span>
+                    </div>
+                </div>`;
+            });
+
+            groupContainer.innerHTML = cardsHtml;
+        }
+
+        // Master Herd Summary Table
         let masterSummaryBody = document.getElementById("calcMasterSummaryTableBody");
         if (masterSummaryBody) {
             let summaryRowsHtml = "";
+            let sumFmMixer = 0;
+            let sumTmMixer = 0;
             let sumFmMonth = 0;
-            let sumTmMonth = 0;
             let sumFmYear = 0;
-            let sumTmYear = 0;
             let sumCostYear = 0;
 
-            Object.keys(masterFeedMap).forEach(feedId => {
-                let item = masterFeedMap[feedId];
-                sumFmMonth += item.tFmMonth;
-                sumTmMonth += item.tTmMonth;
-                sumFmYear += item.tFmYear;
-                sumTmYear += item.tTmYear;
-                sumCostYear += item.costYear;
+            summaryItems.forEach(item => {
+                let f = item.feed;
+                let val = item.valFM;
+                let tmKg = item.tmKg;
+
+                let monthFmT = (val * 30.0) / 1000.0;
+                let yearFmT = (val * 365.0) / 1000.0;
+                let yearCost = yearFmT * f.preis;
+
+                sumFmMixer += val;
+                sumTmMixer += tmKg;
+                sumFmMonth += monthFmT;
+                sumFmYear += yearFmT;
+                sumCostYear += yearCost;
 
                 summaryRowsHtml += `<tr>
-                    <td><strong>🌾 ${item.feed.name}</strong></td>
-                    <td>${item.tFmMonth.toFixed(1)} t</td>
-                    <td>${item.tTmMonth.toFixed(1)} t</td>
-                    <td><strong style="color:#90caf9;">${item.tFmYear.toFixed(1)} t</strong></td>
-                    <td><strong>${item.tTmYear.toFixed(1)} t</strong></td>
-                    <td style="color:#ffe0b2; font-weight:bold;">${item.costYear.toLocaleString('de-DE', {maximumFractionDigits:0})} €</td>
+                    <td><strong>🌾 ${f.name}</strong></td>
+                    <td>${val.toLocaleString('de-DE')} kg</td>
+                    <td>${tmKg.toFixed(1)} kg</td>
+                    <td>${monthFmT.toFixed(1)} t</td>
+                    <td><strong style="color:#90caf9;">${yearFmT.toFixed(1)} t</strong></td>
+                    <td style="color:#ffe0b2; font-weight:bold;">${yearCost.toLocaleString('de-DE', {maximumFractionDigits:0})} €</td>
                 </tr>`;
             });
 
-            if (Object.keys(masterFeedMap).length === 0) {
+            if (summaryItems.length === 0) {
                 summaryRowsHtml = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Fütterungsdaten vorhanden.</td></tr>`;
             } else {
                 summaryRowsHtml += `<tr class="sum-row">
-                    <td>GESAMTSUMME HERDE</td>
+                    <td>GESAMTSUMME MISCHWAGEN</td>
+                    <td style="color:#81c784;">${sumFmMixer.toLocaleString('de-DE')} kg FM</td>
+                    <td style="color:#fff;">${sumTmMixer.toFixed(1)} kg TM</td>
                     <td>${sumFmMonth.toFixed(1)} t FM</td>
-                    <td>${sumTmMonth.toFixed(1)} t TM</td>
                     <td style="color:#90caf9;">${sumFmYear.toFixed(1)} t FM</td>
-                    <td>${sumTmYear.toFixed(1)} t TM</td>
                     <td style="color:#ffe0b2;">${sumCostYear.toLocaleString('de-DE', {maximumFractionDigits:0})} € / Jahr</td>
                 </tr>`;
             }
@@ -2563,7 +4375,9 @@
                             let lower = cleanCol.toLowerCase();
                             let upper = cleanCol.toUpperCase();
 
-                            if (lower.includes("ohrmarke") || lower.includes("lom") || lower.includes("tier-id") || lower.includes("ident")) {
+                            if (cleanCol.trim().toUpperCase() === "LOM_X") {
+                                colMap.ohrmarke = idx;
+                            } else if (colMap.ohrmarke === -1 && upper !== "LOM_MUTX" && !lower.includes("mut") && (lower.includes("ohrmarke") || lower.includes("lom") || lower.includes("tier-id") || lower.includes("ident"))) {
                                 colMap.ohrmarke = idx;
                             } else if (lower.includes("geburt") || lower.includes("gebdat") || lower.includes("geb_dat")) {
                                 colMap.geburtsdatum = idx;
@@ -2709,13 +4523,18 @@
 
     // Kombinierte Tier-Akte (Ansehen & Bearbeiten)
     function openCattleAkte(id) {
-        if (!supabaseCattleList || !Array.isArray(supabaseCattleList)) {
-            console.warn("supabaseCattleList ist noch nicht geladen.");
+        let listToSearch = (typeof supabaseAllCattleList !== "undefined" && Array.isArray(supabaseAllCattleList) && supabaseAllCattleList.length > 0)
+            ? supabaseAllCattleList
+            : supabaseCattleList;
+
+        if (!listToSearch || !Array.isArray(listToSearch)) {
+            console.warn("Rinderliste ist noch nicht geladen.");
             return;
         }
-        let c = supabaseCattleList.find(x => String(x.id) === String(id));
+
+        let c = listToSearch.find(x => String(x.id) === String(id));
         if (!c) {
-            console.warn("Rind nicht in supabaseCattleList gefunden für ID:", id);
+            console.warn("Rind nicht gefunden für ID:", id);
             return;
         }
 
@@ -2758,6 +4577,8 @@
         let vp = document.getElementById("comb-verkaufspreis");
         if (vp) vp.value = c.verkaufspreis || 0;
 
+        loadBehandlungenForAkte(c.ohrmarke);
+
         let modal = document.getElementById("cattleCombinedModal");
         if (modal) {
             modal.style.display = "flex";
@@ -2765,6 +4586,93 @@
             console.error("Modal mit ID 'cattleCombinedModal' wurde nicht im DOM gefunden!");
         }
     }
+
+    async function loadBehandlungenForAkte(ohrmarke) {
+        let container = document.getElementById("comb-historie-placeholder");
+        if (!container) return;
+
+        container.innerHTML = `<div style="color:#aaa; text-align:center; padding:15px;">⏳ Lade Behandlungen aus Supabase...</div>`;
+
+        let cleanOhrmarke = String(ohrmarke || "").trim();
+        if (!cleanOhrmarke) {
+            container.innerHTML = `<div style="color:#888; text-align:center; padding:15px; font-weight:bold;">Keine Behandlungen erfasst</div>`;
+            return;
+        }
+
+        try {
+            // WICHTIGER COLUMN-CHECK: Verwende zwingend den Spaltennamen rind_ohrmarke (komplett in Kleinbuchstaben)
+            let queryUrl = SUPABASE_URL + "/rest/v1/behandlungen?rind_ohrmarke=eq." + encodeURIComponent(cleanOhrmarke) + "&order=datum.asc";
+            let res = await fetch(queryUrl, { headers });
+            let behandlungen = [];
+
+            if (res.ok) {
+                behandlungen = await res.json();
+            }
+
+            // Fallback check if space-formatting differs in DB
+            if ((!behandlungen || behandlungen.length === 0) && cleanOhrmarke.includes(" ")) {
+                let noSpace = cleanOhrmarke.replace(/\s+/g, "");
+                let altUrl = SUPABASE_URL + "/rest/v1/behandlungen?rind_ohrmarke=eq." + encodeURIComponent(noSpace) + "&order=datum.asc";
+                let altRes = await fetch(altUrl, { headers });
+                if (altRes.ok) {
+                    let altData = await altRes.json();
+                    if (altData && altData.length > 0) behandlungen = altData;
+                }
+            } else if ((!behandlungen || behandlungen.length === 0) && !cleanOhrmarke.includes(" ")) {
+                let ilikeUrl = SUPABASE_URL + "/rest/v1/behandlungen?rind_ohrmarke=ilike.*" + encodeURIComponent(cleanOhrmarke) + "*&order=datum.asc";
+                let ilikeRes = await fetch(ilikeUrl, { headers });
+                if (ilikeRes.ok) {
+                    let ilikeData = await ilikeRes.json();
+                    if (ilikeData && ilikeData.length > 0) behandlungen = ilikeData;
+                }
+            }
+
+            if (!behandlungen || !Array.isArray(behandlungen) || behandlungen.length === 0) {
+                container.innerHTML = `<div style="color:#888; text-align:center; padding:15px; font-weight:bold;">Keine Behandlungen erfasst</div>`;
+                return;
+            }
+
+            // Chronologische Sortierung nach Datum (älteste zuerst)
+            behandlungen.sort((a, b) => {
+                let dA = a.datum ? new Date(a.datum).getTime() : 0;
+                let dB = b.datum ? new Date(b.datum).getTime() : 0;
+                return dA - dB;
+            });
+
+            let rowsHtml = "";
+            behandlungen.forEach(b => {
+                let dateStr = b.datum ? formatGermanDate(b.datum) : "-";
+                let krankheit = b.krankheit || b.diagnose || "-";
+                let medikament = b.medikament || "-";
+
+                rowsHtml += `<tr>
+                    <td style="white-space:nowrap; font-weight:bold; color:#4caf50;">${dateStr}</td>
+                    <td><strong style="color:#fff;">${krankheit}</strong></td>
+                    <td><span style="color:#ffe0b2;">${medikament}</span></td>
+                </tr>`;
+            });
+
+            container.innerHTML = `
+                <table class="data-table" style="width:100%; margin:0;">
+                    <thead>
+                        <tr>
+                            <th style="width:130px;">Datum</th>
+                            <th>Krankheit</th>
+                            <th>Medikament</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+            `;
+
+        } catch (e) {
+            console.error("Fehler beim Laden der Behandlungen:", e);
+            container.innerHTML = `<div style="color:#888; text-align:center; padding:15px; font-weight:bold;">Keine Behandlungen erfasst</div>`;
+        }
+    }
+    window.loadBehandlungenForAkte = loadBehandlungenForAkte;
 
     function openCattleDossier(id) {
         openCattleAkte(id);
@@ -2908,6 +4816,8 @@
             document.getElementById("fd-tm").value = f.tm;
             document.getElementById("fd-me").value = f.me;
             document.getElementById("fd-xp").value = f.xp;
+            let elXf = document.getElementById("fd-xf");
+            if (elXf) elXf.value = f.xf !== undefined ? f.xf : 180;
             document.getElementById("fd-preis").value = f.preis;
         } else {
             document.getElementById("feedModalTitle").innerText = "Neues Futtermittel anlegen";
@@ -2915,6 +4825,8 @@
             document.getElementById("fd-tm").value = "35.0";
             document.getElementById("fd-me").value = "10.5";
             document.getElementById("fd-xp").value = "120";
+            let elXf = document.getElementById("fd-xf");
+            if (elXf) elXf.value = "180";
             document.getElementById("fd-preis").value = "50";
         }
         document.getElementById("feedModal").style.display = "flex";
@@ -2930,6 +4842,8 @@
         let tm = parseFloat(document.getElementById("fd-tm").value) || 0;
         let me = parseFloat(document.getElementById("fd-me").value) || 0;
         let xp = parseFloat(document.getElementById("fd-xp").value) || 0;
+        let elXf = document.getElementById("fd-xf");
+        let xf = elXf ? (parseFloat(elXf.value) || 0) : 180;
         let preis = parseFloat(document.getElementById("fd-preis").value) || 0;
 
         if (!name) return alert("Bitte einen Namen angeben.");
@@ -2937,11 +4851,11 @@
         if (editingFeedId) {
             let f = feedItems.find(x => x.id === editingFeedId);
             if (f) {
-                f.name = name; f.tm = tm; f.me = me; f.xp = xp; f.preis = preis;
+                f.name = name; f.tm = tm; f.me = me; f.xp = xp; f.xf = xf; f.preis = preis;
             }
         } else {
             let newId = 'f_' + Date.now();
-            feedItems.push({ id: newId, name: name, tm: tm, me: me, xp: xp, preis: preis });
+            feedItems.push({ id: newId, name: name, tm: tm, me: me, xp: xp, xf: xf, preis: preis });
         }
 
         saveCattleModuleData();
@@ -2953,6 +4867,7 @@
     function deleteFeedItem(id) {
         if (confirm("Futtermittel wirklich aus der Datenbank löschen?")) {
             feedItems = feedItems.filter(f => f.id !== id);
+            if (mixerLoad && mixerLoad[id]) delete mixerLoad[id];
             Object.keys(categoryRations).forEach(catKey => {
                 if (categoryRations[catKey] && categoryRations[catKey][id]) delete categoryRations[catKey][id];
             });
@@ -3024,6 +4939,8 @@
         loadFields();
         loadNutrientSettingsFromSupabase();
         loadBetriebe();
+        loadCattleFromSupabase();
+        loadFuhrparkData();
     };
 </script>
 </body>
