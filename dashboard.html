@@ -2537,7 +2537,7 @@
             let alleFuhren = await resFuhren.json();
 
             // JavaScript: Trennung der Datenströme
-            const duengeDaten = alleFuhren.filter(f => f.aufgabe === 'Gärrest');
+            const duengeDaten = alleFuhren.filter(f => f.aufgabe && f.aufgabe.includes('Gärrest'));
             const ernteDaten = alleFuhren.filter(f => ['Maisernte', 'Grasernte'].includes(f.aufgabe));
 
             globalTripsData = duengeDaten;
