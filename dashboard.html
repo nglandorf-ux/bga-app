@@ -115,7 +115,8 @@
         <button id="btn-tab-cattle" class="tab-btn" onclick="switchTab('cattle')">🐄 Rinder</button>
         <button id="btn-tab-fuhrpark" class="tab-btn" onclick="switchTab('fuhrpark')">🚜 Fuhrpark</button>
         <button id="btn-tab-futter" class="tab-btn" onclick="switchTab('futter')">🌾 Fütterung</button>
-        <button id="btn-tab-stats" class="tab-btn" onclick="switchTab('stats')">📊 Statistik</button>
+        <button id="btn-tab-duengung" class="tab-btn" onclick="switchTab('duengung')">🌱 Düngung</button>
+        <button id="btn-tab-ernte" class="tab-btn" onclick="switchTab('ernte')">🌽 Ernte</button>
         <button id="btn-tab-settings" class="tab-btn" onclick="switchTab('settings')">⚙️ Einstellungen</button>
     </div>
 </div>
@@ -174,19 +175,19 @@
     <div id="map"></div>
 </div>
 
-<!-- TAB 2: STATISTIK & AUSWERTUNG -->
-<div id="view-stats" class="view-container">
-    <div class="full-view-content">
-        <h2>📊 Ausbringungs- & Nährstoff-Statistik</h2>
+<!-- TAB: DÜNGUNG -->
+<div id="view-duengung" class="view-container">
+    <div id="duengungTab" class="full-view-content tab-content" style="width:100%; display:none;">
+        <h2>🌱 Ausbringungs- & Nährstoff-Statistik</h2>
 
         <div class="filter-bar">
             <div class="filter-group">
                 <label>📅 Jahr</label>
-                <select id="filterYear" onchange="renderStatistics()"></select>
+                <select id="filterYear" onchange="renderDuengung()"></select>
             </div>
             <div class="filter-group">
                 <label>📆 Monat</label>
-                <select id="filterMonth" onchange="renderStatistics()">
+                <select id="filterMonth" onchange="renderDuengung()">
                     <option value="ALL">Alle Monate</option>
                     <option value="1">Januar</option>
                     <option value="2">Februar</option>
@@ -204,11 +205,11 @@
             </div>
             <div class="filter-group">
                 <label>🗓️ Kalenderwoche (KW)</label>
-                <select id="filterWeek" onchange="renderStatistics()"></select>
+                <select id="filterWeek" onchange="renderDuengung()"></select>
             </div>
             <div class="filter-group">
                 <label>📍 Schlag / Fläche</label>
-                <select id="filterField" onchange="renderStatistics()"></select>
+                <select id="filterField" onchange="renderDuengung()"></select>
             </div>
             <div class="filter-group" style="flex: 0 0 auto;">
                 <button onclick="resetStatsFilters()" style="margin-top: 0; background: #555; padding: 10px 15px;">🔄 Filter zurücksetzen</button>
@@ -238,7 +239,7 @@
             </div>
         </div>
 
-        <!-- REORDERABLE BLOCKS CONTAINER (STATISTIK) -->
+        <!-- REORDERABLE BLOCKS CONTAINER (DÜNGUNG) -->
         <div id="stats-blocks-container" style="display:flex; flex-direction:column; gap:25px;">
 
             <!-- BLOCK 1: Nährstoffbilanz pro Schlag / Fläche -->
@@ -270,52 +271,12 @@
                 </table>
             </div>
 
-            <!-- BLOCK 1.5: Ernte-Protokoll & Erträge -->
-            <div class="table-container reorder-block" id="block-ernteprotokoll" style="margin-bottom:0;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-                    <h3 style="margin:0; font-size:18px; color:#4caf50;">🌽 Ernte-Protokoll & Erträge</h3>
-                    <div style="display:flex; gap:4px;">
-                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
-                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
-                    </div>
-                </div>
-
-                <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px;">
-                    <div class="kpi-card" style="border-left: 4px solid #ffeb3b;">
-                        <div class="lbl">Gesamtmenge Maisernte</div>
-                        <div class="val" id="kpi-mais-vol" style="color: #ffeb3b;">0 m³</div>
-                        <div style="font-size: 12px; color: #aaa; margin-top: 5px;" id="kpi-mais-count">0 Fuhren</div>
-                    </div>
-                    <div class="kpi-card" style="border-left: 4px solid #4caf50;">
-                        <div class="lbl">Gesamtmenge Grasernte</div>
-                        <div class="val" id="kpi-gras-vol" style="color: #4caf50;">0 m³</div>
-                        <div style="font-size: 12px; color: #aaa; margin-top: 5px;" id="kpi-gras-count">0 Fuhren</div>
-                    </div>
-                </div>
-
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Datum & Uhrzeit</th>
-                            <th>Aufgabe</th>
-                            <th>Fahrer</th>
-                            <th>Menge (m³ / kg)</th>
-                            <th>Ziel / Silo</th>
-                            <th style="text-align:center;">Aktionen</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ernteTripTableBody">
-                        <tr><td colspan="6" style="text-align:center; color:#888;">Lade Daten...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
             <!-- BLOCK 2: Detailliertes Ausbringungsprotokoll -->
             <div class="table-container reorder-block" id="block-ausbringungsprotokoll" style="margin-bottom:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
                     <h3 style="margin:0; font-size:18px; color:#4caf50;">🚛 Detailliertes Ausbringungsprotokoll</h3>
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <button onclick="openFuhreModal()" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#4caf50;">➕ Neue Fuhre eintragen</button>
+                        <button onclick="openFuhreModal('Gärrest')" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#4caf50;">➕ Neue Fuhre eintragen</button>
                         <div style="display:flex; gap:4px;">
                             <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
                             <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
@@ -343,6 +304,87 @@
                 </table>
             </div>
 
+        </div>
+    </div>
+</div>
+
+<!-- TAB: ERNTE -->
+<div id="view-ernte" class="view-container">
+    <div id="ernteTab" class="full-view-content tab-content" style="width:100%; display:none;">
+        <h2>🌽 Ernte-Dashboard</h2>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>📅 Jahr</label>
+                <select id="filterYearErnte" onchange="renderErnte()"></select>
+            </div>
+            <div class="filter-group">
+                <label>📆 Monat</label>
+                <select id="filterMonthErnte" onchange="renderErnte()">
+                    <option value="ALL">Alle Monate</option>
+                    <option value="1">Januar</option>
+                    <option value="2">Februar</option>
+                    <option value="3">März</option>
+                    <option value="4">April</option>
+                    <option value="5">Mai</option>
+                    <option value="6">Juni</option>
+                    <option value="7">Juli</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Dezember</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🗓️ Kalenderwoche (KW)</label>
+                <select id="filterWeekErnte" onchange="renderErnte()"></select>
+            </div>
+            <div class="filter-group">
+                <label>📍 Schlag / Fläche</label>
+                <select id="filterFieldErnte" onchange="renderErnte()"></select>
+            </div>
+            <div class="filter-group" style="flex: 0 0 auto;">
+                <button onclick="resetErnteFilters()" style="margin-top: 0; background: #555; padding: 10px 15px;">🔄 Filter zurücksetzen</button>
+            </div>
+        </div>
+
+        <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px;">
+            <div class="kpi-card" style="border-left: 4px solid #ffeb3b;">
+                <div class="lbl">Gesamtmenge Maisernte</div>
+                <div class="val" id="kpi-mais-vol" style="color: #ffeb3b;">0 m³</div>
+                <div style="font-size: 12px; color: #aaa; margin-top: 5px;" id="kpi-mais-count">0 Fuhren</div>
+            </div>
+            <div class="kpi-card" style="border-left: 4px solid #4caf50;">
+                <div class="lbl">Gesamtmenge Grasernte</div>
+                <div class="val" id="kpi-gras-vol" style="color: #4caf50;">0 m³</div>
+                <div style="font-size: 12px; color: #aaa; margin-top: 5px;" id="kpi-gras-count">0 Fuhren</div>
+            </div>
+        </div>
+
+        <div class="table-container reorder-block" id="block-ernteprotokoll" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0; font-size:18px; color:#4caf50;">🌽 Ernte-Protokoll & Erträge</h3>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button onclick="openFuhreModal('Maisernte')" style="width:auto; margin:0; padding:6px 12px; font-size:12px; background:#4caf50;">➕ Neue Fuhre eintragen</button>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Datum & Uhrzeit</th>
+                        <th>Schlag / Fläche</th>
+                        <th>Aufgabe</th>
+                        <th>Fahrer</th>
+                        <th>Menge (m³ / kg)</th>
+                        <th>Ziel / Silo</th>
+                        <th style="text-align:center;">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody id="ernteTripTableBody">
+                    <tr><td colspan="7" style="text-align:center; color:#888;">Lade Daten...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -1325,9 +1367,23 @@
             let vMap = document.getElementById('view-map');
             if (vMap) vMap.classList.add('active');
             setTimeout(() => { if (map) map.invalidateSize(); }, 200);
-        } else if (tabName === 'stats') {
-            if (document.getElementById('btn-tab-stats')) document.getElementById('btn-tab-stats').classList.add('active');
-            document.getElementById('view-stats').classList.add('active');
+        } else if (tabName === 'duengung') {
+            if (document.getElementById('btn-tab-duengung')) document.getElementById('btn-tab-duengung').classList.add('active');
+            let vDuengung = document.getElementById('view-duengung');
+            if (vDuengung) vDuengung.classList.add('active');
+            let dTab = document.getElementById('duengungTab');
+            if (dTab) dTab.style.display = 'block';
+            let eTab = document.getElementById('ernteTab');
+            if (eTab) eTab.style.display = 'none';
+            loadStatisticsData();
+        } else if (tabName === 'ernte') {
+            if (document.getElementById('btn-tab-ernte')) document.getElementById('btn-tab-ernte').classList.add('active');
+            let vErnte = document.getElementById('view-ernte');
+            if (vErnte) vErnte.classList.add('active');
+            let eTab = document.getElementById('ernteTab');
+            if (eTab) eTab.style.display = 'block';
+            let dTab = document.getElementById('duengungTab');
+            if (dTab) dTab.style.display = 'none';
             loadStatisticsData();
         } else if (tabName === 'cattle' || tabName === 'rinder') {
             if (document.getElementById('btn-tab-cattle')) document.getElementById('btn-tab-cattle').classList.add('active');
@@ -2482,7 +2538,7 @@
 
             // JavaScript: Trennung der Datenströme
             const duengeDaten = alleFuhren.filter(f => f.aufgabe === 'Gärrest');
-            const ernteDaten = alleFuhren.filter(f => f.aufgabe === 'Maisernte' || f.aufgabe === 'Grasernte');
+            const ernteDaten = alleFuhren.filter(f => ['Maisernte', 'Grasernte'].includes(f.aufgabe));
 
             globalTripsData = duengeDaten;
             globalErnteData = ernteDaten;
@@ -2491,7 +2547,8 @@
             if (radarFuhren) radarFuhren.innerText = globalTripsData.length;
 
             populateStatsFilterDropdowns();
-            renderStatistics();
+            renderDuengung();
+            renderErnte();
         } catch (error) {
             console.error("Fehler beim Laden der Statistik:", error);
             document.getElementById("statsFieldTableBody").innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Fehler beim Laden der Daten!</td></tr>`;
@@ -2501,21 +2558,40 @@
     function populateStatsFilterDropdowns() {
         let years = new Set();
         let weeks = new Set();
+        let yearsE = new Set();
+        let weeksE = new Set();
 
         let fieldSelect = document.getElementById("filterField");
         let currentFieldSel = fieldSelect.value;
         fieldSelect.innerHTML = `<option value="ALL">Alle Schläge</option>`;
+
+        let fieldSelectE = document.getElementById("filterFieldErnte");
+        let currentFieldSelE = fieldSelectE ? fieldSelectE.value : "ALL";
+        if(fieldSelectE) fieldSelectE.innerHTML = `<option value="ALL">Alle Schläge</option>`;
+
         globalFieldsData.forEach(f => {
             fieldSelect.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+            if(fieldSelectE) fieldSelectE.innerHTML += `<option value="${f.id}">${f.name}</option>`;
         });
         if(currentFieldSel) fieldSelect.value = currentFieldSel;
+        if(currentFieldSelE && fieldSelectE) fieldSelectE.value = currentFieldSelE;
 
-        globalTripsData.concat(globalErnteData).forEach(t => {
+        globalTripsData.forEach(t => {
             if(t.zeitpunkt) {
                 let d = new Date(t.zeitpunkt);
                 if(!isNaN(d.getTime())) {
                     years.add(d.getFullYear());
                     weeks.add(getISOWeekNumber(d));
+                }
+            }
+        });
+
+        globalErnteData.forEach(t => {
+            if(t.zeitpunkt) {
+                let d = new Date(t.zeitpunkt);
+                if(!isNaN(d.getTime())) {
+                    yearsE.add(d.getFullYear());
+                    weeksE.add(getISOWeekNumber(d));
                 }
             }
         });
@@ -2538,6 +2614,29 @@
             weekSelect.innerHTML += `<option value="${w}">KW ${w}</option>`;
         });
         if(currentWeek) weekSelect.value = currentWeek;
+
+        let yearSelectE = document.getElementById("filterYearErnte");
+        if(yearSelectE) {
+            let currentYearE = yearSelectE.value;
+            yearSelectE.innerHTML = `<option value="ALL">Alle Jahre</option>`;
+            let sortedYearsE = Array.from(yearsE).sort((a, b) => b - a);
+            if(sortedYearsE.length === 0) sortedYearsE = [new Date().getFullYear()];
+            sortedYearsE.forEach(y => {
+                yearSelectE.innerHTML += `<option value="${y}">${y}</option>`;
+            });
+            yearSelectE.value = currentYearE && sortedYearsE.includes(parseInt(currentYearE)) ? currentYearE : (sortedYearsE[0] || "ALL");
+        }
+
+        let weekSelectE = document.getElementById("filterWeekErnte");
+        if(weekSelectE) {
+            let currentWeekE = weekSelectE.value;
+            weekSelectE.innerHTML = `<option value="ALL">Alle Wochen (KW)</option>`;
+            let sortedWeeksE = Array.from(weeksE).sort((a, b) => a - b);
+            sortedWeeksE.forEach(w => {
+                weekSelectE.innerHTML += `<option value="${w}">KW ${w}</option>`;
+            });
+            if(currentWeekE) weekSelectE.value = currentWeekE;
+        }
     }
 
     function resetStatsFilters() {
@@ -2545,29 +2644,24 @@
         document.getElementById("filterMonth").value = "ALL";
         document.getElementById("filterWeek").value = "ALL";
         document.getElementById("filterField").value = "ALL";
-        renderStatistics();
+        renderDuengung();
     }
 
-    function renderStatistics() {
+    function resetErnteFilters() {
+        if(document.getElementById("filterYearErnte")) document.getElementById("filterYearErnte").value = "ALL";
+        if(document.getElementById("filterMonthErnte")) document.getElementById("filterMonthErnte").value = "ALL";
+        if(document.getElementById("filterWeekErnte")) document.getElementById("filterWeekErnte").value = "ALL";
+        if(document.getElementById("filterFieldErnte")) document.getElementById("filterFieldErnte").value = "ALL";
+        renderErnte();
+    }
+
+    function renderDuengung() {
         let selYear = document.getElementById("filterYear").value;
         let selMonth = document.getElementById("filterMonth").value;
         let selWeek = document.getElementById("filterWeek").value;
         let selField = document.getElementById("filterField").value;
 
         let filteredTrips = globalTripsData.filter(t => {
-            if (!t.zeitpunkt) return false;
-            let d = new Date(t.zeitpunkt);
-            if (isNaN(d.getTime())) return false;
-
-            if (selYear !== "ALL" && d.getFullYear() !== parseInt(selYear)) return false;
-            if (selMonth !== "ALL" && (d.getMonth() + 1) !== parseInt(selMonth)) return false;
-            if (selWeek !== "ALL" && getISOWeekNumber(d) !== parseInt(selWeek)) return false;
-            if (selField !== "ALL" && t.field_id !== selField) return false;
-
-            return true;
-        });
-
-        let filteredErnte = globalErnteData.filter(t => {
             if (!t.zeitpunkt) return false;
             let d = new Date(t.zeitpunkt);
             if (isNaN(d.getTime())) return false;
@@ -2632,7 +2726,7 @@
             tripRowsHtml += `<tr>
                 <td>${dStr}</td>
                 <td><strong>${fieldName}</strong></td>
-                <td><span style="color:#ffb74d;">${t.aufgabe || 'Gärreste'}</span></td>
+                <td><span style="color:#ffb74d;">${t.aufgabe || 'Gärrest'}</span></td>
                 <td>${fahrerDisplay}</td>
                 <td>${vol.toFixed(1)} m³</td>
                 <td>${weight ? weight.toFixed(0) + ' kg' : '-'}</td>
@@ -2707,6 +2801,26 @@
         }
 
         document.getElementById("statsTripTableBody").innerHTML = tripRowsHtml;
+    }
+
+    function renderErnte() {
+        let selYear = document.getElementById("filterYearErnte") ? document.getElementById("filterYearErnte").value : "ALL";
+        let selMonth = document.getElementById("filterMonthErnte") ? document.getElementById("filterMonthErnte").value : "ALL";
+        let selWeek = document.getElementById("filterWeekErnte") ? document.getElementById("filterWeekErnte").value : "ALL";
+        let selField = document.getElementById("filterFieldErnte") ? document.getElementById("filterFieldErnte").value : "ALL";
+
+        let filteredErnte = globalErnteData.filter(t => {
+            if (!t.zeitpunkt) return false;
+            let d = new Date(t.zeitpunkt);
+            if (isNaN(d.getTime())) return false;
+
+            if (selYear !== "ALL" && d.getFullYear() !== parseInt(selYear)) return false;
+            if (selMonth !== "ALL" && (d.getMonth() + 1) !== parseInt(selMonth)) return false;
+            if (selWeek !== "ALL" && getISOWeekNumber(d) !== parseInt(selWeek)) return false;
+            if (selField !== "ALL" && t.field_id !== selField) return false;
+
+            return true;
+        });
 
         let totalMaisVol = 0;
         let totalMaisCount = 0;
@@ -2744,6 +2858,7 @@
 
             ernteRowsHtml += `<tr>
                 <td>${dStr}</td>
+                <td><strong>${fieldName}</strong></td>
                 <td><span style="color:#ffb74d;">${t.aufgabe || '-'}</span></td>
                 <td>${fahrerDisplay}</td>
                 <td>${mengeDisplay}</td>
@@ -2760,17 +2875,17 @@
         document.getElementById("kpi-gras-count").innerText = `${totalGrasCount} Fuhren`;
 
         if (filteredErnte.length === 0) {
-            ernteRowsHtml = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Ernte-Einträge im gewählten Zeitraum.</td></tr>`;
+            ernteRowsHtml = `<tr><td colspan="7" style="text-align:center; color:#888;">Keine Ernte-Einträge im gewählten Zeitraum.</td></tr>`;
         }
 
         document.getElementById("ernteTripTableBody").innerHTML = ernteRowsHtml;
     }
 
-    function openFuhreModal() {
+    function openFuhreModal(defaultAufgabe = 'Gärrest') {
         let now = new Date();
         let localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
         document.getElementById("fuhre-zeitpunkt").value = localIso;
-        document.getElementById("fuhre-aufgabe").value = "Gärreste";
+        document.getElementById("fuhre-aufgabe").value = defaultAufgabe;
         document.getElementById("fuhre-fahrer").value = "";
         document.getElementById("fuhre-volumen").value = "";
         document.getElementById("fuhre-gewicht").value = "";
