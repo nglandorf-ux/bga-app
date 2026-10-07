@@ -270,6 +270,46 @@
                 </table>
             </div>
 
+            <!-- BLOCK 1.5: Ernte-Protokoll & Erträge -->
+            <div class="table-container reorder-block" id="block-ernteprotokoll" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="margin:0; font-size:18px; color:#4caf50;">🌽 Ernte-Protokoll & Erträge</h3>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="moveBlockUp(this)" title="Block nach oben verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↑ Hoch</button>
+                        <button type="button" class="action-btn" onclick="moveBlockDown(this)" title="Block nach unten verschieben" style="padding:4px 10px; font-size:12px; background:#333; border:1px solid #555;">↓ Runter</button>
+                    </div>
+                </div>
+
+                <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px;">
+                    <div class="kpi-card" style="border-left: 4px solid #ffeb3b;">
+                        <div class="lbl">Gesamtmenge Maisernte</div>
+                        <div class="val" id="kpi-mais-vol" style="color: #ffeb3b;">0 m³</div>
+                        <div style="font-size: 12px; color: #aaa; margin-top: 5px;" id="kpi-mais-count">0 Fuhren</div>
+                    </div>
+                    <div class="kpi-card" style="border-left: 4px solid #4caf50;">
+                        <div class="lbl">Gesamtmenge Grasernte</div>
+                        <div class="val" id="kpi-gras-vol" style="color: #4caf50;">0 m³</div>
+                        <div style="font-size: 12px; color: #aaa; margin-top: 5px;" id="kpi-gras-count">0 Fuhren</div>
+                    </div>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Datum & Uhrzeit</th>
+                            <th>Aufgabe</th>
+                            <th>Fahrer</th>
+                            <th>Menge (m³ / kg)</th>
+                            <th>Ziel / Silo</th>
+                            <th style="text-align:center;">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ernteTripTableBody">
+                        <tr><td colspan="6" style="text-align:center; color:#888;">Lade Daten...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
             <!-- BLOCK 2: Detailliertes Ausbringungsprotokoll -->
             <div class="table-container reorder-block" id="block-ausbringungsprotokoll" style="margin-bottom:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
@@ -1263,6 +1303,7 @@
     let fieldMapLayers = {};
     let globalFieldsData = [];
     let globalTripsData = [];
+    let globalErnteData = [];
 
     // Nährstoff-Gehalte (Zentral in Supabase & LocalStorage Backup)
     let nutrientConfig = {
@@ -2439,11 +2480,12 @@
             let resFuhren = await fetch(SUPABASE_URL + "/rest/v1/fuhren?select=*&order=zeitpunkt.desc", { headers });
             let alleFuhren = await resFuhren.json();
 
-            // Zwingend filtern: Ernte-Fuhren ignorieren, nur Düngung/Gärreste berücksichtigen!
-            globalTripsData = alleFuhren.filter(f => {
-                let aufgabe = (f.aufgabe || "").trim().toLowerCase();
-                return !aufgabe.includes("ernte") && aufgabe !== "maisernte" && aufgabe !== "grasernte";
-            });
+            // JavaScript: Trennung der Datenströme
+            const duengeDaten = alleFuhren.filter(f => f.aufgabe === 'Gärrest');
+            const ernteDaten = alleFuhren.filter(f => f.aufgabe === 'Maisernte' || f.aufgabe === 'Grasernte');
+
+            globalTripsData = duengeDaten;
+            globalErnteData = ernteDaten;
 
             let radarFuhren = document.getElementById("radarFuhren");
             if (radarFuhren) radarFuhren.innerText = globalTripsData.length;
@@ -2468,7 +2510,7 @@
         });
         if(currentFieldSel) fieldSelect.value = currentFieldSel;
 
-        globalTripsData.forEach(t => {
+        globalTripsData.concat(globalErnteData).forEach(t => {
             if(t.zeitpunkt) {
                 let d = new Date(t.zeitpunkt);
                 if(!isNaN(d.getTime())) {
@@ -2513,6 +2555,19 @@
         let selField = document.getElementById("filterField").value;
 
         let filteredTrips = globalTripsData.filter(t => {
+            if (!t.zeitpunkt) return false;
+            let d = new Date(t.zeitpunkt);
+            if (isNaN(d.getTime())) return false;
+
+            if (selYear !== "ALL" && d.getFullYear() !== parseInt(selYear)) return false;
+            if (selMonth !== "ALL" && (d.getMonth() + 1) !== parseInt(selMonth)) return false;
+            if (selWeek !== "ALL" && getISOWeekNumber(d) !== parseInt(selWeek)) return false;
+            if (selField !== "ALL" && t.field_id !== selField) return false;
+
+            return true;
+        });
+
+        let filteredErnte = globalErnteData.filter(t => {
             if (!t.zeitpunkt) return false;
             let d = new Date(t.zeitpunkt);
             if (isNaN(d.getTime())) return false;
@@ -2652,6 +2707,63 @@
         }
 
         document.getElementById("statsTripTableBody").innerHTML = tripRowsHtml;
+
+        let totalMaisVol = 0;
+        let totalMaisCount = 0;
+        let totalGrasVol = 0;
+        let totalGrasCount = 0;
+        let ernteRowsHtml = "";
+
+        filteredErnte.forEach(t => {
+            let vol = parseFloat(t.volumen_m3) || 0;
+            let weight = parseFloat(t.gewicht_kg) || 0;
+
+            let aufgabeLower = (t.aufgabe || "").toLowerCase();
+            if (aufgabeLower.includes("mais")) {
+                totalMaisVol += vol;
+                totalMaisCount++;
+            } else if (aufgabeLower.includes("gras")) {
+                totalGrasVol += vol;
+                totalGrasCount++;
+            }
+
+            let fieldObj = globalFieldsData.find(f => f.id === t.field_id);
+            let fieldName = fieldObj ? fieldObj.name : (t.field_id || 'Unbekannt');
+
+            let dStr = "Unbekannt";
+            try {
+                let d = new Date(t.zeitpunkt);
+                dStr = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+            } catch(e) {}
+
+            let fahrerDisplay = t.fahrer || t.driver_id || '-';
+            let mengeDisplay = vol > 0 ? `${vol.toFixed(1)} m³` : (weight > 0 ? `${weight.toFixed(0)} kg` : '-');
+            if (vol > 0 && weight > 0) mengeDisplay = `${vol.toFixed(1)} m³ / ${weight.toFixed(0)} kg`;
+
+            let zielDisplay = t.ziel_silo || t.bemerkung || '-';
+
+            ernteRowsHtml += `<tr>
+                <td>${dStr}</td>
+                <td><span style="color:#ffb74d;">${t.aufgabe || '-'}</span></td>
+                <td>${fahrerDisplay}</td>
+                <td>${mengeDisplay}</td>
+                <td>${zielDisplay}</td>
+                <td style="text-align:center;">
+                    <button onclick="deleteFuhre('${t.id}')" title="Fuhre löschen" style="background:#e53935; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px;">🗑️</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("kpi-mais-vol").innerText = `${totalMaisVol.toFixed(1)} m³`;
+        document.getElementById("kpi-mais-count").innerText = `${totalMaisCount} Fuhren`;
+        document.getElementById("kpi-gras-vol").innerText = `${totalGrasVol.toFixed(1)} m³`;
+        document.getElementById("kpi-gras-count").innerText = `${totalGrasCount} Fuhren`;
+
+        if (filteredErnte.length === 0) {
+            ernteRowsHtml = `<tr><td colspan="6" style="text-align:center; color:#888;">Keine Ernte-Einträge im gewählten Zeitraum.</td></tr>`;
+        }
+
+        document.getElementById("ernteTripTableBody").innerHTML = ernteRowsHtml;
     }
 
     function openFuhreModal() {
